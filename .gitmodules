@@ -1,3 +1,6 @@
 [submodule "ext/googletest"]
 	path = ext/googletest
 	url = https://github.com/google/googletest
+[submodule "ext/opengv"]
+	path = ext/opengv
+	url = https://github.com/laurentkneip/opengv
