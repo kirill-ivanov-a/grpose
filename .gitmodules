@@ -4,3 +4,6 @@
 [submodule "ext/opengv"]
 	path = ext/opengv
 	url = https://github.com/laurentkneip/opengv
+[submodule "ext/Sophus"]
+	path = ext/Sophus
+	url = https://github.com/strasdat/Sophus
