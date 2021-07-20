@@ -18,7 +18,7 @@ DEFINE_double(
     max_quot, 0.7,
     "The part of all depths that is below the highest point on the colormap");
 
-using namespace mcam;
+using namespace grpose;
 
 std::vector<cv::Vec3b> getColors(std::vector<double> vals, double minVal,
                                  double maxVal, const cv::ColormapTypes &cmap) {

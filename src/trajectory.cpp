@@ -4,7 +4,7 @@
 
 #include "util.h"
 
-namespace mcam {
+namespace grpose {
 
 Trajectory Trajectory::fromFile(const fs::path &filename) {
   // Open the specified file.
@@ -292,4 +292,4 @@ double Trajectory::cumulativeTranslationOrRotation(Timestamp from, Timestamp to,
            low_idx_from_end.so3().log().norm();
 }
 
-}  // namespace mcam
+}  // namespace grpose

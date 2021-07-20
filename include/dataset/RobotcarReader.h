@@ -6,7 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include "dataset/DatasetReader.h"
 
-namespace mcam {
+namespace grpose {
 
 struct RobotcarReaderSettings {
   RobotcarReaderSettings();
@@ -139,6 +139,6 @@ class RobotcarReader : public DatasetReader {
   RobotcarReaderSettings settings;
 };
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

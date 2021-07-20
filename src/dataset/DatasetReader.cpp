@@ -1,9 +1,9 @@
 #include "dataset/DatasetReader.h"
 
-namespace mcam {
+namespace grpose {
 
 FrameDepths::~FrameDepths() {}
 
 DatasetReader::~DatasetReader() {}
 
-}  // namespace mcam
+}  // namespace grpose

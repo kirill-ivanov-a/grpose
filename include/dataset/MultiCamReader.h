@@ -3,7 +3,7 @@
 
 #include "DatasetReader.h"
 
-namespace mcam {
+namespace grpose {
 
 struct MultiCamReaderSettings {
   static const std::vector<std::string> default_camNames;
@@ -78,6 +78,6 @@ class MultiCamReader : public DatasetReader {
   StdVectorA<SE3> bodyToWorld;
 };
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

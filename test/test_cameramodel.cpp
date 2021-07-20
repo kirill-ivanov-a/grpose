@@ -3,7 +3,7 @@
 #include <random>
 #include "CameraModel.h"
 
-using namespace mcam;
+using namespace grpose;
 
 TEST(CameraModelTest, RealCameraReprojection) {
   // some real-world data

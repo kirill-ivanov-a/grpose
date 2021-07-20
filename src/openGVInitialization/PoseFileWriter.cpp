@@ -1,10 +1,10 @@
 #include "openGVInitialization/PoseFileWriter.h"
 #include "util.h"
 
-namespace mcam {
+namespace grpose {
 
 void PoseFileWriter::writeToFile(std::string pathToChunk,
-                                 mcam::NonCentralRelativePoseSolution solution,
+                                 grpose::NonCentralRelativePoseSolution solution,
                                  int currFrameInd, int nextFrameInd,
                                  std::string folder_parameters) {
   // Need to output timestamp, pose (px, py, pz, qx, qy, qz, qw)
@@ -14,7 +14,7 @@ void PoseFileWriter::writeToFile(std::string pathToChunk,
   folder = folder + "/" + std::to_string(solution.timestamps.first) + "_" +
            std::to_string(solution.timestamps.second);
 
-  mcam::fs::create_directories("/" + folder);
+  grpose::fs::create_directories("/" + folder);
 
   /* Writing found relative poses */
   std::ofstream relative_pose_file;
@@ -55,7 +55,7 @@ void PoseFileWriter::writeToFile(std::string pathToChunk,
   std::string tri_pts_path = folder + "/triangulated_points.txt";
   tri_pts_fb.open(tri_pts_path, std::ios::out);
   std::ostream os(&tri_pts_fb);
-  std::vector<mcam::Vector3>
+  std::vector<grpose::Vector3>
       tri_pts;  // Reformat triangulated points and make colors
   std::vector<cv::Vec3b> colors;
   for (int i = 0; i < solution.triangulated_points.size(); i++) {
@@ -77,4 +77,4 @@ void PoseFileWriter::writeToFile(std::string pathToChunk,
   status_file.close();
 }
 
-}  // namespace mcam
+}  // namespace grpose

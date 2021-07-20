@@ -10,7 +10,7 @@
 #include <random>
 #include <vector>
 
-namespace mcam {
+namespace grpose {
 
 void adjustPrincipal(Vector2 &principal,
                      CameraModelSettings::CenterShift centerMode) {
@@ -283,4 +283,4 @@ void CameraModel::recalcBoundaries() {
 
 void CameraModel::setMask(const cv::Mat1b &mask) { this->mMask = mask; }
 
-}  // namespace mcam
+}  // namespace grpose

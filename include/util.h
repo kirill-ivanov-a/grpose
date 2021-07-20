@@ -8,7 +8,7 @@
 #include <vector>
 #include "types.h"
 
-namespace mcam {
+namespace grpose {
 
 /**
  * A helper function to output a point cloud into a PLY file
@@ -99,6 +99,6 @@ ChronoTimePoint toChronoTimePoint(Timestamp timestamp);
  */
 std::string timeOfDay(ChronoTimePoint timePoint);
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

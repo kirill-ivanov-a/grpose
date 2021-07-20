@@ -4,7 +4,7 @@
 #include "metrics.h"
 #include "trajectory.h"
 
-using namespace mcam;
+using namespace grpose;
 
 // The path from the current working directory to the directory of the
 // executable that is being run. This allows for finding test files which are

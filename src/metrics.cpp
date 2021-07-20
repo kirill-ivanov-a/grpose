@@ -6,7 +6,7 @@
 
 #include "types.h"
 
-namespace mcam {
+namespace grpose {
 
 std::vector<double> absoluteTranslationError(const Trajectory& groundtruth,
                                              const Trajectory& estimate) {
@@ -44,4 +44,4 @@ std::vector<double> absoluteRotationError(const Trajectory& groundtruth,
   return errors;
 }
 
-}  // namespace mcam
+}  // namespace grpose

@@ -1,7 +1,7 @@
 #include "dataset/RobotcarReader.h"
 #include "util.h"
 
-namespace mcam {
+namespace grpose {
 
 RobotcarReaderSettings::RobotcarReaderSettings() {
   cam.unmapPolyDegree = 9;  // hand-tuned parameters
@@ -736,4 +736,4 @@ void RobotcarReader::syncTimestamps() {
   LOG(INFO) << "new avg tridist (s) = " << newAvgTriDist / 1e6;
 }
 
-}  // namespace mcam
+}  // namespace grpose

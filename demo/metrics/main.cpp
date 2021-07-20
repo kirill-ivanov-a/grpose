@@ -6,7 +6,7 @@
 #include "types.h"
 #include "util.h"
 
-using namespace mcam;
+using namespace grpose;
 
 int main(int argc, char *argv[]) {
   google::InitGoogleLogging(argv[0]);

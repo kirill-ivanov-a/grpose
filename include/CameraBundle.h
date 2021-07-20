@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 #include "CameraModel.h"
 
-namespace mcam {
+namespace grpose {
 
 class CameraBundle {
  public:
@@ -61,6 +61,6 @@ class CameraBundle {
   StdVectorA<CameraEntry> bundle;
 };
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

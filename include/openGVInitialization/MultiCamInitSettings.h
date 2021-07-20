@@ -3,7 +3,7 @@
 
 #include <opencv2/opencv.hpp>
 
-namespace mcam {
+namespace grpose {
 
 /***********************************
   Settings for relative pose solver
@@ -82,6 +82,6 @@ struct FeatureDetectorMatcherSettings {
   float min_ratio = default_min_ratio;
 };
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

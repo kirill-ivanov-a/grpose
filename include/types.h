@@ -12,7 +12,7 @@
 #include <sophus/sim3.hpp>
 #include <vector>
 
-namespace mcam {
+namespace grpose {
 
 using Vector2 = Eigen::Vector2d;
 using Vector3 = Eigen::Vector3d;
@@ -56,6 +56,6 @@ using ChronoTimePoint =
 
 namespace fs = std::filesystem;
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

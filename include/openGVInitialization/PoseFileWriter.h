@@ -5,16 +5,16 @@
 
 #include "openGVInitialization/NonCentralRelativePoseSolver.h"
 
-namespace mcam {
+namespace grpose {
 
 class PoseFileWriter {
  public:
   void writeToFile(std::string path,
-                   mcam::NonCentralRelativePoseSolution solution,
+                   grpose::NonCentralRelativePoseSolution solution,
                    int currFrameInd, int nextFrameInd,
                    std::string folder_parameters);
 };
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

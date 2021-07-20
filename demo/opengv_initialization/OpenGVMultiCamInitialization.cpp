@@ -8,10 +8,10 @@
 #include "dataset/MultiCamReader.h"
 #include "util.h"
 
-mcam::SE3 getMulticamGT(mcam::MultiCamReader mcReader, int currFrameInd,
+grpose::SE3 getMulticamGT(grpose::MultiCamReader mcReader, int currFrameInd,
                         int nextFrameInd) {
   // Getting relative pose to world for first frame
-  mcam::SE3 worldFromCurr;
+  grpose::SE3 worldFromCurr;
   if (mcReader.hasFrameToWorld(currFrameInd)) {
     worldFromCurr = mcReader.frameToWorld(currFrameInd);
   } else {
@@ -19,15 +19,15 @@ mcam::SE3 getMulticamGT(mcam::MultiCamReader mcReader, int currFrameInd,
   }
 
   // Getting relative pose for second frame
-  mcam::SE3 worldFromNext;
+  grpose::SE3 worldFromNext;
   if (mcReader.hasFrameToWorld(nextFrameInd)) {
     worldFromNext = mcReader.frameToWorld(nextFrameInd);
   } else {
     throw std::runtime_error("NO relative pose ground truth available");
   }
 
-  mcam::SE3 currFromNext = worldFromCurr.inverse() * worldFromNext;
-  mcam::SE3 gt_relative_poses = currFromNext;
+  grpose::SE3 currFromNext = worldFromCurr.inverse() * worldFromNext;
+  grpose::SE3 gt_relative_poses = currFromNext;
 
   std::cout << "RAW GROUND TRUTH " << currFrameInd << " " << nextFrameInd
             << std::endl;
@@ -37,21 +37,21 @@ mcam::SE3 getMulticamGT(mcam::MultiCamReader mcReader, int currFrameInd,
   return gt_relative_poses;
 }
 
-void initialize(mcam::MultiCamReader mcReader, int currFrameInd,
+void initialize(grpose::MultiCamReader mcReader, int currFrameInd,
                 int nextFrameInd, std::string pathToChunk, int ransac_runs,
                 bool visualize = false, bool writeOutput = true) {
   std::cout << "Selected frame " << currFrameInd << " in the chunk"
             << std::endl;
-  std::vector<mcam::DatasetReader::FrameEntry> curr_frame_bundle =
+  std::vector<grpose::DatasetReader::FrameEntry> curr_frame_bundle =
       mcReader.frame(currFrameInd);
-  std::vector<mcam::DatasetReader::FrameEntry> next_frame_bundle =
+  std::vector<grpose::DatasetReader::FrameEntry> next_frame_bundle =
       mcReader.frame(nextFrameInd);
 
   /* Get bearing correspondences between frames */
-  mcam::FeatureDetectorMatcherSettings fdmSettings;
-  mcam::FeatureDetectorMatcher FDM =
-      mcam::FeatureDetectorMatcher(fdmSettings, mcReader.cam());
-  mcam::BearingVectorCorrespondences bvc =
+  grpose::FeatureDetectorMatcherSettings fdmSettings;
+  grpose::FeatureDetectorMatcher FDM =
+      grpose::FeatureDetectorMatcher(fdmSettings, mcReader.cam());
+  grpose::BearingVectorCorrespondences bvc =
       FDM.getBearingVectors(curr_frame_bundle, next_frame_bundle);
 
   /* DEBUG */
@@ -62,7 +62,7 @@ void initialize(mcam::MultiCamReader mcReader, int currFrameInd,
 
   /* Initialize using relative pose solver */
   // order {0, 1, 2, 3} is {front, right, back, left}
-  mcam::StdVectorA<mcam::SE3> camera_extrinsics(4);
+  grpose::StdVectorA<grpose::SE3> camera_extrinsics(4);
   camera_extrinsics[0] = mcReader.cam().camToBody(0);
   camera_extrinsics[1] = mcReader.cam().camToBody(1);
   camera_extrinsics[2] = mcReader.cam().camToBody(2);
@@ -70,12 +70,12 @@ void initialize(mcam::MultiCamReader mcReader, int currFrameInd,
 
   const double focal_length = 410;
   const bool solver_verbose = (visualize) ? true : false;
-  mcam::NonCentralRelativePoseSolverSettings solverSettings(
+  grpose::NonCentralRelativePoseSolverSettings solverSettings(
       focal_length, solver_verbose);  // what is the focal length for mcam?
 
   // Solver constructor expect calibrations from image frame to the body frame
-  mcam::NonCentralRelativePoseSolver solver(solverSettings, camera_extrinsics);
-  mcam::NonCentralRelativePoseSolution solution;
+  grpose::NonCentralRelativePoseSolver solver(solverSettings, camera_extrinsics);
+  grpose::NonCentralRelativePoseSolution solution;
   try {
     solution = solver.solve(bvc, ransac_runs);
 
@@ -95,13 +95,13 @@ void initialize(mcam::MultiCamReader mcReader, int currFrameInd,
     solution.status = solution.FAILED;
   }
 
-  solution.timestamps = std::pair<mcam::Timestamp, mcam::Timestamp>(
+  solution.timestamps = std::pair<grpose::Timestamp, grpose::Timestamp>(
       mcReader.avgTimestamp(mcReader.timestampsFromInd(currFrameInd)),
       mcReader.avgTimestamp(mcReader.timestampsFromInd(nextFrameInd)));
 
   /* Write the results to a file */
   if (writeOutput) {
-    mcam::PoseFileWriter PFW;
+    grpose::PoseFileWriter PFW;
     PFW.writeToFile(pathToChunk, solution, currFrameInd, nextFrameInd, "");
   }
 }
@@ -116,9 +116,9 @@ int main(int argc, char *argv[]) {
   srand(0);
 
   std::string pathToChunk = argv[1];  // path to the main data folder
-  mcam::fs::path chunkDir(pathToChunk);
-  mcam::MultiCamReaderSettings mcReaderSettings;
-  mcam::MultiCamReader mcReader(chunkDir, mcReaderSettings);
+  grpose::fs::path chunkDir(pathToChunk);
+  grpose::MultiCamReaderSettings mcReaderSettings;
+  grpose::MultiCamReader mcReader(chunkDir, mcReaderSettings);
 
   int startingFrame =
       std::atoi(argv[2]);  // the starting frame (index for chunk starts at 0)

@@ -1,6 +1,6 @@
 #include "openGVInitialization/FeatureDetectorMatcher.h"
 
-namespace mcam {
+namespace grpose {
 
 BearingVectorCorrespondences::BearingVectorCorrespondences(int numCameras)
     : numCameras(numCameras),
@@ -368,4 +368,4 @@ void FeatureDetectorMatcher::kltMatching(
   }
 }
 
-}  // namespace mcam
+}  // namespace grpose

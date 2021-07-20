@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-namespace mcam {
+namespace grpose {
 
 class Trajectory {
  public:
@@ -155,6 +155,6 @@ class Trajectory {
   std::vector<double> cum_rotation_;
 };
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

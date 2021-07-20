@@ -52,7 +52,7 @@ DEFINE_double(
     rel_point_size, 0.001,
     "Relative to w+h point size on the images with projected points.");
 
-using namespace mcam;
+using namespace grpose;
 
 std::vector<cv::Vec3b> getColors(std::vector<double> vals, double minVal,
                                  double maxVal, const cv::ColormapTypes &cmap) {

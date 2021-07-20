@@ -6,7 +6,7 @@
 
 #include "types.h"
 
-namespace mcam {
+namespace grpose {
 
 void printInPly(std::ostream &out, const std::vector<Vector3> &points,
                 const std::vector<cv::Vec3b> &colors) {
@@ -142,4 +142,4 @@ std::string timeOfDay(ChronoTimePoint timePoint) {
          std::to_string(s + mcs * 1e-6);
 }
 
-}  // namespace mcam
+}  // namespace grpose

@@ -7,7 +7,7 @@
 #include "trajectory.h"
 #include "types.h"
 
-namespace mcam {
+namespace grpose {
 
 /**
  * An interface for providing ground-truth depths for a multi-frame.
@@ -113,6 +113,6 @@ class DatasetReader {
   };
 };
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

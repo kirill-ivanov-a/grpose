@@ -30,4 +30,4 @@ we want to compare. Note that the frames must correspond to the names of the ima
 last argument is the number of times to run RANSAC. For example, to run on the downloaded data samples set `pathToMCAM`
 to `./demo/data-samples/mcam`
 
-Note, the paths should not have a slash at the end.
+###### Note, the paths should not have a slash at the end.

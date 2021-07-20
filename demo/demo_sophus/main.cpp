@@ -8,7 +8,7 @@
 
 DEFINE_bool(opencv_demo, false, "If set, the OpenCV demo is run as well");
 
-using namespace mcam;
+using namespace grpose;
 
 int main(int argc, char **argv) {
   // Nice bonus: can print this thing when invoked with --help

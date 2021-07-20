@@ -3,7 +3,7 @@
 
 #include "openGVInitialization/MultiCamInitSettings.h"
 
-namespace mcam {
+namespace grpose {
 
 NonCentralRelativePoseSolverSettings::NonCentralRelativePoseSolverSettings(
     double focal_length, bool verbose) {
@@ -24,4 +24,4 @@ void NonCentralRelativePoseSolverSettings::updateRansacThreshold(
   ransac_threshold = 1.0 - std::cos(std::atan(reproj_threshold / focal_length));
 }
 
-}  // namespace mcam
+}  // namespace grpose

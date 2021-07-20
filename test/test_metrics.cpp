@@ -3,7 +3,7 @@
 
 #include "metrics.h"
 
-using namespace mcam;
+using namespace grpose;
 
 static const double kEpsilon = 1e-6;
 

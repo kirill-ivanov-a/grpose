@@ -3,7 +3,7 @@
 #include <fstream>
 #include <sophus/average.hpp>
 
-namespace mcam {
+namespace grpose {
 
 NonCentralRelativePoseSolver::NonCentralRelativePoseSolver(
     const NonCentralRelativePoseSolverSettings &settings,
@@ -336,4 +336,4 @@ int countMultiCamInliers(std::vector<std::vector<int>> inliers) {
   return num_inliers;
 }
 
-}  // namespace mcam
+}  // namespace grpose

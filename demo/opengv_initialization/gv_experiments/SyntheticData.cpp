@@ -211,13 +211,13 @@ int main() {
 
   // create like a virtual focal length to initialize the ransac threshold
   double focal_length = 500;
-  mcam::NonCentralRelativePoseSolverSettings solver_settings(focal_length);
+  grpose::NonCentralRelativePoseSolverSettings solver_settings(focal_length);
 
-  mcam::StdVectorA<Sophus::SE3d> cam_extrinsics;
+  grpose::StdVectorA<Sophus::SE3d> cam_extrinsics;
   for (int i = 0; i < num_cam; i++) {
     cam_extrinsics.push_back(Sophus::SE3d(cam_rotations[i], cam_offsets[i]));
   }
-  mcam::NonCentralRelativePoseSolver solver(solver_settings, cam_extrinsics);
+  grpose::NonCentralRelativePoseSolver solver(solver_settings, cam_extrinsics);
 
   auto solution = solver.solve(bearing_vectors1, bearing_vectors2,
                                cam_correspondences1, cam_correspondences2);

@@ -19,7 +19,7 @@
 #include "openGVInitialization/FeatureDetectorMatcher.h"
 #include "openGVInitialization/MultiCamInitSettings.h"
 
-namespace mcam {
+namespace grpose {
 
 struct NonCentralRelativePoseSolution {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -108,6 +108,6 @@ class NonCentralRelativePoseSolver {
 
 int countMultiCamInliers(std::vector<std::vector<int>> inliers);
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

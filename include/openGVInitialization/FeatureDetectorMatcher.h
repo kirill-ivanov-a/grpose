@@ -9,7 +9,7 @@
 #include "dataset/DatasetReader.h"
 #include "openGVInitialization/MultiCamInitSettings.h"
 
-namespace mcam {
+namespace grpose {
 
 struct BearingVectorCorrespondences {
   int numCameras;
@@ -105,6 +105,6 @@ void checkCorrespondences(
     const std::vector<DatasetReader::FrameEntry> &frame_bundle,
     const std::vector<DatasetReader::FrameEntry> &next_frame_bundle);
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

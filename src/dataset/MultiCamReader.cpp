@@ -2,7 +2,7 @@
 #include <fstream>
 #include "util.h"
 
-namespace mcam {
+namespace grpose {
 
 /**
  * Reading the camera model from an intrinsics file as provided by the MultiFoV
@@ -221,4 +221,4 @@ Trajectory MultiCamReader::gtTrajectory() const {
   return Trajectory{timestampedWorldFromFrame};
 }
 
-}  // namespace mcam
+}  // namespace grpose

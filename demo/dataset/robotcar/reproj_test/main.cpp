@@ -13,7 +13,7 @@ DEFINE_string(masks_dir, "data/masks/robotcar",
 DEFINE_bool(gen_clouds, true,
             "Do we need to generate whole clouds from the dump?");
 
-using namespace mcam;
+using namespace grpose;
 
 void testReproj(const CameraBundle &cameraBundle, const fs::path &outDir) {
   for (int ci = 0; ci < cameraBundle.numCams(); ++ci) {

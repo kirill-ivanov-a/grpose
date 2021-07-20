@@ -10,7 +10,7 @@
 #include "trajectory.h"
 #include "types.h"
 
-namespace mcam {
+namespace grpose {
 
 /**
  * @param groundtruth - The groundtruth trajectory.
@@ -30,6 +30,6 @@ std::vector<double> absoluteTranslationError(const Trajectory& groundtruth,
 std::vector<double> absoluteRotationError(const Trajectory& groundtruth,
                                           const Trajectory& estimate);
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif

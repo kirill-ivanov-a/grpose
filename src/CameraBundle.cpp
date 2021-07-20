@@ -1,6 +1,6 @@
 #include "CameraBundle.h"
 
-namespace mcam {
+namespace grpose {
 
 CameraBundle::CameraEntry::CameraEntry(const SE3 &_bodyToThis,
                                        const CameraModel &cam)
@@ -45,4 +45,4 @@ CameraBundle::CamPyr CameraBundle::camPyr(int pyrLevels) const {
   return result;
 }
 
-}  // namespace mcam
+}  // namespace grpose

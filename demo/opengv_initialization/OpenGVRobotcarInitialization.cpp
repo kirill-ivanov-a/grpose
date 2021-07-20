@@ -18,10 +18,10 @@ DEFINE_string(extrinsics_dir, "ext/robotcar-dataset-sdk/extrinsics",
 DEFINE_string(masks_dir, "data/masks/robotcar",
               "Directory with RobotCar dataset masks.");
 
-mcam::SE3 getRobotcarGT(mcam::RobotcarReader rcReader, int currFrameInd,
+grpose::SE3 getRobotcarGT(grpose::RobotcarReader rcReader, int currFrameInd,
                         int nextFrameInd) {
   // Getting relative pose to world for first frame
-  mcam::SE3 worldFromCurr;
+  grpose::SE3 worldFromCurr;
   if (rcReader.hasFrameToWorld(currFrameInd)) {
     worldFromCurr = rcReader.frameToWorld(currFrameInd);
   } else {
@@ -29,25 +29,25 @@ mcam::SE3 getRobotcarGT(mcam::RobotcarReader rcReader, int currFrameInd,
   }
 
   // Getting relative pose for second frame
-  mcam::SE3 worldFromNext;
+  grpose::SE3 worldFromNext;
   if (rcReader.hasFrameToWorld(nextFrameInd)) {
     worldFromNext = rcReader.frameToWorld(nextFrameInd);
   } else {
     throw std::runtime_error("No relative pose ground truth available");
   }
 
-  mcam::SE3 currFromNext = worldFromCurr.inverse() * worldFromNext;
-  mcam::SE3 gt_relative_poses = currFromNext;
+  grpose::SE3 currFromNext = worldFromCurr.inverse() * worldFromNext;
+  grpose::SE3 gt_relative_poses = currFromNext;
   return gt_relative_poses;
 }
 
-void initialize(mcam::RobotcarReader rcReader, int currFrameInd,
+void initialize(grpose::RobotcarReader rcReader, int currFrameInd,
                 int nextFrameInd, std::string pathToChunk, int ransac_runs,
                 bool visualize = false, bool writeOutput = true) {
   std::cout << "Selected frame " << currFrameInd << " and frame "
             << nextFrameInd << " in the chunk" << std::endl;
 
-  std::vector<mcam::DatasetReader::FrameEntry> curr_frame_bundle,
+  std::vector<grpose::DatasetReader::FrameEntry> curr_frame_bundle,
       next_frame_bundle;
 
   try {
@@ -59,10 +59,10 @@ void initialize(mcam::RobotcarReader rcReader, int currFrameInd,
   }
 
   /* Get bearing correspondences between frames */
-  mcam::FeatureDetectorMatcherSettings fdmSettings;
-  mcam::FeatureDetectorMatcher FDM =
-      mcam::FeatureDetectorMatcher(fdmSettings, rcReader.cam());
-  mcam::BearingVectorCorrespondences bvc =
+  grpose::FeatureDetectorMatcherSettings fdmSettings;
+  grpose::FeatureDetectorMatcher FDM =
+      grpose::FeatureDetectorMatcher(fdmSettings, rcReader.cam());
+  grpose::BearingVectorCorrespondences bvc =
       FDM.getBearingVectors(curr_frame_bundle, next_frame_bundle);
 
   /* DEBUG: displays the selected frames and found correspondences */
@@ -73,7 +73,7 @@ void initialize(mcam::RobotcarReader rcReader, int currFrameInd,
 
   /* Initialize using relative pose solver */
   // order {0, 1, 2} is {left, rear, right}
-  mcam::StdVectorA<mcam::SE3> camera_extrinsics(3);
+  grpose::StdVectorA<grpose::SE3> camera_extrinsics(3);
   camera_extrinsics[0] = rcReader.cam().camToBody(0);
   camera_extrinsics[1] = rcReader.cam().camToBody(1);
   camera_extrinsics[2] = rcReader.cam().camToBody(2);
@@ -81,10 +81,10 @@ void initialize(mcam::RobotcarReader rcReader, int currFrameInd,
   // Rough estimate for the three robotcar cameras
   const double focal_length = 410;
   const bool solver_verbose = (visualize) ? true : false;
-  mcam::NonCentralRelativePoseSolverSettings solverSettings(focal_length,
+  grpose::NonCentralRelativePoseSolverSettings solverSettings(focal_length,
                                                             solver_verbose);
-  mcam::NonCentralRelativePoseSolver solver(solverSettings, camera_extrinsics);
-  mcam::NonCentralRelativePoseSolution solution;
+  grpose::NonCentralRelativePoseSolver solver(solverSettings, camera_extrinsics);
+  grpose::NonCentralRelativePoseSolution solution;
   try {
     solution = solver.solve(bvc, ransac_runs);
 
@@ -104,13 +104,13 @@ void initialize(mcam::RobotcarReader rcReader, int currFrameInd,
     solution.status = solution.FAILED;
   }
 
-  solution.timestamps = std::pair<mcam::Timestamp, mcam::Timestamp>(
+  solution.timestamps = std::pair<grpose::Timestamp, grpose::Timestamp>(
       rcReader.avgTimestamp(rcReader.timestampsFromInd(currFrameInd)),
       rcReader.avgTimestamp(rcReader.timestampsFromInd(nextFrameInd)));
 
   /* Write the results to a file */
   if (writeOutput) {
-    mcam::PoseFileWriter PFW;
+    grpose::PoseFileWriter PFW;
     PFW.writeToFile(pathToChunk, solution, currFrameInd, nextFrameInd, "");
   }
 }
@@ -127,9 +127,9 @@ int main(int argc, char *argv[]) {
   std::string pathToChunk = argv[1];  // path to the main data folder
   std::string pathToRTK =
       argv[2];  // path to folder with all RTK for RobotCar chunks
-  mcam::fs::path chunkDir(pathToChunk);
-  mcam::fs::path rtkDir(pathToRTK);
-  mcam::RobotcarReader rcReader(chunkDir, FLAGS_models_dir,
+  grpose::fs::path chunkDir(pathToChunk);
+  grpose::fs::path rtkDir(pathToRTK);
+  grpose::RobotcarReader rcReader(chunkDir, FLAGS_models_dir,
                                 FLAGS_extrinsics_dir, rtkDir);
   rcReader.provideMasks(FLAGS_masks_dir);  // Provide the masks, IMPORTANT!!!
 

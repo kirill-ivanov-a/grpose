@@ -7,7 +7,7 @@
 #include <string>
 #include "types.h"
 
-namespace mcam {
+namespace grpose {
 
 struct CameraModelSettings {
   static constexpr int default_mapPolyDegree = 10;
@@ -294,6 +294,6 @@ class CameraModel {
   cv::Mat1b mMask;
 };
 
-}  // namespace mcam
+}  // namespace grpose
 
 #endif
