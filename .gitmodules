@@ -3,7 +3,7 @@
 	url = https://github.com/google/googletest
 [submodule "ext/opengv"]
 	path = ext/opengv
-	url = https://github.com/laurentkneip/opengv
+	url = https://github.com/MikhailTerekhov/opengv
 [submodule "ext/Sophus"]
 	path = ext/Sophus
 	url = https://github.com/strasdat/Sophus
