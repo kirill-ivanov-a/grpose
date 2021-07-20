@@ -1,21 +1,20 @@
-#include <iostream>
-#include <sophus/se3.hpp>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include <sophus/se3.hpp>
 
 #include "openGVInitialization/NonCentralRelativePoseSolver.h"
 
-// THIS IS A FILE with working Sophus initialization for some poses, and then uses OpenGV
-// to solve for the translation and rotation between poses
+// THIS IS A FILE with working Sophus initialization for some poses, and then
+// uses OpenGV to solve for the translation and rotation between poses
 
 // Eigen::Vector3d generateRandomTranslation(double maximumParallax);
 // Eigen::Matrix3d generateRandomRotation();
-// Eigen::Vector3d generateRandomPoint( double maximumDepth, double minimumDepth );
+// Eigen::Vector3d generateRandomPoint( double maximumDepth, double minimumDepth
+// );
 
-Eigen::Vector3d
-generateRandomTranslation(double maximumParallax) // maximum parallax is basically the
-                                                  // maximum possible translation
-{
+// maximum parallax is basically the maximum possible translation
+Eigen::Vector3d generateRandomTranslation(double maximumParallax) {
   Eigen::Vector3d translation;
   translation[0] = (((double)rand()) / ((double)RAND_MAX) - 0.5) * 2.0;
   translation[1] = (((double)rand()) / ((double)RAND_MAX) - 0.5) * 2.0;
@@ -84,21 +83,20 @@ Eigen::Vector3d generateRandomPoint(double maximumDepth, double minimumDepth) {
   cleanPoint[2] = (((double)rand()) / ((double)RAND_MAX) - 0.5) * 2.0;
   Eigen::Vector3d direction = cleanPoint / cleanPoint.norm();
 
-  double depth = (((double)rand()) / ((double)RAND_MAX)) * (maximumDepth - minimumDepth) +
-                 minimumDepth;
+  double depth =
+      (((double)rand()) / ((double)RAND_MAX)) * (maximumDepth - minimumDepth) +
+      minimumDepth;
 
   return depth * direction;
 }
 
 std::vector<int> getNindices(int n) {
   std::vector<int> indices;
-  for (int i = 0; i < n; i++)
-    indices.push_back(i);
+  for (int i = 0; i < n; i++) indices.push_back(i);
   return indices;
 }
 
 int main() {
-
   // init random seed
   srand(10);
 
@@ -126,13 +124,13 @@ int main() {
   int num_inliers = (int)floor(inlier_ratio * num_points);
   int num_outliers = num_points - num_inliers;
 
-  std::cout << "num_inliers: " << num_inliers << "   num_outliers: " << num_outliers
-            << std::endl
+  std::cout << "num_inliers: " << num_inliers
+            << "   num_outliers: " << num_outliers << std::endl
             << std::endl;
 
   double mindepth = 4;
   double maxdepth = 8;
-  opengv::translations_t points_world; // 3d points expressed in world frame
+  opengv::translations_t points_world;  // 3d points expressed in world frame
   for (int i = 0; i < num_inliers; i++) {
     points_world.push_back(generateRandomPoint(maxdepth, mindepth));
     // std::cout << points_world.back() << std::endl << std::endl;
@@ -145,7 +143,6 @@ int main() {
 
   int correspondence = 0;
   for (int i = 0; i < num_inliers; i++) {
-
     // pick the camera we're doing this correspondence in
     auto cam_offset = cam_offsets[correspondence];
     auto cam_rotation = cam_rotations[correspondence];
@@ -157,10 +154,12 @@ int main() {
     auto point_v2 = rotation2.transpose() * (point_v1 - position2);
 
     // get the point in the camera in viewpoint 1
-    bearing_vectors1.push_back(cam_rotation.transpose() * (point_v1 - cam_offset));
+    bearing_vectors1.push_back(cam_rotation.transpose() *
+                               (point_v1 - cam_offset));
 
     // get the point in the camera in viewpoint 2
-    bearing_vectors2.push_back(cam_rotation.transpose() * (point_v2 - cam_offset));
+    bearing_vectors2.push_back(cam_rotation.transpose() *
+                               (point_v2 - cam_offset));
 
     // IMPORTANT !!! normalize the bearing vectors
     bearing_vectors1.back().normalize();
@@ -174,8 +173,7 @@ int main() {
     cam_correspondences2.push_back(correspondence++);
 
     // spread the correspondences between the cameras
-    if (correspondence > (num_cam - 1))
-      correspondence = 0;
+    if (correspondence > (num_cam - 1)) correspondence = 0;
   }
 
   // Add some outlier bearing correspondences
@@ -190,14 +188,13 @@ int main() {
     cam_correspondences2.push_back(correspondence++);
 
     // spread the correspondences between the cameras
-    if (correspondence > (num_cam - 1))
-      correspondence = 0;
+    if (correspondence > (num_cam - 1)) correspondence = 0;
   }
 
   // create the non-central relative adapter
   opengv::relative_pose::NoncentralRelativeAdapter adapter(
-      bearing_vectors1, bearing_vectors2, cam_correspondences1, cam_correspondences2,
-      cam_offsets, cam_rotations);
+      bearing_vectors1, bearing_vectors2, cam_correspondences1,
+      cam_correspondences2, cam_offsets, cam_rotations);
 
   // 17-point algorithm
   opengv::transformation_t seventeenpt_transformation =
@@ -222,13 +219,13 @@ int main() {
   }
   mcam::NonCentralRelativePoseSolver solver(solver_settings, cam_extrinsics);
 
-  auto solution = solver.solve(bearing_vectors1, bearing_vectors2, cam_correspondences1,
-                               cam_correspondences2);
+  auto solution = solver.solve(bearing_vectors1, bearing_vectors2,
+                               cam_correspondences1, cam_correspondences2);
 
   auto triangulated_points_world = solution.triangulated_points;
 
-  // Ordering of points is lost, so for each triangulated point, find it's nearest
-  // neighbour in the actual points
+  // Ordering of points is lost, so for each triangulated point, find it's
+  // nearest neighbour in the actual points
   for (const auto &tp : triangulated_points_world) {
     opengv::point_t nn;
     float best_error = std::numeric_limits<float>::max();

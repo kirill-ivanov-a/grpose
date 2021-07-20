@@ -141,8 +141,7 @@ folders "data" and "info").
 
   printTrajectory(&reader, outDir / "gt_traj.txt");
   cv::Mat3b depths = perPixelDepths(&reader, FLAGS_frame_ind);
-  cv::imwrite((outDir / "alldepths.png").string(),
-              depths);
+  cv::imwrite((outDir / "alldepths.png").string(), depths);
 
   createCloud(&reader, FLAGS_cloud_first_frame_ind, FLAGS_cloud_last_frame_ind,
               FLAGS_cloud_frame_step, FLAGS_cloud_points_per_frame, outDir);

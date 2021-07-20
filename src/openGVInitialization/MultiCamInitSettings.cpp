@@ -10,17 +10,18 @@ NonCentralRelativePoseSolverSettings::NonCentralRelativePoseSolverSettings(
   updateRansacThreshold(ransac_reproj_threshold, focal_length);
   solver_verbose = verbose;
   if (solver_verbose == true) {
-    LOG(INFO) << "RANSAC reprojection threshold: " << ransac_reproj_threshold << " px";
+    LOG(INFO) << "RANSAC reprojection threshold: " << ransac_reproj_threshold
+              << " px";
     LOG(INFO) << "Focal length: " << focal_length << " px";
     LOG(INFO) << "Computed RANSAC threshold: " << ransac_threshold;
   }
 }
 
-void NonCentralRelativePoseSolverSettings::updateRansacThreshold(double reproj_threshold,
-                                                                 double focal_length) {
+void NonCentralRelativePoseSolverSettings::updateRansacThreshold(
+    double reproj_threshold, double focal_length) {
   CHECK_GT(reproj_threshold, 0.0);
   CHECK_GT(focal_length, 0.0);
   ransac_threshold = 1.0 - std::cos(std::atan(reproj_threshold / focal_length));
 }
 
-} // namespace mcam
+}  // namespace mcam

@@ -8,11 +8,13 @@
 namespace mcam {
 
 class PoseFileWriter {
-
-public:
-  void writeToFile(std::string path, mcam::NonCentralRelativePoseSolution solution, int currFrameInd, int nextFrameInd, std::string folder_parameters);
+ public:
+  void writeToFile(std::string path,
+                   mcam::NonCentralRelativePoseSolution solution,
+                   int currFrameInd, int nextFrameInd,
+                   std::string folder_parameters);
 };
 
-} // namespace mcam
+}  // namespace mcam
 
 #endif

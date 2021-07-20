@@ -3,7 +3,6 @@
 from os import system
 from pathlib import Path
 
-
 THIS_SCRIPT_FPATH = Path(__file__).resolve()
 THIS_SCRIPT_DIRPATH = THIS_SCRIPT_FPATH.parent
 
@@ -36,9 +35,9 @@ def orb_euroc_initialization_demo():
     assert ORB_EUROC_TIMESTAMPS_FPATH.exists()
     run_orb_cmd = ('{} euroc {} {} {} --frames-per-chunk {} --use-visualizer '
                    '--use-separate-session-per-chunk --timestamps-fpath {}').format(
-                       RUN_ORB_SCRIPT_FPATH, ORB_EUROC_SAMPLES_BASE_DIRPATH,
-                       ORB_EUROC_OUTPUT_BASE_DIRPATH, ORB_EUROC_DATASET_NAME,
-                       ORB_EUROC_FRAMES_PER_CHUNK, ORB_EUROC_TIMESTAMPS_FPATH)
+        RUN_ORB_SCRIPT_FPATH, ORB_EUROC_SAMPLES_BASE_DIRPATH,
+        ORB_EUROC_OUTPUT_BASE_DIRPATH, ORB_EUROC_DATASET_NAME,
+        ORB_EUROC_FRAMES_PER_CHUNK, ORB_EUROC_TIMESTAMPS_FPATH)
     print(run_orb_cmd)
     system(run_orb_cmd)
 
@@ -49,9 +48,9 @@ def orb_robotcar_initialization_demo():
     assert ORB_ROBOTCAR_TIMESTAMPS_FPATH.exists()
     run_orb_cmd = ('{} robotcar {} {} {} --frames-per-chunk {} --use-visualizer '
                    '--use-separate-session-per-chunk --timestamps-fpath {}').format(
-                       RUN_ORB_SCRIPT_FPATH, ORB_ROBOTCAR_SAMPLES_BASE_DIRPATH,
-                       ORB_ROBOTCAR_OUTPUT_BASE_DIRPATH, ORB_ROBOTCAR_DATASET_NAME,
-                       ORB_ROBOTCAR_FRAMES_PER_CHUNK, ORB_ROBOTCAR_TIMESTAMPS_FPATH)
+        RUN_ORB_SCRIPT_FPATH, ORB_ROBOTCAR_SAMPLES_BASE_DIRPATH,
+        ORB_ROBOTCAR_OUTPUT_BASE_DIRPATH, ORB_ROBOTCAR_DATASET_NAME,
+        ORB_ROBOTCAR_FRAMES_PER_CHUNK, ORB_ROBOTCAR_TIMESTAMPS_FPATH)
     print(run_orb_cmd)
     system(run_orb_cmd)
 

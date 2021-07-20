@@ -269,6 +269,6 @@ int main(int argc, char *argv[]) {
       }
     }
   } else {
-      LOG(ERROR) << "Unknown dataset provided in " << chunkDir.string();
+    LOG(ERROR) << "Unknown dataset provided in " << chunkDir.string();
   }
 }

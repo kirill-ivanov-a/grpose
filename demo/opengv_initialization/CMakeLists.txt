@@ -7,7 +7,6 @@ add_executable(SyntheticInitializationDegenCase ${PROJECT_SOURCE_DIR}/demo/openg
 target_link_libraries(SyntheticInitializationDegenCase grpose)
 
 
-
 # Executable(s) for running test cases on arbitrary dataset
 
 add_executable(OpenGVInitialization ${PROJECT_SOURCE_DIR}/demo/opengv_initialization/OpenGVInitialization.cpp)

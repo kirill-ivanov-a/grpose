@@ -10,7 +10,7 @@ class CameraBundle {
  public:
   using CamPyr = StdVectorA<CameraBundle>;
 
-  CameraBundle(); // NOTE: default constructor here for convenience and testing
+  CameraBundle();  // NOTE: default constructor here for convenience and testing
   CameraBundle(SE3 bodyToCam[], CameraModel cam[], int size);
 
   inline int numCams() const { return bundle.size(); }

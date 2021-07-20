@@ -6,10 +6,8 @@ CameraBundle::CameraEntry::CameraEntry(const SE3 &_bodyToThis,
                                        const CameraModel &cam)
     : bodyToThis(_bodyToThis), thisToBody(_bodyToThis.inverse()), cam(cam) {}
 
-
 // NOTE: default constructor here for convenience and testing
 CameraBundle::CameraBundle() {}
-
 
 CameraBundle::CameraBundle(SE3 bodyToCam[], CameraModel cam[], int size) {
   bundle.reserve(size);
