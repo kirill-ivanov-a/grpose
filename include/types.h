@@ -10,16 +10,7 @@
 #include <sophus/se3.hpp>
 #include <sophus/sim3.hpp>
 #include <vector>
-
-#include "INCLUDE_STD_FILESYSTEM_EXPERIMENTAL.h"
-
-#if INCLUDE_STD_FILESYSTEM_EXPERIMENTAL
-#include <experimental/filesystem>
-#else
-
 #include <filesystem>
-
-#endif
 
 namespace mcam {
 
@@ -63,11 +54,7 @@ using Timestamp = uint64_t;
 using ChronoTimePoint =
     std::chrono::time_point<std::chrono::high_resolution_clock>;
 
-#if INCLUDE_STD_FILESYSTEM_EXPERIMENTAL
-namespace fs = std::experimental::filesystem;
-#else
 namespace fs = std::filesystem;
-#endif
 
 }  // namespace mcam
 
