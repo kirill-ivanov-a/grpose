@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13.0)
-project(generalized_relpose LANGUAGES CXX)
+project(grpose LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -47,8 +47,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/ext/Sophus)
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
 # set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g3 -DNDEBUG -march=native")
 
-set(generalized_relpose_HEADER_FILES
-    ${PROJECT_SOURCE_DIR}/include/INCLUDE_STD_FILESYSTEM_EXPERIMENTAL.h
+set(grpose_HEADER_FILES
     ${PROJECT_SOURCE_DIR}/include/types.h
     ${PROJECT_SOURCE_DIR}/include/util.h
     ${PROJECT_SOURCE_DIR}/include/defs.h
@@ -67,7 +66,7 @@ set(generalized_relpose_HEADER_FILES
     ${PROJECT_SOURCE_DIR}/include/openGVInitialization/PoseFileWriter.h
 )
 
-set(generalized_relpose_SOURCE_FILES
+set(grpose_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/util.cpp
     ${PROJECT_SOURCE_DIR}/src/CameraModel.cpp
     ${PROJECT_SOURCE_DIR}/src/CameraBundle.cpp
@@ -84,11 +83,11 @@ set(generalized_relpose_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/openGVInitialization/PoseFileWriter.cpp
 )
 
-add_library(generalized_relpose
-        ${generalized_relpose_SOURCE_FILES}
-        ${generalized_relpose_HEADER_FILES})
+add_library(grpose
+        ${grpose_SOURCE_FILES}
+        ${grpose_HEADER_FILES})
 
-target_include_directories(generalized_relpose
+target_include_directories(grpose
   PUBLIC
     ${GFLAGS_INCLUDE_DIRS}
     ${GLOG_INCLUDE_DIRS}
@@ -97,7 +96,7 @@ target_include_directories(generalized_relpose
     ${PROJECT_SOURCE_DIR}/ext/Sophus
 )
 
-target_link_libraries(generalized_relpose
+target_link_libraries(grpose
   PUBLIC
     gflags
     ${OpenCV_LIBS}
