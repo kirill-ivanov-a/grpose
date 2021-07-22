@@ -70,21 +70,30 @@ SE3 readBodyToIns(const fs::path &extrinsicsFile) {
 CameraBundle RobotcarReader::createFromData(
     const fs::path &modelsDir, const SE3 &bodyToLeft, const SE3 &bodyToRear,
     const SE3 &bodyToRight, int w, int h,
-    const CameraModelSettings &camSettings) {
+    const CameraModelScaramuzzaSettings &camSettings) {
   fs::path leftModel = modelsDir / "mono_left.txt";
   fs::path rearModel = modelsDir / "mono_rear.txt";
   fs::path rightModel = modelsDir / "mono_right.txt";
-  CameraModel models[RobotcarReader::numCams] = {
-      CameraModel(w, h, leftModel, CameraModel::POLY_MAP, camSettings),
-      CameraModel(w, h, rearModel, CameraModel::POLY_MAP, camSettings),
-      CameraModel(w, h, rightModel, CameraModel::POLY_MAP, camSettings)};
+  Camera cameras[RobotcarReader::numCams] = {
+      Camera(
+          w, h,
+          CameraModelScaramuzza(w, h, leftModel,
+                                CameraModelScaramuzza::POLY_MAP, camSettings)),
+      Camera(
+          w, h,
+          CameraModelScaramuzza(w, h, rearModel,
+                                CameraModelScaramuzza::POLY_MAP, camSettings)),
+      Camera(
+          w, h,
+          CameraModelScaramuzza(w, h, rightModel,
+                                CameraModelScaramuzza::POLY_MAP, camSettings))};
 
   SE3 bodyToCam[RobotcarReader::numCams] = {bodyToLeft, bodyToRear,
                                             bodyToRight};
   for (int i = 0; i < RobotcarReader::numCams; ++i)
     bodyToCam[i] = RobotcarReader::camToImage * bodyToCam[i];
 
-  return CameraBundle(bodyToCam, models, RobotcarReader::numCams);
+  return CameraBundle(bodyToCam, cameras, RobotcarReader::numCams);
 }
 
 void readTs(const fs::path &tsFile, std::vector<Timestamp> &timestamps) {

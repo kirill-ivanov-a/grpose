@@ -21,7 +21,7 @@ DEFINE_string(rc_extrinsics_dir, "ext/robotcar-dataset-sdk/extrinsics",
               "the dataset SDK.");
 
 grpose::SE3 getGT(grpose::DatasetReader *datasetReader, int currFrameInd,
-                int nextFrameInd) {
+                  int nextFrameInd) {
   // Getting relative pose to world for first frame
   grpose::SE3 worldFromCurr;
   if (datasetReader->hasFrameToWorld(currFrameInd)) {
@@ -92,10 +92,11 @@ void initialize(grpose::DatasetReader *datasetReader, int currFrameInd,
 
   const bool solver_verbose = (visualize) ? true : false;
   grpose::NonCentralRelativePoseSolverSettings solverSettings(focal_length,
-                                                            solver_verbose);
+                                                              solver_verbose);
 
   // Solver constructor expect calibrations from image frame to the body frame
-  grpose::NonCentralRelativePoseSolver solver(solverSettings, camera_extrinsics);
+  grpose::NonCentralRelativePoseSolver solver(solverSettings,
+                                              camera_extrinsics);
   grpose::NonCentralRelativePoseSolution solution;
 
   // Checking to make sure we're using the right algorithms
@@ -217,7 +218,7 @@ int main(int argc, char *argv[]) {
         argv[2];  // path to folder with all RTK for RobotCar chunks
     grpose::fs::path rtkDir(pathToRTK);
     grpose::RobotcarReader rcReader(chunkDir, FLAGS_rc_models_dir,
-                                  FLAGS_rc_extrinsics_dir, rtkDir);
+                                    FLAGS_rc_extrinsics_dir, rtkDir);
     rcReader.provideMasks(
         FLAGS_rc_masks_dir);  // Provide the masks, IMPORTANT!!!
 

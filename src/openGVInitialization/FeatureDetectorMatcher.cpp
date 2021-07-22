@@ -77,10 +77,10 @@ BearingVectorCorrespondences FeatureDetectorMatcher::getBearingVectors(
                          next_frame_bundle[i].timestamp);
 
     // Get camera model for the current camera
-    CameraModel camera_model = cameraBundle.cam(i);
+    Camera camera = cameraBundle.cam(i);
 
     // IMPORTANT use the mask for detection!!!
-    auto mask = camera_model.mask();
+    auto mask = camera.mask();
 
     // Get picture in grayscale
     cv::Mat1b frame_gray, next_frame_gray;
@@ -131,11 +131,10 @@ BearingVectorCorrespondences FeatureDetectorMatcher::getBearingVectors(
       // both frames passes the map(unmap()) check
       // => backproject-reproject error less than some number of px
       const double backproject_error = 1.0;
-      if (mapUnmap(current_pt, camera_model) < backproject_error &&
-          mapUnmap(next_pt, camera_model) < backproject_error) {
-        Eigen::Vector3d current_bearing =
-            camera_model.unmap(current_pt).normalized();
-        Eigen::Vector3d next_bearing = camera_model.unmap(next_pt).normalized();
+      if (mapUnmap(current_pt, camera) < backproject_error &&
+          mapUnmap(next_pt, camera) < backproject_error) {
+        Eigen::Vector3d current_bearing = camera.unmap(current_pt).normalized();
+        Eigen::Vector3d next_bearing = camera.unmap(next_pt).normalized();
 
         // pass_matches.push_back(m);
         bvcs.pushBVC(current_bearing, next_bearing, i);
@@ -156,7 +155,7 @@ BearingVectorCorrespondences FeatureDetectorMatcher::getBearingVectors(
     // drawMatches(frame_gray, keypoints, next_frame_gray, keypoints_next,
     //             pass_matches);
 
-    // checkMapUnmap(frame_gray, keypoints, camera_model);
+    // checkMapUnmap(frame_gray, keypoints, camera);
   }
 
   return bvcs;
@@ -243,11 +242,11 @@ void drawMatches(const cv::Mat &image1,
 
 void checkMapUnmap(const cv::Mat &image,
                    const std::vector<cv::KeyPoint> &keypoints,
-                   const CameraModel &camera_model) {
+                   const Camera &camera) {
   std::vector<cv::KeyPoint> bad_keypoints;
   for (const auto &kp : keypoints) {
     double error = FeatureDetectorMatcher::mapUnmap(
-        Eigen::Vector2d(kp.pt.x, kp.pt.y), camera_model);
+        Eigen::Vector2d(kp.pt.x, kp.pt.y), camera);
 
     if (error > 1.0) {
       bad_keypoints.push_back(kp);

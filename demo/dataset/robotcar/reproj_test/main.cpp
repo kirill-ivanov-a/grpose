@@ -17,7 +17,7 @@ using namespace grpose;
 
 void testReproj(const CameraBundle &cameraBundle, const fs::path &outDir) {
   for (int ci = 0; ci < cameraBundle.numCams(); ++ci) {
-    CameraModel cam = cameraBundle.cam(ci);
+    Camera cam = cameraBundle.cam(ci);
     int h = cam.height(), w = cam.width();
     cv::Mat1d errors(h, w);
     for (int r = 0; r < h; ++r)

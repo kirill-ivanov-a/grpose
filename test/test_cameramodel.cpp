@@ -1,7 +1,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 #include <random>
-#include "CameraModel.h"
+#include "camera/CameraModelScaramuzza.h"
 
 using namespace grpose;
 
@@ -13,7 +13,7 @@ TEST(CameraModelTest, RealCameraReprojection) {
   VectorX unmapPolyCoeffs(unmapPolyDeg, 1);
   unmapPolyCoeffs << 1.14169, -0.203229, -0.362134, 0.351011, -0.147191;
   int width = 1920, height = 1208;
-  CameraModel cam(width, height, scale, center, unmapPolyCoeffs);
+  CameraModelScaramuzza cam(width, height, scale, center, unmapPolyCoeffs);
 
   std::srand(42);
   const int testnum = 2000;
@@ -42,7 +42,7 @@ TEST(CameraModelTest, SolelyPolynomial) {
   VectorX unmapPolyCoefs(unmapPolyDeg, 1);
   unmapPolyCoefs << 1.0, -1.0;
   int width = 2, height = 0;
-  CameraModel cam(width, height, scale, center, unmapPolyCoefs);
+  CameraModelScaramuzza cam(width, height, scale, center, unmapPolyCoefs);
 
   std::srand(42);
   const int testnum = 2000;
@@ -56,38 +56,6 @@ TEST(CameraModelTest, SolelyPolynomial) {
   double rmse = std::sqrt(sqErr / testnum);
   LOG(INFO) << "rmse = " << rmse << std::endl;
   EXPECT_LT(rmse, 0.0005);
-}
-
-TEST(CameraModelTest, CamerasPyramid) {
-  double scale = 604.0;
-  Vector2 center(1.58447, 1.07353);
-  int unmapPolyDeg = 7;
-  int pyrLevels = 6;
-  VectorX unmapPolyCoeffs(unmapPolyDeg, 1);
-  unmapPolyCoeffs << 1.14544, -0.146714, -0.967996, 2.13329, -2.42001, 1.33018,
-      -0.292722;
-  int width = 1920, height = 1208;
-  CameraModel cam(width, height, scale, center, unmapPolyCoeffs);
-  StdVectorA<CameraModel> camPyr = cam.camPyr(pyrLevels);
-
-  std::mt19937 mt(42);
-  std::uniform_real_distribution<> xs(0, width - 1);
-  std::uniform_real_distribution<> ys(0, height - 1);
-
-  const int testCount = 1000;
-  for (int lvl = 0; lvl < pyrLevels; ++lvl)
-    for (int it = 0; it < testCount; ++it) {
-      double x = xs(mt), y = ys(mt);
-      Vector2 pnt(x, y);
-      Vector2 pntScaled(x / (1 << lvl), y / (1 << lvl));
-      Vector3 unmapOrig = cam.unmap(pnt).normalized();
-      Vector3 unmapPyr = camPyr[lvl].unmap(pntScaled).normalized();
-      double cos = unmapOrig.dot(unmapPyr);
-      if (cos < -1) cos = -1;
-      if (cos > 1) cos = 1;
-      double angle = (180.0 / M_PI) * std::acos(cos);
-      EXPECT_LT(angle, 0.01);
-    }
 }
 
 int main(int argc, char **argv) {

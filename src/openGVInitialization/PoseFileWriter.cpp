@@ -3,10 +3,9 @@
 
 namespace grpose {
 
-void PoseFileWriter::writeToFile(std::string pathToChunk,
-                                 grpose::NonCentralRelativePoseSolution solution,
-                                 int currFrameInd, int nextFrameInd,
-                                 std::string folder_parameters) {
+void PoseFileWriter::writeToFile(
+    std::string pathToChunk, grpose::NonCentralRelativePoseSolution solution,
+    int currFrameInd, int nextFrameInd, std::string folder_parameters) {
   // Need to output timestamp, pose (px, py, pz, qx, qy, qz, qw)
   // Also a file of 3D points for the triangulated points
   std::string folder =

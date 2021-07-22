@@ -11,7 +11,7 @@ namespace grpose {
 struct RobotcarReaderSettings {
   RobotcarReaderSettings();
 
-  CameraModelSettings cam;
+  CameraModelScaramuzzaSettings cam;
 
   static constexpr bool default_fillVoGaps = false;
   bool fillVoGaps = default_fillVoGaps;
@@ -104,11 +104,10 @@ class RobotcarReader : public DatasetReader {
  private:
   static const SE3 camToImage;
 
-  static CameraBundle createFromData(const fs::path &modelsDir,
-                                     const SE3 &bodyToLeft,
-                                     const SE3 &bodyToRear,
-                                     const SE3 &bodyToRight, int w, int h,
-                                     const CameraModelSettings &camSettings);
+  static CameraBundle createFromData(
+      const fs::path &modelsDir, const SE3 &bodyToLeft, const SE3 &bodyToRear,
+      const SE3 &bodyToRight, int w, int h,
+      const CameraModelScaramuzzaSettings &camSettings);
 
   void syncTimestamps();
 

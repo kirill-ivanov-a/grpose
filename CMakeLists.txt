@@ -51,10 +51,13 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/types.h
         ${PROJECT_SOURCE_DIR}/include/util.h
         ${PROJECT_SOURCE_DIR}/include/defs.h
-        ${PROJECT_SOURCE_DIR}/include/CameraModel.h
-        ${PROJECT_SOURCE_DIR}/include/CameraBundle.h
         ${PROJECT_SOURCE_DIR}/include/metrics.h
         ${PROJECT_SOURCE_DIR}/include/trajectory.h
+
+        include/camera/Camera.h
+        include/camera/CameraBundle.h
+        include/camera/CameraModelPinhole.h
+        include/camera/CameraModelScaramuzza.h
 
         ${PROJECT_SOURCE_DIR}/include/dataset/DatasetReader.h
         ${PROJECT_SOURCE_DIR}/include/dataset/RobotcarReader.h
@@ -68,10 +71,13 @@ set(grpose_HEADER_FILES
 
 set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/util.cpp
-        ${PROJECT_SOURCE_DIR}/src/CameraModel.cpp
-        ${PROJECT_SOURCE_DIR}/src/CameraBundle.cpp
         ${PROJECT_SOURCE_DIR}/src/metrics.cpp
         ${PROJECT_SOURCE_DIR}/src/trajectory.cpp
+
+        src/camera/Camera.cpp
+        src/camera/CameraBundle.cpp
+        src/camera/CameraModelPinhole.cpp
+        src/camera/CameraModelScaramuzza.cpp
 
         ${PROJECT_SOURCE_DIR}/src/dataset/DatasetReader.cpp
         ${PROJECT_SOURCE_DIR}/src/dataset/RobotcarReader.cpp

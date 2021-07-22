@@ -19,7 +19,7 @@ DEFINE_string(masks_dir, "data/masks/robotcar",
               "Directory with RobotCar dataset masks.");
 
 grpose::SE3 getRobotcarGT(grpose::RobotcarReader rcReader, int currFrameInd,
-                        int nextFrameInd) {
+                          int nextFrameInd) {
   // Getting relative pose to world for first frame
   grpose::SE3 worldFromCurr;
   if (rcReader.hasFrameToWorld(currFrameInd)) {
@@ -82,8 +82,9 @@ void initialize(grpose::RobotcarReader rcReader, int currFrameInd,
   const double focal_length = 410;
   const bool solver_verbose = (visualize) ? true : false;
   grpose::NonCentralRelativePoseSolverSettings solverSettings(focal_length,
-                                                            solver_verbose);
-  grpose::NonCentralRelativePoseSolver solver(solverSettings, camera_extrinsics);
+                                                              solver_verbose);
+  grpose::NonCentralRelativePoseSolver solver(solverSettings,
+                                              camera_extrinsics);
   grpose::NonCentralRelativePoseSolution solution;
   try {
     solution = solver.solve(bvc, ransac_runs);
@@ -130,7 +131,7 @@ int main(int argc, char *argv[]) {
   grpose::fs::path chunkDir(pathToChunk);
   grpose::fs::path rtkDir(pathToRTK);
   grpose::RobotcarReader rcReader(chunkDir, FLAGS_models_dir,
-                                FLAGS_extrinsics_dir, rtkDir);
+                                  FLAGS_extrinsics_dir, rtkDir);
   rcReader.provideMasks(FLAGS_masks_dir);  // Provide the masks, IMPORTANT!!!
 
   int startingFrame = std::atoi(argv[3]);  // the startingFrame

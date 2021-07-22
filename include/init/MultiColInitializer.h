@@ -43,8 +43,8 @@
 #include <opengv/sac_problems/relative_pose/CentralRelativePoseSacProblem.hpp>
 #include <opengv/sac_problems/relative_pose/NoncentralRelativePoseSacProblem.hpp>
 
-#include "CameraBundle.h"
 #include "DatasetReader.h"
+#include "camera/CameraBundle.h"
 
 namespace MultiColSLAM {
 class cCamModelGeneral_;

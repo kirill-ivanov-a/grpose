@@ -9,7 +9,7 @@
 #include "util.h"
 
 grpose::SE3 getMulticamGT(grpose::MultiCamReader mcReader, int currFrameInd,
-                        int nextFrameInd) {
+                          int nextFrameInd) {
   // Getting relative pose to world for first frame
   grpose::SE3 worldFromCurr;
   if (mcReader.hasFrameToWorld(currFrameInd)) {
@@ -74,7 +74,8 @@ void initialize(grpose::MultiCamReader mcReader, int currFrameInd,
       focal_length, solver_verbose);  // what is the focal length for mcam?
 
   // Solver constructor expect calibrations from image frame to the body frame
-  grpose::NonCentralRelativePoseSolver solver(solverSettings, camera_extrinsics);
+  grpose::NonCentralRelativePoseSolver solver(solverSettings,
+                                              camera_extrinsics);
   grpose::NonCentralRelativePoseSolution solution;
   try {
     solution = solver.solve(bvc, ransac_runs);

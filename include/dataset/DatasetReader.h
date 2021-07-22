@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <optional>
-#include "CameraBundle.h"
+#include "camera/CameraBundle.h"
 #include "trajectory.h"
 #include "types.h"
 

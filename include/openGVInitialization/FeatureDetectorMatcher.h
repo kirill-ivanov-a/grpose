@@ -5,7 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <opengv/types.hpp>
 
-#include "CameraBundle.h"
+#include "camera/CameraBundle.h"
 #include "dataset/DatasetReader.h"
 #include "openGVInitialization/MultiCamInitSettings.h"
 
@@ -42,8 +42,8 @@ class FeatureDetectorMatcher {
 
   template <typename T>
   static double mapUnmap(const Eigen::Matrix<T, 2, 1> &point,
-                         const CameraModel &cameraModel) {
-    return (point - cameraModel.map(cameraModel.unmap(point))).norm();
+                         const Camera &camera) {
+    return (point - camera.map(camera.unmap(point))).norm();
   }
 
  private:
@@ -97,7 +97,7 @@ void drawMatches(const cv::Mat &image1,
 */
 void checkMapUnmap(const cv::Mat &image,
                    const std::vector<cv::KeyPoint> &keypoints,
-                   const CameraModel &cameraModel);
+                   const Camera &camera);
 
 void checkCorrespondences(
     const BearingVectorCorrespondences &correspondences,

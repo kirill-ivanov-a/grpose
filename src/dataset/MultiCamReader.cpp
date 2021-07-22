@@ -8,7 +8,7 @@ namespace grpose {
  * Reading the camera model from an intrinsics file as provided by the MultiFoV
  * datasets
  */
-CameraModel getMfovCam(const fs::path &intrinsicsFname) {
+Camera getMfovCam(const fs::path &intrinsicsFname) {
   // Our CameraModel is partially compatible with the provided one (affine
   // transformation used in omni_cam is just scaling in our case, but no problem
   // raises since in this dataset no affine transformation is happening). We
@@ -28,7 +28,8 @@ CameraModel getMfovCam(const fs::path &intrinsicsFname) {
       unmapPolyCoeffs[4];
   ourCoeffs *= -1;
   camIfs >> center[0] >> center[1];
-  return CameraModel(width, height, 1.0, center, ourCoeffs);
+  return Camera(width, height,
+                CameraModelScaramuzza(width, height, 1.0, center, ourCoeffs));
 }
 
 cv::Mat1f readBinMat(const fs::path &fname, int imgWidth, int imgHeight) {
@@ -113,7 +114,7 @@ CameraBundle MultiCamReader::createCameraBundle(
   fs::path extrinsicsDir(datasetDir / "info" / "extrinsics");
   fs::path intrinsicsDir(datasetDir / "info" / "intrinsics");
 
-  StdVectorA<CameraModel> cams;
+  StdVectorA<Camera> cams;
   StdVectorA<SE3> bodyToCam;
   cams.reserve(camNames.size());
   bodyToCam.reserve(camNames.size());
