@@ -1,8 +1,8 @@
 #include <opengv/types.hpp>
 #include <sophus/se3.hpp>
 
-#include "openGVInitialization/FeatureDetectorMatcher.h"
-#include "openGVInitialization/PoseFileWriter.h"
+#include "init_opengv/FeatureDetectorMatcher.h"
+#include "init_opengv/PoseFileWriter.h"
 
 #include "dataset/MultiCamReader.h"
 #include "dataset/RobotcarReader.h"

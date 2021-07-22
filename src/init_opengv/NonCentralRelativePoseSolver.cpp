@@ -1,4 +1,4 @@
-#include "openGVInitialization/NonCentralRelativePoseSolver.h"
+#include "init_opengv/NonCentralRelativePoseSolver.h"
 #include <util.h>
 #include <fstream>
 #include <sophus/average.hpp>

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_TYPES
-#define INCLUDE_TYPES
+#ifndef GRPOSE_TYPES_
+#define GRPOSE_TYPES_
 
 #include <Eigen/Core>
 #include <Eigen/StdVector>

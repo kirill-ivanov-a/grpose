@@ -1,5 +1,5 @@
-#ifndef INCLUDE_UTIL
-#define INCLUDE_UTIL
+#ifndef GRPOSE_UTIL_
+#define GRPOSE_UTIL_
 
 #include <chrono>
 #include <fstream>

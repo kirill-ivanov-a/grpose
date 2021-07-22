@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CAMERA
-#define INCLUDE_CAMERA
+#ifndef GRPOSE_CAMERA_CAMERA_
+#define GRPOSE_CAMERA_CAMERA_
 
 #include "camera/CameraModelPinhole.h"
 #include "camera/CameraModelScaramuzza.h"

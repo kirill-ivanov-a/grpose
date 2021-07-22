@@ -1,9 +1,9 @@
 #include <opengv/types.hpp>
 #include <sophus/se3.hpp>
 
-#include "openGVInitialization/FeatureDetectorMatcher.h"
-#include "openGVInitialization/NonCentralRelativePoseSolver.h"
-#include "openGVInitialization/PoseFileWriter.h"
+#include "init_opengv/FeatureDetectorMatcher.h"
+#include "init_opengv/NonCentralRelativePoseSolver.h"
+#include "init_opengv/PoseFileWriter.h"
 
 #include "dataset/MultiCamReader.h"
 #include "util.h"

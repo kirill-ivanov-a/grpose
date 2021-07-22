@@ -1,5 +1,5 @@
-#ifndef INCLUDE_DATASETREADER
-#define INCLUDE_DATASETREADER
+#ifndef GRPOSE_DATASET_DATASETREADER_
+#define GRPOSE_DATASET_DATASETREADER_
 
 #include <memory>
 #include <optional>

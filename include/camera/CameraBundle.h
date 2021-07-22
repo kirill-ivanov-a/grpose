@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CAMERABUNDLE
-#define INCLUDE_CAMERABUNDLE
+#ifndef GRPOSE_CAMERA_CAMERABUNDLE_
+#define GRPOSE_CAMERA_CAMERABUNDLE_
 
 #include <glog/logging.h>
 #include "camera/Camera.h"

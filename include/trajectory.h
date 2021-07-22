@@ -1,5 +1,5 @@
-#ifndef INCLUDE_TRAJECTORY
-#define INCLUDE_TRAJECTORY
+#ifndef GRPOSE_TRAJECTORY_
+#define GRPOSE_TRAJECTORY_
 
 #include "types.h"
 

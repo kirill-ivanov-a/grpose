@@ -1,5 +1,5 @@
-#ifndef INCLUDE_DEFS
-#define INCLUDE_DEFS
+#ifndef GRPOSE_DEFS_
+#define GRPOSE_DEFS_
 
 #include <cmath>
 #include <limits>

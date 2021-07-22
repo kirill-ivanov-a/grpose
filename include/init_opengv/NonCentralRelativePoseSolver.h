@@ -1,5 +1,5 @@
-#ifndef INCLUDE_NONCENTRALRELATIVEPOSESOLVER
-#define INCLUDE_NONCENTRALRELATIVEPOSESOLVER
+#ifndef GRPOSE_INITOPENGV_NONCENTRALRELATIVEPOSESOLVER_
+#define GRPOSE_INITOPENGV_NONCENTRALRELATIVEPOSESOLVER_
 
 #include <glog/logging.h>
 #include <types.h>
@@ -16,8 +16,8 @@
 #include <opengv/sac/MultiRansac.hpp>
 #include <opengv/sac_problems/relative_pose/MultiNoncentralRelativePoseSacProblem.hpp>
 
-#include "openGVInitialization/FeatureDetectorMatcher.h"
-#include "openGVInitialization/MultiCamInitSettings.h"
+#include "init_opengv/FeatureDetectorMatcher.h"
+#include "init_opengv/MultiCamInitSettings.h"
 
 namespace grpose {
 

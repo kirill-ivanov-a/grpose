@@ -1,7 +1,7 @@
 #include <glog/logging.h>
 #include <math.h>
 
-#include "openGVInitialization/MultiCamInitSettings.h"
+#include "init_opengv/MultiCamInitSettings.h"
 
 namespace grpose {
 

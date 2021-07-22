@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sophus/se3.hpp>
 
-#include "openGVInitialization/NonCentralRelativePoseSolver.h"
+#include "init_opengv/NonCentralRelativePoseSolver.h"
 
 // THIS IS A FILE with working Sophus initialization for some poses, and then
 // uses OpenGV to solve for the translation and rotation between poses

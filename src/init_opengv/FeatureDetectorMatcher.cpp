@@ -1,4 +1,4 @@
-#include "openGVInitialization/FeatureDetectorMatcher.h"
+#include "init_opengv/FeatureDetectorMatcher.h"
 
 namespace grpose {
 

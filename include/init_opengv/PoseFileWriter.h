@@ -1,9 +1,9 @@
-#ifndef INCLUDE_POSEFILEWRITER
-#define INCLUDE_POSEFILEWRITER
+#ifndef GRPOSE_INITOPENGV_POSEFILEWRITER_
+#define GRPOSE_INITOPENGV_POSEFILEWRITER_
 #include <fstream>
 #include <iostream>
 
-#include "openGVInitialization/NonCentralRelativePoseSolver.h"
+#include "init_opengv/NonCentralRelativePoseSolver.h"
 
 namespace grpose {
 

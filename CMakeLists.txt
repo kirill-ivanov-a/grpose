@@ -63,10 +63,10 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/dataset/RobotcarReader.h
         ${PROJECT_SOURCE_DIR}/include/dataset/MultiCamReader.h
 
-        ${PROJECT_SOURCE_DIR}/include/openGVInitialization/FeatureDetectorMatcher.h
-        ${PROJECT_SOURCE_DIR}/include/openGVInitialization/NonCentralRelativePoseSolver.h
-        ${PROJECT_SOURCE_DIR}/include/openGVInitialization/MultiCamInitSettings.h
-        ${PROJECT_SOURCE_DIR}/include/openGVInitialization/PoseFileWriter.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/FeatureDetectorMatcher.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/NonCentralRelativePoseSolver.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/MultiCamInitSettings.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/PoseFileWriter.h
         )
 
 set(grpose_SOURCE_FILES
@@ -76,17 +76,16 @@ set(grpose_SOURCE_FILES
 
         src/camera/Camera.cpp
         src/camera/CameraBundle.cpp
-        src/camera/CameraModelPinhole.cpp
         src/camera/CameraModelScaramuzza.cpp
 
         ${PROJECT_SOURCE_DIR}/src/dataset/DatasetReader.cpp
         ${PROJECT_SOURCE_DIR}/src/dataset/RobotcarReader.cpp
         ${PROJECT_SOURCE_DIR}/src/dataset/MultiCamReader.cpp
 
-        ${PROJECT_SOURCE_DIR}/src/openGVInitialization/FeatureDetectorMatcher.cpp
-        ${PROJECT_SOURCE_DIR}/src/openGVInitialization/NonCentralRelativePoseSolver.cpp
-        ${PROJECT_SOURCE_DIR}/src/openGVInitialization/MultiCamInitSettings.cpp
-        ${PROJECT_SOURCE_DIR}/src/openGVInitialization/PoseFileWriter.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/FeatureDetectorMatcher.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/NonCentralRelativePoseSolver.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/MultiCamInitSettings.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/PoseFileWriter.cpp
         )
 
 add_library(grpose

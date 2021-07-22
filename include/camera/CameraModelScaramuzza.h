@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CAMERAMODEL
-#define INCLUDE_CAMERAMODEL
+#ifndef GRPOSE_CAMERA_CAMERAMODELSCARAMUZZA_
+#define GRPOSE_CAMERA_CAMERAMODELSCARAMUZZA_
 
 #include <glog/logging.h>
 #include <Eigen/Dense>

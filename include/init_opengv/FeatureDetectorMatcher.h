@@ -1,5 +1,5 @@
-#ifndef INCLUDE_FEATUREDETECTORMATCHER
-#define INCLUDE_FEATUREDETECTORMATCHER
+#ifndef GRPOSE_INITOPENGV_FEATUREDETECTORMATCHER_
+#define GRPOSE_INITOPENGV_FEATUREDETECTORMATCHER_
 
 #include <types.h>
 #include <opencv2/opencv.hpp>
@@ -7,7 +7,7 @@
 
 #include "camera/CameraBundle.h"
 #include "dataset/DatasetReader.h"
-#include "openGVInitialization/MultiCamInitSettings.h"
+#include "init_opengv/MultiCamInitSettings.h"
 
 namespace grpose {
 

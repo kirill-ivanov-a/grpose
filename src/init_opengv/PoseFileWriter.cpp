@@ -1,4 +1,4 @@
-#include "openGVInitialization/PoseFileWriter.h"
+#include "init_opengv/PoseFileWriter.h"
 #include "util.h"
 
 namespace grpose {

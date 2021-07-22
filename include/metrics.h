@@ -1,5 +1,5 @@
-#ifndef INCLUDE_METRICS
-#define INCLUDE_METRICS
+#ifndef GRPOSE_METRICS_
+#define GRPOSE_METRICS_
 
 #include <chrono>
 #include <fstream>
