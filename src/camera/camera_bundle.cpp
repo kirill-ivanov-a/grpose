@@ -1,4 +1,4 @@
-#include "camera/CameraBundle.h"
+#include "camera/camera_bundle.h"
 
 namespace grpose {
 

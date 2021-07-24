@@ -4,9 +4,9 @@
 #include <opencv2/opencv.hpp>
 #include <opengv/types.hpp>
 
-#include "camera/CameraBundle.h"
-#include "dataset/DatasetReader.h"
-#include "init_opengv/MultiCamInitSettings.h"
+#include "camera/camera_bundle.h"
+#include "dataset/dataset_reader.h"
+#include "init_opengv/multicam_init_settings.h"
 #include "types.h"
 
 namespace grpose {

@@ -1,4 +1,4 @@
-#include "camera/CameraModelScaramuzza.h"
+#include "camera/camera_model_scaramuzza.h"
 
 #include <algorithm>
 #include <fstream>

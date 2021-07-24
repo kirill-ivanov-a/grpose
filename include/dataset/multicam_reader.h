@@ -1,7 +1,7 @@
 #ifndef GRPOSE_DATASET_MULTICAMREADER_
 #define GRPOSE_DATASET_MULTICAMREADER_
 
-#include "DatasetReader.h"
+#include "dataset_reader.h"
 
 namespace grpose {
 

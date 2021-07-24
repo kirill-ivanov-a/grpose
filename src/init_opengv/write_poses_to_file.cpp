@@ -1,12 +1,12 @@
-#include "init_opengv/WriteToFile.h"
+#include "init_opengv/write_poses_to_file.h"
 #include "util.h"
 
 namespace grpose {
 
-void WriteToFile(const std::string &path_to_segment,
-                 const grpose::NonCentralRelativePoseSolution &solution,
-                 int first_frame_index, int second_frame_index,
-                 const std::string &folder_parameters) {
+void WritePosesToFile(const std::string &path_to_segment,
+                      const grpose::NonCentralRelativePoseSolution &solution,
+                      int first_frame_index, int second_frame_index,
+                      const std::string &folder_parameters) {
   // Need to output timestamp, pose (px, py, pz, qx, qy, qz, qw)
   // Also a file of 3D points for the triangulated points
   std::string folder =

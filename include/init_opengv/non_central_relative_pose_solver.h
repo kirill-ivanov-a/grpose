@@ -15,8 +15,8 @@
 #include <opengv/sac/MultiRansac.hpp>
 #include <opengv/sac_problems/relative_pose/MultiNoncentralRelativePoseSacProblem.hpp>
 
-#include "init_opengv/FeatureDetectorMatcher.h"
-#include "init_opengv/MultiCamInitSettings.h"
+#include "init_opengv/feature_detector_matcher.h"
+#include "init_opengv/multicam_init_settings.h"
 #include "types.h"
 
 namespace grpose {

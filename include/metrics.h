@@ -3,9 +3,10 @@
 
 #include <chrono>
 #include <fstream>
-#include <opencv2/opencv.hpp>
 #include <sstream>
 #include <vector>
+
+#include <opencv2/opencv.hpp>
 
 #include "trajectory.h"
 #include "types.h"

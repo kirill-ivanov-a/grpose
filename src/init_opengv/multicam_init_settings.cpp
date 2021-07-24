@@ -1,7 +1,8 @@
-#include <glog/logging.h>
+#include "init_opengv/multicam_init_settings.h"
+
 #include <math.h>
 
-#include "init_opengv/MultiCamInitSettings.h"
+#include <glog/logging.h>
 
 namespace grpose {
 

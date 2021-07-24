@@ -1,10 +1,10 @@
-#include <glog/logging.h>
 #include <iostream>
 #include <vector>
 
+#include <glog/logging.h>
+
 #include "metrics.h"
 #include "types.h"
-#include "util.h"
 
 using namespace grpose;
 

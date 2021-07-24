@@ -1,4 +1,4 @@
-#include "dataset/MultiCamReader.h"
+#include "dataset/multicam_reader.h"
 #include "util.h"
 
 DEFINE_int32(frame_ind, 400,

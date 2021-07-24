@@ -4,7 +4,7 @@
 #include <memory>
 #include <optional>
 
-#include "camera/CameraBundle.h"
+#include "camera/camera_bundle.h"
 #include "trajectory.h"
 #include "types.h"
 

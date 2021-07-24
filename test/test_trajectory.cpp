@@ -1,8 +1,9 @@
+#include "trajectory.h"
+
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include "metrics.h"
-#include "trajectory.h"
 
 using namespace grpose;
 

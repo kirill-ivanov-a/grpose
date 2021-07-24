@@ -1,8 +1,9 @@
 #include "util.h"
 
-#include <glog/logging.h>
 #include <iostream>
 #include <vector>
+
+#include <glog/logging.h>
 
 #include "types.h"
 

@@ -1,7 +1,7 @@
+#include "metrics.h"
+
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-
-#include "metrics.h"
 
 using namespace grpose;
 

@@ -1,4 +1,4 @@
-#include "camera/Camera.h"
+#include "camera/camera.h"
 #include "util.h"
 
 namespace grpose {

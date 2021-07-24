@@ -1,9 +1,11 @@
+#include <iostream>
+
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <iostream>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
+
 #include "types.h"
 
 DEFINE_bool(opencv_demo, false, "If set, the OpenCV demo is run as well");

@@ -1,4 +1,4 @@
-#include "init_opengv/FeatureDetectorMatcher.h"
+#include "init_opengv/feature_detector_matcher.h"
 
 namespace grpose {
 

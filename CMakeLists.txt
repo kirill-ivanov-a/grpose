@@ -53,19 +53,19 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/metrics.h
         ${PROJECT_SOURCE_DIR}/include/trajectory.h
 
-        include/camera/Camera.h
-        include/camera/CameraBundle.h
-        include/camera/CameraModelPinhole.h
-        include/camera/CameraModelScaramuzza.h
+        include/camera/camera.h
+        include/camera/camera_bundle.h
+        include/camera/camera_model_pinhole.h
+        include/camera/camera_model_scaramuzza.h
 
-        ${PROJECT_SOURCE_DIR}/include/dataset/DatasetReader.h
-        ${PROJECT_SOURCE_DIR}/include/dataset/RobotcarReader.h
-        ${PROJECT_SOURCE_DIR}/include/dataset/MultiCamReader.h
+        ${PROJECT_SOURCE_DIR}/include/dataset/dataset_reader.h
+        ${PROJECT_SOURCE_DIR}/include/dataset/robotcar_reader.h
+        ${PROJECT_SOURCE_DIR}/include/dataset/multicam_reader.h
 
-        ${PROJECT_SOURCE_DIR}/include/init_opengv/FeatureDetectorMatcher.h
-        ${PROJECT_SOURCE_DIR}/include/init_opengv/NonCentralRelativePoseSolver.h
-        ${PROJECT_SOURCE_DIR}/include/init_opengv/MultiCamInitSettings.h
-        ${PROJECT_SOURCE_DIR}/include/init_opengv/WriteToFile.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/feature_detector_matcher.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/non_central_relative_pose_solver.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/multicam_init_settings.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/write_poses_to_file.h
         )
 
 set(grpose_SOURCE_FILES
@@ -73,18 +73,18 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/metrics.cpp
         ${PROJECT_SOURCE_DIR}/src/trajectory.cpp
 
-        src/camera/Camera.cpp
-        src/camera/CameraBundle.cpp
-        src/camera/CameraModelScaramuzza.cpp
+        src/camera/camera.cpp
+        src/camera/camera_bundle.cpp
+        src/camera/camera_model_scaramuzza.cpp
 
-        ${PROJECT_SOURCE_DIR}/src/dataset/DatasetReader.cpp
-        ${PROJECT_SOURCE_DIR}/src/dataset/RobotcarReader.cpp
-        ${PROJECT_SOURCE_DIR}/src/dataset/MultiCamReader.cpp
+        ${PROJECT_SOURCE_DIR}/src/dataset/dataset_reader.cpp
+        ${PROJECT_SOURCE_DIR}/src/dataset/robotcar_reader.cpp
+        ${PROJECT_SOURCE_DIR}/src/dataset/multicam_reader.cpp
 
-        ${PROJECT_SOURCE_DIR}/src/init_opengv/FeatureDetectorMatcher.cpp
-        ${PROJECT_SOURCE_DIR}/src/init_opengv/NonCentralRelativePoseSolver.cpp
-        ${PROJECT_SOURCE_DIR}/src/init_opengv/MultiCamInitSettings.cpp
-        ${PROJECT_SOURCE_DIR}/src/init_opengv/WriteToFile.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/feature_detector_matcher.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/non_central_relative_pose_solver.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/multicam_init_settings.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/write_poses_to_file.cpp
         )
 
 add_library(grpose

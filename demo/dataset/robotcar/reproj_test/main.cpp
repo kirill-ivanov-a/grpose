@@ -1,4 +1,4 @@
-#include "dataset/RobotcarReader.h"
+#include "dataset/robotcar_reader.h"
 #include "util.h"
 
 DEFINE_string(models_dir, "data/models/robotcar",

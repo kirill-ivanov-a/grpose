@@ -1,7 +1,9 @@
+#include "camera/camera_model_scaramuzza.h"
+
+#include <random>
+
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include <random>
-#include "camera/CameraModelScaramuzza.h"
 
 using namespace grpose;
 

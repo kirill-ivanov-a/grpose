@@ -1,6 +1,9 @@
-#include "init_opengv/NonCentralRelativePoseSolver.h"
+#include "init_opengv/non_central_relative_pose_solver.h"
+
 #include <util.h>
+
 #include <fstream>
+
 #include <sophus/average.hpp>
 
 namespace grpose {

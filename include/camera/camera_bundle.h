@@ -3,7 +3,7 @@
 
 #include <glog/logging.h>
 
-#include "camera/Camera.h"
+#include "camera/camera.h"
 
 namespace grpose {
 

@@ -3,8 +3,8 @@
 
 #include <variant>
 
-#include "camera/CameraModelPinhole.h"
-#include "camera/CameraModelScaramuzza.h"
+#include "camera/camera_model_pinhole.h"
+#include "camera/camera_model_scaramuzza.h"
 
 namespace grpose {
 

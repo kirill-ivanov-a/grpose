@@ -1,5 +1,7 @@
-#include "dataset/MultiCamReader.h"
+#include "dataset/multicam_reader.h"
+
 #include <fstream>
+
 #include "util.h"
 
 namespace grpose {

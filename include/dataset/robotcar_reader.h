@@ -5,7 +5,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "dataset/DatasetReader.h"
+#include "dataset/dataset_reader.h"
 
 namespace grpose {
 
