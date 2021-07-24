@@ -15,11 +15,11 @@ int main(int argc, char *argv[]) {
   fs::path gt_traj_fpath = argv[1];
   fs::path est_traj_fpath = argv[2];
 
-  const Trajectory gt_traj = Trajectory::fromFile(gt_traj_fpath);
-  const Trajectory est_traj = Trajectory::fromFile(est_traj_fpath);
+  const Trajectory gt_traj = Trajectory::FromFile(gt_traj_fpath);
+  const Trajectory est_traj = Trajectory::FromFile(est_traj_fpath);
 
-  const std::vector<double> ates = absoluteTranslationError(gt_traj, est_traj);
-  const std::vector<double> ares = absoluteRotationError(gt_traj, est_traj);
+  const std::vector<double> ates = AbsoluteTranslationError(gt_traj, est_traj);
+  const std::vector<double> ares = AbsoluteRotationError(gt_traj, est_traj);
 
   std::cout << "Absolute translation errors:" << std::endl << "  ";
   for (const double ate : ates) {

@@ -3,502 +3,701 @@
 
 namespace grpose {
 
-RobotcarReaderSettings::RobotcarReaderSettings() {
-  cam.unmapPolyDegree = 9;  // hand-tuned parameters
-  cam.unmapPolyPoints = 60000;
-}
+namespace {
 
-bool RobotcarReader::isRobotcar(const fs::path &chunkDir) {
-  return fs::exists(chunkDir / "mono_left.timestamps") &&
-         fs::exists(chunkDir / "mono_left") &&
-         fs::exists(chunkDir / "mono_rear.timestamps") &&
-         fs::exists(chunkDir / "mono_rear") &&
-         fs::exists(chunkDir / "mono_right.timestamps") &&
-         fs::exists(chunkDir / "mono_right") &&
-         fs::exists(chunkDir / "lms_front.timestamps") &&
-         fs::exists(chunkDir / "lms_front") &&
-         fs::exists(chunkDir / "lms_rear.timestamps") &&
-         fs::exists(chunkDir / "lms_rear") &&
-         fs::exists(chunkDir / "ldmrs.timestamps") &&
-         fs::exists(chunkDir / "ldmrs") && fs::exists(chunkDir / "vo");
-}
-
-// clang-format off
-const SE3 RobotcarReader::camToImage =
-        SE3((Matrix44() <<
-                        0, 0, 1, 0,
-                        1, 0, 0, 0,
-                        0, 1, 0, 0,
-                        0, 0, 0, 1).finished())
-                .inverse();
-// clang-format on
-
-SE3 fromXyzrpy(double x, double y, double z, double roll, double pitch,
-               double yaw) {
+SE3 Se3FromXyzrpy(double x, double y, double z, double roll, double pitch,
+                  double yaw) {
   SO3 rot = SO3::rotZ(yaw) * SO3::rotY(pitch) * SO3::rotX(roll);
   return SE3(rot, Vector3(x, y, z));
 }
 
-SE3 readFromExtrin(const fs::path &extrinsicsFile) {
-  std::ifstream ifs(extrinsicsFile);
-  CHECK(ifs.is_open()) << "Could not open extrinsics file " << extrinsicsFile;
+SE3 ReadSe3FromExtrin(const fs::path &extrinsics_filename) {
+  std::ifstream extrinsics_file(extrinsics_filename);
+  // TODO cleanup throw
+  CHECK(extrinsics_file.is_open())
+      << "Could not open extrinsics file " << extrinsics_filename;
   double x, y, z, roll, pitch, yaw;
-  ifs >> x >> y >> z >> roll >> pitch >> yaw;
-  SE3 result = fromXyzrpy(x, y, z, roll, pitch, yaw);
+  extrinsics_file >> x >> y >> z >> roll >> pitch >> yaw;
+  SE3 result = Se3FromXyzrpy(x, y, z, roll, pitch, yaw);
   return result;
 }
 
-SE3 readBodyToCam(const fs::path &extrinsicsFile) {
-  SE3 result = readFromExtrin(extrinsicsFile);
-  LOG(INFO) << "file: " << extrinsicsFile << "\nbody -> this:\n"
+SE3 ReadCameraFromBody(const fs::path &extrinsics_filename) {
+  SE3 result = ReadSe3FromExtrin(extrinsics_filename);
+  LOG(INFO) << "file: " << extrinsics_filename << "\nbody -> this:\n"
             << result.matrix();
   return result;
 }
 
-SE3 readBodyToLidar(const fs::path &extrinsicsFile) {
-  SE3 lidarToBody = readFromExtrin(extrinsicsFile);
-  LOG(INFO) << "file: " << extrinsicsFile << "\nthis -> body:\n"
-            << lidarToBody.matrix();
-  return lidarToBody.inverse();
+SE3 ReadLidarFromBody(const fs::path &extrinsics_filename) {
+  SE3 body_from_lidar = ReadSe3FromExtrin(extrinsics_filename);
+  LOG(INFO) << "file: " << extrinsics_filename << "\nthis -> body:\n"
+            << body_from_lidar.matrix();
+  return body_from_lidar.inverse();
 }
 
-SE3 readBodyToIns(const fs::path &extrinsicsFile) {
-  SE3 insToBody = readFromExtrin(extrinsicsFile);
-  return insToBody.inverse();
+SE3 ReadInsFromBody(const fs::path &extrinsics_filename) {
+  SE3 body_from_ins = ReadSe3FromExtrin(extrinsics_filename);
+  return body_from_ins.inverse();
 }
 
-CameraBundle RobotcarReader::createFromData(
-    const fs::path &modelsDir, const SE3 &bodyToLeft, const SE3 &bodyToRear,
-    const SE3 &bodyToRight, int w, int h,
-    const CameraModelScaramuzzaSettings &camSettings) {
-  fs::path leftModel = modelsDir / "mono_left.txt";
-  fs::path rearModel = modelsDir / "mono_rear.txt";
-  fs::path rightModel = modelsDir / "mono_right.txt";
-  Camera cameras[RobotcarReader::numCams] = {
-      Camera(
-          w, h,
-          CameraModelScaramuzza(w, h, leftModel,
-                                CameraModelScaramuzza::POLY_MAP, camSettings)),
-      Camera(
-          w, h,
-          CameraModelScaramuzza(w, h, rearModel,
-                                CameraModelScaramuzza::POLY_MAP, camSettings)),
-      Camera(
-          w, h,
-          CameraModelScaramuzza(w, h, rightModel,
-                                CameraModelScaramuzza::POLY_MAP, camSettings))};
-
-  SE3 bodyToCam[RobotcarReader::numCams] = {bodyToLeft, bodyToRear,
-                                            bodyToRight};
-  for (int i = 0; i < RobotcarReader::numCams; ++i)
-    bodyToCam[i] = RobotcarReader::camToImage * bodyToCam[i];
-
-  return CameraBundle(bodyToCam, cameras, RobotcarReader::numCams);
-}
-
-void readTs(const fs::path &tsFile, std::vector<Timestamp> &timestamps) {
-  CHECK(fs::exists(tsFile)) << tsFile.native() + " does not exist";
-  std::ifstream ifs(tsFile);
-  Timestamp ts;
+void ReadTimestamps(const fs::path &timestamps_filename,
+                    std::vector<Timestamp> &timestamps) {
+  // TODO cleanup throw
+  CHECK(fs::exists(timestamps_filename))
+      << timestamps_filename.native() + " does not exist";
+  std::ifstream timestamps_file(timestamps_filename);
+  Timestamp timestamp;
   int one;
-  while (ifs >> ts >> one) {
-    CHECK(timestamps.empty() || timestamps.back() < ts);
-    timestamps.push_back(ts);
+  while (timestamps_file >> timestamp >> one) {
+    CHECK(timestamps.empty() || timestamps.back() < timestamp);
+    timestamps.push_back(timestamp);
   }
 }
 
-void readVo(const fs::path &voFile, std::vector<Timestamp> &timestamps,
-            StdVectorA<SE3> &voBodyToFirst, bool fillVoGaps) {
-  CHECK(fs::exists(voFile)) << voFile.native() + " does not exist";
+void ReadOdometryPoses(const fs::path &odometry_filename,
+                       bool fill_odometry_gaps,
+                       std::vector<Timestamp> &timestamps,
+                       StdVectorA<SE3> &odometry_first_from_body) {
+  // TODO cleanup throw
+  CHECK(fs::exists(odometry_filename))
+      << odometry_filename.native() + " does not exist";
 
-  Timestamp maxSkip = -1;
-  int skipCount = 0, backSkipCount = 0;
-  SE3 lboToLast;
+  Timestamp max_skip = -1;
+  int skip_count = 0, back_skip_count = 0;
+  // lbo = last but one
+  SE3 last_from_lbo;
 
-  std::ifstream ifs(voFile);
+  // TODO cleanup fmt
+  std::ifstream odometry_file(odometry_filename);
   std::string header;
-  std::getline(ifs, header);
+  std::getline(odometry_file, header);
   char comma;
-  Timestamp srcTs, dstTs;
+  Timestamp source_timestamp, destination_timestamp;
   double x, y, z, roll, pitch, yaw;
-  while (ifs >> srcTs >> comma >> dstTs >> comma >> x >> comma >> y >> comma >>
-         z >> comma >> roll >> comma >> pitch >> comma >> yaw) {
+  while (odometry_file >> source_timestamp >> comma >> destination_timestamp >>
+         comma >> x >> comma >> y >> comma >> z >> comma >> roll >> comma >>
+         pitch >> comma >> yaw) {
     if (timestamps.empty()) {
-      timestamps.push_back(dstTs);
-      voBodyToFirst.push_back(SE3());
+      timestamps.push_back(destination_timestamp);
+      odometry_first_from_body.push_back(SE3());
     }
 
-    SE3 srcToLast = fromXyzrpy(x, y, z, roll, pitch, yaw);
-    if (dstTs != timestamps.back()) {
-      Timestamp skip = (dstTs - timestamps.back());
+    SE3 last_from_source = Se3FromXyzrpy(x, y, z, roll, pitch, yaw);
+    if (destination_timestamp != timestamps.back()) {
+      Timestamp skip = (destination_timestamp - timestamps.back());
       if (skip < 0)
-        backSkipCount++;
+        back_skip_count++;
       else
-        maxSkip = std::max(skip, maxSkip);
-      skipCount++;
+        max_skip = std::max(skip, max_skip);
+      skip_count++;
 
-      if (fillVoGaps && timestamps.size() >= 2) {
-        double tsFrac = double(skip) /
-                        (timestamps.back() - timestamps[timestamps.size() - 2]);
-        SE3 dstToSrcSkip = SE3::exp(tsFrac * lboToLast.log());
-        srcToLast = dstToSrcSkip * srcToLast;
+      if (fill_odometry_gaps && timestamps.size() >= 2) {
+        double timestamp_fraction =
+            static_cast<double>(skip) /
+            static_cast<double>(timestamps.back() -
+                                timestamps[timestamps.size() - 2]);
+        SE3 source_from_destination_skipped =
+            SE3::exp(timestamp_fraction * last_from_lbo.log());
+        last_from_source = source_from_destination_skipped * last_from_source;
       }
     }
-    lboToLast = srcToLast;
-    SE3 srcToFirst = voBodyToFirst.back() * srcToLast;
-    timestamps.push_back(srcTs);
-    voBodyToFirst.push_back(srcToFirst);
+    last_from_lbo = last_from_source;
+    SE3 first_from_source = odometry_first_from_body.back() * last_from_source;
+    timestamps.push_back(source_timestamp);
+    odometry_first_from_body.push_back(first_from_source);
   }
 
-  LOG(INFO) << "the biggest skip in VO is " << maxSkip * 1e-6 << " seconds";
-  LOG(INFO) << "there are " << skipCount << " skips in total";
+  LOG(INFO) << "the biggest skip in VO is "
+            << static_cast<double>(max_skip) * 1.0e-6 << " seconds";
+  LOG(INFO) << "there are " << skip_count << " skips in total";
 }
 
-void readRtk(const fs::path &rtkFile, const SE3 &bodyToIns, bool correctRtk,
-             std::vector<Timestamp> &timestamps,
+void ReadRtk(const fs::path &rtk_filename, const SE3 &ins_from_body,
+             bool correct_rtk, std::vector<Timestamp> &timestamps,
              StdVectorA<SE3> &rtkBodyToWorld) {
-  std::ifstream rtkIfs(rtkFile);
-  std::string curLine;
-  std::getline(rtkIfs, curLine);
-  std::optional<SE3> worldToFirst;
-  while (std::getline(rtkIfs, curLine)) {
-    Timestamp ts;
+  std::ifstream rtk_file(rtk_filename);
+  // TODO cleanup fmt
+  std::string cur_line;
+  std::getline(rtk_file, cur_line);
+  std::optional<SE3> first_from_world;
+  while (std::getline(rtk_file, cur_line)) {
+    Timestamp timestamp;
     double latitude, longitude, altitude;
     double northing, easting, down;
-    double vNorth, vEast, vDown;
+    double v_north, v_east, v_down;
     double roll, pitch, yaw;
-    constexpr int needToRead = 13;
-    int numRead =
-        sscanf(curLine.c_str(),
-               "%lu,%lf,%lf,%lf,%lf,%lf,%lf,%*3c,%lf,%lf,%lf,%lf,%lf,%lf\n",
-               &ts, &latitude, &longitude, &altitude, &northing, &easting,
-               &down, &vNorth, &vEast, &vDown, &roll, &pitch, &yaw);
-    if (numRead != needToRead) {
-      LOG(WARNING) << "Read " << numRead << " instead of " << needToRead
+    constexpr int kNeedToRead = 13;
+    int num_read = sscanf(
+        cur_line.c_str(),
+        "%lu,%lf,%lf,%lf,%lf,%lf,%lf,%*3c,%lf,%lf,%lf,%lf,%lf,%lf\n",
+        &timestamp, &latitude, &longitude, &altitude, &northing, &easting,
+        &down, &v_north, &v_east, &v_down, &roll, &pitch, &yaw);
+    if (num_read != kNeedToRead) {
+      LOG(WARNING) << "Read " << num_read << " instead of " << kNeedToRead
                    << " elements in RTK ground truth";
       break;
     }
-    SE3 curBodyToWorld =
-        correctRtk
-            ? fromXyzrpy(-easting, northing, down, roll, pitch, yaw) * bodyToIns
-            : fromXyzrpy(northing, easting, down, roll, pitch, yaw) * bodyToIns;
+    SE3 cur_world_from_body =
+        correct_rtk
+            ? Se3FromXyzrpy(-easting, northing, down, roll, pitch, yaw) *
+                  ins_from_body
+            : Se3FromXyzrpy(northing, easting, down, roll, pitch, yaw) *
+                  ins_from_body;
 
-    if (!worldToFirst) {
-      worldToFirst.emplace(curBodyToWorld.inverse());
-      curBodyToWorld = SE3();
+    if (!first_from_world) {
+      first_from_world.emplace(cur_world_from_body.inverse());
+      cur_world_from_body = SE3();
     } else
-      curBodyToWorld = worldToFirst.value() * curBodyToWorld;
+      cur_world_from_body = first_from_world.value() * cur_world_from_body;
 
-    timestamps.push_back(ts);
-    rtkBodyToWorld.push_back(curBodyToWorld);
+    timestamps.push_back(timestamp);
+    rtkBodyToWorld.push_back(cur_world_from_body);
   }
 
-  double timeCovered = double(timestamps.back() - timestamps[0]) / 1e6;
-  LOG(INFO) << "RTK data time covered = " << timeCovered << " sec";
+  double time_covered = double(timestamps.back() - timestamps[0]) / 1.0e6;
+  LOG(INFO) << "RTK data time covered = " << time_covered << " sec";
   LOG(INFO) << "RTK data num positions = " << timestamps.size()
             << "; avg time between positions = "
-            << timeCovered / timestamps.size();
+            << time_covered / timestamps.size();
 }
 
-void logTimeInterval(const std::vector<Timestamp> &timestamps,
+void LogTimeInterval(const std::vector<Timestamp> &timestamps,
                      const std::string &name) {
-  LOG(INFO) << name << ": [" << timeOfDay(toChronoTimePoint(timestamps[0]))
-            << " -- " << timeOfDay(toChronoTimePoint(timestamps.back())) << "]"
+  LOG(INFO) << name << ": [" << TimeOfDay(timestamps[0]) << " -- "
+            << TimeOfDay(timestamps.back()) << "]"
             << " total items: " << timestamps.size();
 }
 
-RobotcarReader::RobotcarReader(const fs::path &_chunkDir,
-                               const fs::path &modelsDir,
-                               const fs::path &extrinsicsDir,
-                               const std::optional<fs::path> &rtkDir,
-                               const RobotcarReaderSettings &_settings)
-    : bodyToLeft(readBodyToCam(extrinsicsDir / "mono_left.txt")),
-      bodyToRear(readBodyToCam(extrinsicsDir / "mono_rear.txt")),
-      bodyToRight(readBodyToCam(extrinsicsDir / "mono_right.txt")),
-      bodyToLmsFront(readBodyToLidar(extrinsicsDir / "lms_front.txt")),
-      bodyToLmsRear(readBodyToLidar(extrinsicsDir / "lms_rear.txt")),
-      bodyToLdmrs(readBodyToLidar(extrinsicsDir / "ldmrs.txt")),
-      bodyToIns(readBodyToIns(extrinsicsDir / "ins.txt")),
-      mCam(createFromData(modelsDir, bodyToLeft, bodyToRear, bodyToRight,
-                          imageWidth, imageHeight, _settings.cam)),
-      chunkDir(_chunkDir),
-      leftDir(chunkDir / fs::path("mono_left")),
-      rearDir(chunkDir / fs::path("mono_rear")),
-      rightDir(chunkDir / fs::path("mono_right")),
-      lmsFrontDir(chunkDir / fs::path("lms_front")),
-      lmsRearDir(chunkDir / fs::path("lms_rear")),
-      ldmrsDir(chunkDir / fs::path("ldmrs")),
-      mMasksProvided(false),
-      settings(_settings) {
-  CHECK(fs::is_directory(leftDir));
-  CHECK(fs::is_directory(rearDir));
-  CHECK(fs::is_directory(rightDir));
-  CHECK(fs::is_directory(lmsFrontDir));
-  CHECK(fs::is_directory(lmsRearDir));
-  CHECK(fs::is_directory(ldmrsDir));
+std::string LogTimestamp(Timestamp timestamp) {
+  return std::to_string(timestamp) + " (" + TimeOfDay(timestamp) + ")";
+}
 
-  readTs(chunkDir / "mono_left.timestamps", mLeftTs);
-  readTs(chunkDir / "mono_rear.timestamps", mRearTs);
-  readTs(chunkDir / "mono_right.timestamps", mRightTs);
-  readTs(chunkDir / "lms_front.timestamps", mLmsFrontTs);
-  readTs(chunkDir / "lms_rear.timestamps", mLmsRearTs);
-  readTs(chunkDir / "ldmrs.timestamps", mLdmrsTs);
+SE3 WorldFromBodyAtTimestampHelper(Timestamp timestamp,
+                                   const StdVectorA<SE3> &bodyToWorld,
+                                   const std::vector<Timestamp> &timestamps) {
+  CHECK(timestamp >= timestamps[0] && timestamp <= timestamps.back())
+      << "Interpolating outside of ground truth! "
+      << "ts = " << LogTimestamp(timestamp) << ", bounds = ["
+      << LogTimestamp(timestamps[0]) << ", " << LogTimestamp(timestamps.back())
+      << "]";
+  CHECK(timestamps.size() >= 2);
+  if (timestamp == timestamps[0]) return bodyToWorld[0];
 
-  bool isRtkFound = false;
-  if (rtkDir) {
-    fs::path rtkFile = rtkDir.value() / chunkDir.filename() / "rtk.csv";
-    if (fs::is_regular_file(rtkFile)) {
-      readRtk(rtkFile, bodyToIns, settings.correctRtk, mGroundTruthTs,
-              gtBodyToWorld);
-      isRtkFound = true;
+  int ind = std::lower_bound(timestamps.begin(), timestamps.end(), timestamp) -
+            timestamps.begin();
+  CHECK(ind > 0 && ind < bodyToWorld.size());
+  SE3 low_from_high = bodyToWorld[ind - 1].inverse() * bodyToWorld[ind];
+  double timestamp_fraction = double(timestamp - timestamps[ind - 1]) /
+                              (timestamps[ind] - timestamps[ind - 1]);
+  SE3 low_from_timestamp = SE3::exp(timestamp_fraction * low_from_high.log());
+  return bodyToWorld[ind - 1] * low_from_timestamp;
+}
+
+// Here goes a large piece of code for timestamp synchronization between
+// different cameras. The auxiliary functions might be moved to another place,
+// but I don't know where yet.
+constexpr int kInvalidPosition = -1;
+
+Timestamp TimestampDistance(Timestamp a, Timestamp b) {
+  return a < b ? b - a : a - b;
+}
+
+Timestamp TripletDistance(Timestamp x1, Timestamp x2, Timestamp x3) {
+  return TimestampDistance(x1, x2) + TimestampDistance(x1, x3) +
+         TimestampDistance(x2, x3);
+}
+
+std::vector<int> ClosestNotHigherIndices(const std::vector<Timestamp> &a,
+                                         const std::vector<Timestamp> &b) {
+  CHECK(!b.empty());
+  std::vector<int> indices(a.size(), kInvalidPosition);
+  int ind_b = 0, ind_a = 0;
+  while (ind_b < b.size() && b[ind_b] > a[ind_a]) ind_a++;
+  for (; ind_a < a.size(); ++ind_a) {
+    if (ind_b + 1 == b.size() && a[ind_a] < b[ind_b]) break;
+    while (ind_b + 1 < b.size() && b[ind_b + 1] <= a[ind_a]) ++ind_b;
+    indices[ind_a] = ind_b;
+  }
+  return indices;
+}
+
+std::vector<int> ClosestNotLowerIndices(const std::vector<Timestamp> &a,
+                                        const std::vector<Timestamp> &b) {
+  CHECK(!b.empty());
+  std::vector<int> indices(a.size(), kInvalidPosition);
+  int ind_a = 0, ind_b = 0;
+  while (ind_b < b.size() && b[ind_b] < a[ind_a]) ind_b++;
+  for (; ind_a < a.size(); ++ind_a) {
+    while (ind_b < b.size() && b[ind_b] < a[ind_a]) ++ind_b;
+    if (ind_b == b.size()) break;
+    indices[ind_a] = ind_b;
+  }
+  return indices;
+}
+
+std::vector<int> ClosestIndicesInB(const std::vector<Timestamp> &a,
+                                   const std::vector<Timestamp> &b) {
+  CHECK(!b.empty());
+  std::vector<int> closest_to_b(a.size());
+  int ind_b = 0;
+  for (int ind_a = 0; ind_a < a.size(); ++ind_a) {
+    while (ind_b + 1 < b.size() && b[ind_b + 1] < a[ind_a]) ++ind_b;
+    if (ind_b + 1 == b.size()) {
+      closest_to_b[ind_a] = ind_b;
+      continue;
+    }
+    if (TimestampDistance(a[ind_a], b[ind_b]) <
+        TimestampDistance(a[ind_a], b[ind_b + 1]))
+      closest_to_b[ind_a] = ind_b;
+    else
+      closest_to_b[ind_a] = ++ind_b;
+  }
+  return closest_to_b;
+}
+
+void FilterBest(std::vector<Timestamp> &a, const std::vector<Timestamp> &b,
+                const std::vector<Timestamp> &c, std::vector<int> &a_to_b,
+                std::vector<int> &a_to_c) {
+  std::vector<int> best_indices_a_in_b(b.size(), kInvalidPosition);
+  std::vector<Timestamp> best_a_in_b(b.size());
+  for (int ind_a = 0; ind_a < a.size(); ++ind_a) {
+    Timestamp closeB = b[a_to_b[ind_a]], closeC = c[a_to_c[ind_a]];
+    Timestamp curDist = TripletDistance(a[ind_a], closeB, closeC);
+    if (best_indices_a_in_b[a_to_b[ind_a]] == kInvalidPosition ||
+        curDist < best_a_in_b[a_to_b[ind_a]]) {
+      best_a_in_b[a_to_b[ind_a]] = curDist;
+      best_indices_a_in_b[a_to_b[ind_a]] = ind_a;
     }
   }
 
-  readVo(chunkDir / fs::path("vo") / fs::path("vo.csv"), mVoTs, voBodyToWorld,
-         settings.fillVoGaps);
-  if (!isRtkFound) {
-    LOG(WARNING) << "No RTK ground truth for chunk \'" << chunkDir
+  std::vector<char> removed(a.size(), false);
+  for (int ind_a = 0; ind_a < a.size(); ++ind_a) {
+    if (best_indices_a_in_b[a_to_b[ind_a]] != ind_a) removed[ind_a] = true;
+  }
+  int new_ind_a = 0;
+  for (int old_ind_a = 0; old_ind_a < a.size(); ++old_ind_a)
+    if (!removed[old_ind_a]) {
+      a[new_ind_a] = a[old_ind_a];
+      a_to_b[new_ind_a] = a_to_b[old_ind_a];
+      a_to_c[new_ind_a] = a_to_c[old_ind_a];
+      ++new_ind_a;
+    }
+  a.resize(new_ind_a);
+  a_to_b.resize(new_ind_a);
+  a_to_c.resize(new_ind_a);
+}
+
+void FilterOutNoReference(std::vector<Timestamp> &v,
+                          std::vector<int> &indices) {
+  auto new_index_end = std::unique(indices.begin(), indices.end());
+  CHECK_EQ(new_index_end - indices.begin(), indices.end() - indices.begin());
+  int new_ind = 0;
+  for (int i : indices) v[new_ind++] = v[i];
+  v.resize(new_ind);
+}
+
+void CheckIndices(const std::vector<Timestamp> &a,
+                  const std::vector<Timestamp> &b,
+                  const std::vector<Timestamp> &c, int ind_a, int ind_b,
+                  int ind_c, Timestamp &best_distance, int &best_ind_b,
+                  int &best_ind_c) {
+  if (ind_b == kInvalidPosition || ind_c == kInvalidPosition) return;
+  Timestamp distance = TripletDistance(a[ind_a], b[ind_b], c[ind_c]);
+  if (distance < best_distance) {
+    best_distance = distance;
+    best_ind_b = ind_b;
+    best_ind_c = ind_c;
+  }
+}
+
+void MostConsistentTriples(std::vector<Timestamp> &a, std::vector<Timestamp> &b,
+                           std::vector<Timestamp> &c) {
+  std::vector<int> lower_in_b = ClosestNotHigherIndices(a, b);
+  std::vector<int> higher_in_b = ClosestNotLowerIndices(a, b);
+  std::vector<int> lower_in_c = ClosestNotHigherIndices(a, c);
+  std::vector<int> higher_in_c = ClosestNotLowerIndices(a, c);
+
+  std::vector<int> a_to_b(a.size()), a_to_c(a.size());
+  for (int ind_a = 0; ind_a < a.size(); ++ind_a) {
+    Timestamp best_distance = std::numeric_limits<Timestamp>::max();
+    int best_in_b = kInvalidPosition, best_in_c = kInvalidPosition;
+    CheckIndices(a, b, c, ind_a, lower_in_b[ind_a], lower_in_c[ind_a],
+                 best_distance, best_in_b, best_in_c);
+    CheckIndices(a, b, c, ind_a, lower_in_b[ind_a], higher_in_c[ind_a],
+                 best_distance, best_in_b, best_in_c);
+    CheckIndices(a, b, c, ind_a, higher_in_b[ind_a], lower_in_c[ind_a],
+                 best_distance, best_in_b, best_in_c);
+    CheckIndices(a, b, c, ind_a, higher_in_b[ind_a], higher_in_c[ind_a],
+                 best_distance, best_in_b, best_in_c);
+    a_to_b[ind_a] = best_in_b;
+    a_to_c[ind_a] = best_in_c;
+  }
+
+  FilterBest(a, b, c, a_to_b, a_to_c);
+  FilterBest(a, c, b, a_to_c, a_to_b);
+  FilterOutNoReference(b, a_to_b);
+  FilterOutNoReference(c, a_to_c);
+  CHECK_EQ(a.size(), b.size());
+  CHECK_EQ(a.size(), c.size());
+}
+
+double AverageTripletDistance(const std::vector<Timestamp> &a,
+                              const std::vector<Timestamp> &b,
+                              const std::vector<Timestamp> &c) {
+  double sum = 0;
+  for (int i = 0; i < a.size(); ++i)
+    sum += static_cast<double>(TripletDistance(a[i], b[i], c[i]));
+  return sum / static_cast<double>(a.size());
+}
+
+}  // namespace
+
+RobotcarReaderSettings::RobotcarReaderSettings() {
+  // TODO can this be done via named initialization?
+  camera_settings.unmap_polynomial_degree = 9;  // hand-tuned parameters
+  camera_settings.unmap_polynomial_points = 60000;
+}
+
+bool RobotcarReader::IsRobotcar(const fs::path &segment_directory) {
+  return fs::exists(segment_directory / "mono_left.timestamps") &&
+         fs::exists(segment_directory / "mono_left") &&
+         fs::exists(segment_directory / "mono_rear.timestamps") &&
+         fs::exists(segment_directory / "mono_rear") &&
+         fs::exists(segment_directory / "mono_right.timestamps") &&
+         fs::exists(segment_directory / "mono_right") &&
+         fs::exists(segment_directory / "lms_front.timestamps") &&
+         fs::exists(segment_directory / "lms_front") &&
+         fs::exists(segment_directory / "lms_rear.timestamps") &&
+         fs::exists(segment_directory / "lms_rear") &&
+         fs::exists(segment_directory / "ldmrs.timestamps") &&
+         fs::exists(segment_directory / "ldmrs") &&
+         fs::exists(segment_directory / "vo");
+}
+
+// clang-format off
+const SE3 RobotcarReader::kImageFromCamera =
+    SE3((Matrix44() <<
+                    0, 0, 1, 0,
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 0, 1).finished())
+        .inverse();
+// clang-format on
+
+CameraBundle RobotcarReader::CreateCameraBundle(
+    const fs::path &models_directory, const SE3 &left_from_body,
+    const SE3 &rear_from_body, const SE3 &right_from_body, int w, int h,
+    const CameraModelScaramuzzaSettings &camera_settings) {
+  fs::path left_model = models_directory / "mono_left.txt";
+  fs::path rear_model = models_directory / "mono_rear.txt";
+  fs::path right_model = models_directory / "mono_right.txt";
+  Camera cameras[RobotcarReader::kNumberOfCameras] = {
+      Camera(w, h,
+             CameraModelScaramuzza(w, h, left_model,
+                                   CameraModelScaramuzza::kPolynomialUnmap,
+                                   camera_settings)),
+      Camera(w, h,
+             CameraModelScaramuzza(w, h, rear_model,
+                                   CameraModelScaramuzza::kPolynomialUnmap,
+                                   camera_settings)),
+      Camera(w, h,
+             CameraModelScaramuzza(w, h, right_model,
+                                   CameraModelScaramuzza::kPolynomialUnmap,
+                                   camera_settings))};
+
+  SE3 camera_from_body[RobotcarReader::kNumberOfCameras] = {
+      left_from_body, rear_from_body, right_from_body};
+  for (int i = 0; i < RobotcarReader::kNumberOfCameras; ++i)
+    camera_from_body[i] =
+        RobotcarReader::kImageFromCamera * camera_from_body[i];
+
+  return CameraBundle(camera_from_body, cameras,
+                      RobotcarReader::kNumberOfCameras);
+}
+
+RobotcarReader::RobotcarReader(const fs::path &segment_directory,
+                               const fs::path &camera_models_directory,
+                               const fs::path &extrinsics_directory,
+                               const std::optional<fs::path> &rtk_directory,
+                               const RobotcarReaderSettings &settings)
+    : left_from_body_(
+          ReadCameraFromBody(extrinsics_directory / "mono_left.txt")),
+      rear_from_body_(
+          ReadCameraFromBody(extrinsics_directory / "mono_rear.txt")),
+      right_from_body_(
+          ReadCameraFromBody(extrinsics_directory / "mono_right.txt")),
+      lms_front_from_body_(
+          ReadLidarFromBody(extrinsics_directory / "lms_front.txt")),
+      lms_rear_from_body_(
+          ReadLidarFromBody(extrinsics_directory / "lms_rear.txt")),
+      ldmrs_from_body_(ReadLidarFromBody(extrinsics_directory / "ldmrs.txt")),
+      ins_from_body_(ReadInsFromBody(extrinsics_directory / "ins.txt")),
+      camera_bundle_(
+          CreateCameraBundle(camera_models_directory, left_from_body_,
+                             rear_from_body_, right_from_body_, kImageWidth,
+                             kImageHeight, settings.camera_settings)),
+      segment_directory_(segment_directory),
+      left_directory_(segment_directory_ / fs::path("mono_left")),
+      rear_directory_(segment_directory_ / fs::path("mono_rear")),
+      right_directory_(segment_directory_ / fs::path("mono_right")),
+      lms_front_directory_(segment_directory_ / fs::path("lms_front")),
+      lms_rear_directory_(segment_directory_ / fs::path("lms_rear")),
+      ldmrs_directory_(segment_directory_ / fs::path("ldmrs")),
+      are_masks_provided_(false),
+      settings_(settings) {
+  CHECK(fs::is_directory(left_directory_));
+  CHECK(fs::is_directory(rear_directory_));
+  CHECK(fs::is_directory(right_directory_));
+  CHECK(fs::is_directory(lms_front_directory_));
+  CHECK(fs::is_directory(lms_rear_directory_));
+  CHECK(fs::is_directory(ldmrs_directory_));
+
+  ReadTimestamps(segment_directory_ / "mono_left.timestamps", left_timestamps_);
+  ReadTimestamps(segment_directory_ / "mono_rear.timestamps", rear_timestamps_);
+  ReadTimestamps(segment_directory_ / "mono_right.timestamps",
+                 right_timestamps_);
+  ReadTimestamps(segment_directory_ / "lms_front.timestamps",
+                 lms_front_timestamps_);
+  ReadTimestamps(segment_directory_ / "lms_rear.timestamps",
+                 lms_rear_timestamps_);
+  ReadTimestamps(segment_directory_ / "ldmrs.timestamps", ldmrs_timestamps_);
+
+  bool is_rtk_found = false;
+  if (rtk_directory) {
+    fs::path rtk_filename =
+        rtk_directory.value() / segment_directory_.filename() / "rtk.csv";
+    if (fs::is_regular_file(rtk_filename)) {
+      ReadRtk(rtk_filename, ins_from_body_, settings_.correct_rtk,
+              ground_truth_pose_timestamps_, ground_truth_world_from_body_);
+      is_rtk_found = true;
+    }
+  }
+
+  ReadOdometryPoses(segment_directory_ / fs::path("vo") / fs::path("vo.csv"),
+                    settings_.fill_odometry_gaps, odometry_pose_timestamps_,
+                    odometry_world_from_body_);
+  if (!is_rtk_found) {
+    LOG(WARNING) << "No RTK ground truth for chunk \'" << segment_directory_
                  << "\' found";
-    readVo(chunkDir / fs::path("vo") / fs::path("vo.csv"), mGroundTruthTs,
-           gtBodyToWorld, settings.fillVoGaps);
+    ReadOdometryPoses(segment_directory_ / fs::path("vo") / fs::path("vo.csv"),
+                      settings_.fill_odometry_gaps,
+                      ground_truth_pose_timestamps_,
+                      ground_truth_world_from_body_);
   }
 
   LOG(INFO) << "Before timestamp synchronization:";
-  logTimeInterval(mLeftTs, "left cam ");
-  logTimeInterval(mRearTs, "rear cam ");
-  logTimeInterval(mRightTs, "right cam");
+  LogTimeInterval(left_timestamps_, "left cam ");
+  LogTimeInterval(rear_timestamps_, "rear cam ");
+  LogTimeInterval(right_timestamps_, "right cam");
 
-  syncTimestamps();
+  SyncTimestamps();
 
   LOG(INFO) << "After timestamp synchronization:";
-  logTimeInterval(mLeftTs, "left cam ");
-  logTimeInterval(mRearTs, "rear cam ");
-  logTimeInterval(mRightTs, "right cam");
-  logTimeInterval(mLmsRearTs, "LMS rear ");
-  logTimeInterval(mLmsFrontTs, "LMS front");
-  logTimeInterval(mLdmrsTs, "LDMRS    ");
-  if (isRtkFound) {
-    logTimeInterval(mGroundTruthTs, "rtk      ");
-    logTimeInterval(mVoTs, "vo       ");
+  LogTimeInterval(left_timestamps_, "left cam ");
+  LogTimeInterval(rear_timestamps_, "rear cam ");
+  LogTimeInterval(right_timestamps_, "right cam");
+  LogTimeInterval(lms_rear_timestamps_, "LMS rear ");
+  LogTimeInterval(lms_front_timestamps_, "LMS front");
+  LogTimeInterval(ldmrs_timestamps_, "LDMRS    ");
+  if (is_rtk_found) {
+    LogTimeInterval(ground_truth_pose_timestamps_, "rtk      ");
+    LogTimeInterval(odometry_pose_timestamps_, "vo       ");
   } else {
-    logTimeInterval(mGroundTruthTs, "vo       ");
+    LogTimeInterval(ground_truth_pose_timestamps_, "vo       ");
   }
 
-  printVoAndGT(settings.outputDirectory);
+  PrintOdometryAndGroundTruth(settings_.output_directory);
 }
 
-void RobotcarReader::printVoAndGT(const fs::path &outputDirectory) const {
-  std::ofstream outVo(outputDirectory / "vo_traj.txt");
-  std::ofstream outGt(outputDirectory / "gt_traj.txt");
-  for (int i = 0; i < mGroundTruthTs.size(); ++i) {
-    if (mGroundTruthTs[i] < mVoTs[0] || mGroundTruthTs[i] >= mVoTs.back())
+void RobotcarReader::PrintOdometryAndGroundTruth(
+    const fs::path &output_directory) const {
+  std::ofstream odometry_file(output_directory / "vo_traj.txt");
+  std::ofstream ground_truth_file(output_directory / "gt_traj.txt");
+  for (int i = 0; i < ground_truth_pose_timestamps_.size(); ++i) {
+    if (ground_truth_pose_timestamps_[i] < odometry_pose_timestamps_[0] ||
+        ground_truth_pose_timestamps_[i] >= odometry_pose_timestamps_.back())
       continue;
-    putInMatrixForm(outGt, gtBodyToWorld[i]);
-    putInMatrixForm(outVo, tsToWorld(mGroundTruthTs[i], true));
+    PutInMatrixForm(ground_truth_file, ground_truth_world_from_body_[i]);
+    PutInMatrixForm(odometry_file, WorldFromBodyAtTimestamp(
+                                       ground_truth_pose_timestamps_[i], true));
   }
 }
 
-void RobotcarReader::provideMasks(const fs::path &masksDir) {
-  CHECK(fs::is_directory(masksDir));
-  fs::path leftMaskPath = masksDir / "mono_left.png";
-  fs::path rearMaskPath = masksDir / "mono_rear.png";
-  fs::path rightMaskPath = masksDir / "mono_right.png";
-  CHECK(fs::is_regular_file(leftMaskPath));
-  CHECK(fs::is_regular_file(rearMaskPath));
-  CHECK(fs::is_regular_file(rightMaskPath));
-  cv::Mat3b leftMask = cv::imread(std::string(leftMaskPath));
-  cv::Mat3b rearMask = cv::imread(std::string(rearMaskPath));
-  cv::Mat3b rightMask = cv::imread(std::string(rightMaskPath));
-  mCam.cam(0).setMask(cvtBgrToGray(leftMask));
-  mCam.cam(1).setMask(cvtBgrToGray(rearMask));
-  mCam.cam(2).setMask(cvtBgrToGray(rightMask));
-  mMasksProvided = true;
+void RobotcarReader::ProvideMasks(const fs::path &masks_directory) {
+  CHECK(fs::is_directory(masks_directory));
+  fs::path left_mask_path = masks_directory / "mono_left.png";
+  fs::path rear_mask_path = masks_directory / "mono_rear.png";
+  fs::path right_mask_path = masks_directory / "mono_right.png";
+  CHECK(fs::is_regular_file(left_mask_path));
+  CHECK(fs::is_regular_file(rear_mask_path));
+  CHECK(fs::is_regular_file(right_mask_path));
+  cv::Mat3b left_mask = cv::imread(std::string(left_mask_path));
+  cv::Mat3b rear_mask = cv::imread(std::string(rear_mask_path));
+  cv::Mat3b right_mask = cv::imread(std::string(right_mask_path));
+  camera_bundle_.camera(0).set_mask(ConvertBgrToGray(left_mask));
+  camera_bundle_.camera(1).set_mask(ConvertBgrToGray(rear_mask));
+  camera_bundle_.camera(2).set_mask(ConvertBgrToGray(right_mask));
+  are_masks_provided_ = true;
 }
 
-int RobotcarReader::numFrames() const { return mLeftTs.size(); }
+int RobotcarReader::NumberOfFrames() const { return left_timestamps_.size(); }
 
-int RobotcarReader::firstTimestampToInd(Timestamp timestamp) const {
-  if (timestamp < mLeftTs[0]) return 0;
-  if (timestamp > mLeftTs.back()) return numFrames();
+int RobotcarReader::FirstTimestampToIndex(Timestamp timestamp) const {
+  if (timestamp < left_timestamps_[0]) return 0;
+  if (timestamp > left_timestamps_.back()) return NumberOfFrames();
 
-  auto it = std::lower_bound(mLeftTs.begin(), mLeftTs.end(), timestamp);
-  if (it == mLeftTs.end()) return numFrames();
-  return it - mLeftTs.begin();
+  auto it = std::lower_bound(left_timestamps_.begin(), left_timestamps_.end(),
+                             timestamp);
+  if (it == left_timestamps_.end()) return NumberOfFrames();
+  return static_cast<int>(it - left_timestamps_.begin());
 }
 
-std::vector<Timestamp> RobotcarReader::timestampsFromInd(int frameInd) const {
-  CHECK_GE(frameInd, 0);
-  CHECK_LT(frameInd, numFrames());
+std::vector<Timestamp> RobotcarReader::TimestampsFromIndex(
+    int frame_index) const {
+  CHECK_GE(frame_index, 0);
+  CHECK_LT(frame_index, NumberOfFrames());
 
-  return std::vector{mLeftTs[frameInd], mRearTs[frameInd], mRightTs[frameInd]};
+  return std::vector{left_timestamps_[frame_index],
+                     rear_timestamps_[frame_index],
+                     right_timestamps_[frame_index]};
 }
 
-std::vector<fs::path> RobotcarReader::frameFiles(int frameInd) const {
-  CHECK_GE(frameInd, 0);
-  CHECK_LT(frameInd, numFrames());
+std::vector<fs::path> RobotcarReader::FrameFiles(int frame_index) const {
+  CHECK_GE(frame_index, 0);
+  CHECK_LT(frame_index, NumberOfFrames());
 
-  fs::path leftPath = chunkDir / fs::path("mono_left") /
-                      fs::path(std::to_string(mLeftTs[frameInd]) + ".png");
-  fs::path rearPath = chunkDir / fs::path("mono_rear") /
-                      fs::path(std::to_string(mRearTs[frameInd]) + ".png");
-  fs::path rightPath = chunkDir / fs::path("mono_right") /
-                       fs::path(std::to_string(mRightTs[frameInd]) + ".png");
+  fs::path left_path =
+      segment_directory_ / fs::path("mono_left") /
+      fs::path(std::to_string(left_timestamps_[frame_index]) + ".png");
+  fs::path rear_path =
+      segment_directory_ / fs::path("mono_rear") /
+      fs::path(std::to_string(rear_timestamps_[frame_index]) + ".png");
+  fs::path right_path =
+      segment_directory_ / fs::path("mono_right") /
+      fs::path(std::to_string(right_timestamps_[frame_index]) + ".png");
 
-  return {leftPath, rearPath, rightPath};
+  return {left_path, rear_path, right_path};
 }
 
-std::vector<RobotcarReader::FrameEntry> RobotcarReader::frame(
-    int frameInd) const {
-  CHECK_GE(frameInd, 0);
-  CHECK_LT(frameInd, numFrames());
-  std::vector<fs::path> fnames = frameFiles(frameInd);
-  fs::path leftPath = fnames[0];
-  fs::path rearPath = fnames[1];
-  fs::path rightPath = fnames[2];
+std::vector<RobotcarReader::FrameEntry> RobotcarReader::Frame(
+    int frame_index) const {
+  CHECK_GE(frame_index, 0);
+  CHECK_LT(frame_index, NumberOfFrames());
+  std::vector<fs::path> filenames = FrameFiles(frame_index);
+  fs::path left_path = filenames[0];
+  fs::path rear_path = filenames[1];
+  fs::path right_path = filenames[2];
 
-  if (fs::is_regular_file(leftPath) && fs::is_regular_file(rearPath) &&
-      fs::is_regular_file(rightPath)) {
+  if (fs::is_regular_file(left_path) && fs::is_regular_file(rear_path) &&
+      fs::is_regular_file(right_path)) {
     // Can fail if image is corrupted or not read correctly for whatever reason
-    try {
-      cv::Mat1b leftOrig = cv::imread(leftPath.native(), cv::IMREAD_GRAYSCALE);
-      cv::Mat1b rearOrig = cv::imread(rearPath.native(), cv::IMREAD_GRAYSCALE);
-      cv::Mat1b rightOrig =
-          cv::imread(rightPath.native(), cv::IMREAD_GRAYSCALE);
+    cv::Mat1b left_original =
+        cv::imread(left_path.native(), cv::IMREAD_GRAYSCALE);
+    cv::Mat1b rear_original =
+        cv::imread(rear_path.native(), cv::IMREAD_GRAYSCALE);
+    cv::Mat1b right_original =
+        cv::imread(right_path.native(), cv::IMREAD_GRAYSCALE);
 
-      std::vector<FrameEntry> result(numCams);
-      cv::cvtColor(leftOrig, result[0].frame, cv::COLOR_BayerBG2BGR);
-      result[0].timestamp = mLeftTs[frameInd];
-      cv::cvtColor(rearOrig, result[1].frame, cv::COLOR_BayerBG2BGR);
-      result[1].timestamp = mRearTs[frameInd];
-      cv::cvtColor(rightOrig, result[2].frame, cv::COLOR_BayerBG2BGR);
-      result[2].timestamp = mRightTs[frameInd];
+    std::vector<FrameEntry> result(kNumberOfCameras);
+    cv::cvtColor(left_original, result[0].frame, cv::COLOR_BayerBG2BGR);
+    result[0].timestamp = left_timestamps_[frame_index];
+    cv::cvtColor(rear_original, result[1].frame, cv::COLOR_BayerBG2BGR);
+    result[1].timestamp = rear_timestamps_[frame_index];
+    cv::cvtColor(right_original, result[2].frame, cv::COLOR_BayerBG2BGR);
+    result[2].timestamp = right_timestamps_[frame_index];
 
-      return result;
-    } catch (const std::exception &e) {
-      throw e;
-    }
+    return result;
   } else {
     throw std::runtime_error("Image paths for frame contain invalid paths");
   }
 }
 
-std::unique_ptr<FrameDepths> RobotcarReader::depths(int frameInd) const {
-  LOG(WARNING) << "RobotcarReader::depths not implemented yet!";
+std::unique_ptr<FrameDepths> RobotcarReader::GetDepths(int frame_index) const {
+  LOG(ERROR) << "RobotcarReader::depths not implemented yet!";
   return std::unique_ptr<FrameDepths>();
 }
 
-StdVectorA<Vector2> getPoints(
-    const StdVectorA<std::pair<Vector2, double>> &projected) {
-  StdVectorA<Vector2> result(projected.size());
-  for (int i = 0; i < projected.size(); ++i) result[i] = projected[i].first;
-  return result;
+bool RobotcarReader::HasWorldFromFrame(int frame_index) const {
+  if (frame_index < 0 || frame_index >= NumberOfFrames()) return false;
+  Timestamp timestamp = TimestampsFromIndex(frame_index)[0];
+  return timestamp >= ground_truth_pose_timestamps_[0] &&
+         timestamp <= ground_truth_pose_timestamps_.back();
 }
 
-std::vector<double> getDepths(
-    const StdVectorA<std::pair<Vector2, double>> &projected) {
-  std::vector<double> result(projected.size());
-  for (int i = 0; i < projected.size(); ++i) result[i] = projected[i].second;
-  return result;
+SE3 RobotcarReader::WorldFromFrame(int frame_index) const {
+  CHECK_GE(frame_index, 0);
+  CHECK_LT(frame_index, NumberOfFrames());
+
+  Timestamp timestamp = TimestampsFromIndex(frame_index)[0];
+  CHECK_GE(timestamp, ground_truth_pose_timestamps_[0]);
+  CHECK_LT(timestamp, ground_truth_pose_timestamps_.back());
+  return WorldFromBodyAtTimestamp(timestamp);
 }
 
-bool RobotcarReader::hasFrameToWorld(int frameInd) const {
-  if (frameInd < 0 || frameInd >= numFrames()) return false;
-  Timestamp ts = timestampsFromInd(frameInd)[0];
-  return ts >= mGroundTruthTs[0] && ts <= mGroundTruthTs.back();
+Trajectory RobotcarReader::GroundTruthTrajectory() const {
+  StdMapA<Timestamp, SE3> timestamped_world_from_frame;
+  for (int i = 0; i < ground_truth_pose_timestamps_.size(); ++i)
+    timestamped_world_from_frame[ground_truth_pose_timestamps_[i]] =
+        ground_truth_world_from_body_[i];
+  return Trajectory{timestamped_world_from_frame};
 }
 
-SE3 RobotcarReader::frameToWorld(int frameInd) const {
-  CHECK_GE(frameInd, 0);
-  CHECK_LT(frameInd, numFrames());
-
-  Timestamp ts = timestampsFromInd(frameInd)[0];
-  CHECK_GE(ts, mGroundTruthTs[0]);
-  CHECK_LT(ts, mGroundTruthTs.back());
-  return tsToWorld(ts);
-}
-
-Trajectory RobotcarReader::gtTrajectory() const {
-  StdMapA<Timestamp, SE3> timestampedWorldFromFrame;
-  for (int i = 0; i < mGroundTruthTs.size(); ++i)
-    timestampedWorldFromFrame[mGroundTruthTs[i]] = gtBodyToWorld[i];
-  return Trajectory{timestampedWorldFromFrame};
-}
-
-std::string logTimestamp(Timestamp ts) {
-  return std::to_string(ts) + " (" + timeOfDay(toChronoTimePoint(ts)) + ")";
-}
-
-SE3 tsToWorldHelper(Timestamp ts, const StdVectorA<SE3> &bodyToWorld,
-                    const std::vector<Timestamp> &timestamps) {
-  CHECK(ts >= timestamps[0] && ts <= timestamps.back())
-      << "Interpolating outside of ground truth! "
-      << "ts = " << logTimestamp(ts) << ", bounds = ["
-      << logTimestamp(timestamps[0]) << ", " << logTimestamp(timestamps.back())
-      << "]";
-  CHECK(timestamps.size() >= 2);
-  if (ts == timestamps[0]) return bodyToWorld[0];
-
-  int ind = std::lower_bound(timestamps.begin(), timestamps.end(), ts) -
-            timestamps.begin();
-  CHECK(ind > 0 && ind < bodyToWorld.size());
-  SE3 highToLow = bodyToWorld[ind - 1].inverse() * bodyToWorld[ind];
-  double tsFrac = double(ts - timestamps[ind - 1]) /
-                  (timestamps[ind] - timestamps[ind - 1]);
-  SE3 tsToLow = SE3::exp(tsFrac * highToLow.log());
-  return bodyToWorld[ind - 1] * tsToLow;
-}
-
-SE3 RobotcarReader::tsToWorld(Timestamp ts, bool useVo) const {
-  if (useVo)
-    return tsToWorldHelper(ts, voBodyToWorld, mVoTs);
+SE3 RobotcarReader::WorldFromBodyAtTimestamp(Timestamp timestamp,
+                                             bool use_odometry) const {
+  if (use_odometry)
+    return WorldFromBodyAtTimestampHelper(timestamp, odometry_world_from_body_,
+                                          odometry_pose_timestamps_);
   else
-    return tsToWorldHelper(ts, gtBodyToWorld, mGroundTruthTs);
+    return WorldFromBodyAtTimestampHelper(timestamp,
+                                          ground_truth_world_from_body_,
+                                          ground_truth_pose_timestamps_);
 }
 
-void RobotcarReader::getPointCloudHelper(
-    std::vector<Vector3> &cloud, const fs::path &scanDir,
-    const SE3 &sensorToBody, Timestamp base,
+void RobotcarReader::GetPointCloudHelper(
+    const fs::path &scan_directory, const SE3 &body_from_sensor, Timestamp base,
     const std::vector<Timestamp> &timestamps, Timestamp from, Timestamp to,
-    bool isLdmrs) const {
-  int indFrom = std::lower_bound(timestamps.begin(), timestamps.end(), from) -
-                timestamps.begin();
-  int indTo = std::upper_bound(timestamps.begin(), timestamps.end(), to) -
-              timestamps.begin();
+    bool is_ldmrs, std::vector<Vector3> &cloud) const {
+  int ind_from = std::lower_bound(timestamps.begin(), timestamps.end(), from) -
+                 timestamps.begin();
+  int ind_to = std::upper_bound(timestamps.begin(), timestamps.end(), to) -
+               timestamps.begin();
 
-  LOG(INFO) << "index bounds of the cloud: [" << indFrom << ", " << indTo
+  LOG(INFO) << "index bounds of the cloud: [" << ind_from << ", " << ind_to
             << "]";
 
-  int curPerc = 0;
-  int totalScans = indTo - indFrom;
-  std::cout << "scanning the cloud from " << scanDir << ": 0% ...";
+  int current_percentage = 0;
+  int total_scans = ind_to - ind_from;
+  std::cout << "scanning the cloud from " << scan_directory << ": 0% ...";
   std::cout.flush();
-  for (int i = indFrom; i < indTo; ++i) {
-    SE3 sensorToBase =
-        tsToWorld(base).inverse() * tsToWorld(timestamps[i]) * sensorToBody;
-    fs::path scanFile =
-        scanDir / fs::path(std::to_string(timestamps[i]) + ".bin");
-    std::vector<double> data = readDoublesFromBin(scanFile);
-    double x, y, z, reflectance;
-    for (int i = 0; i + 2 < data.size(); i += 3) {
-      if (isLdmrs) {
-        x = data[i];
-        y = data[i + 1];
-        z = data[i + 2];
+  for (int i = ind_from; i < ind_to; ++i) {
+    SE3 base_from_sensor = WorldFromBodyAtTimestamp(base).inverse() *
+                           WorldFromBodyAtTimestamp(timestamps[i]) *
+                           body_from_sensor;
+    fs::path scan_filename =
+        scan_directory / fs::path(std::to_string(timestamps[i]) + ".bin");
+    std::vector<double> data = ReadDoublesFromBin(scan_filename);
+    for (int j = 0; j + 2 < data.size(); j += 3) {
+      double x, y, z, reflectance;
+      if (is_ldmrs) {
+        x = data[j];
+        y = data[j + 1];
+        z = data[j + 2];
       } else {
-        x = data[i];
-        y = data[i + 1];
+        x = data[j];
+        y = data[j + 1];
         z = 0;
-        reflectance = data[i + 2];
+        reflectance = data[j + 2];
       }
-      cloud.push_back(sensorToBase * Vector3(x, y, z));
+      cloud.push_back(base_from_sensor * Vector3(x, y, z));
     }
 
-    int newPerc = (i + 1 - indFrom) * 100 / totalScans;
-    if (newPerc % 20 == 0 && newPerc != curPerc) {
-      curPerc = newPerc;
-      std::cout << " " << newPerc << "%";
+    int new_percentage = (i + 1 - ind_from) * 100 / total_scans;
+    if (new_percentage % 20 == 0 && new_percentage != current_percentage) {
+      current_percentage = new_percentage;
+      std::cout << " " << new_percentage << "%";
       std::cout.flush();
-      if (newPerc != 100)
+      if (new_percentage != 100)
         std::cout << " ...";
       else
         std::cout << std::endl;
@@ -506,243 +705,102 @@ void RobotcarReader::getPointCloudHelper(
   }
 }
 
-std::vector<Vector3> RobotcarReader::getLmsFrontCloud(Timestamp from,
+std::vector<Vector3> RobotcarReader::GetLmsFrontCloud(Timestamp from,
                                                       Timestamp to,
                                                       Timestamp base) const {
   std::vector<Vector3> cloud;
-  getPointCloudHelper(cloud, lmsFrontDir, bodyToLmsFront.inverse(), base,
-                      mLmsFrontTs, from, to, false);
+  GetPointCloudHelper(lms_front_directory_, lms_front_from_body_.inverse(),
+                      base, lms_front_timestamps_, from, to, false, cloud);
   return cloud;
 }
 
-std::vector<Vector3> RobotcarReader::getLmsRearCloud(Timestamp from,
+std::vector<Vector3> RobotcarReader::GetLmsRearCloud(Timestamp from,
                                                      Timestamp to,
                                                      Timestamp base) const {
   std::vector<Vector3> cloud;
-  getPointCloudHelper(cloud, lmsRearDir, bodyToLmsRear.inverse(), base,
-                      mLmsRearTs, from, to, false);
+  GetPointCloudHelper(lms_rear_directory_, lms_rear_from_body_.inverse(), base,
+                      lms_rear_timestamps_, from, to, false, cloud);
   return cloud;
 }
 
-std::vector<Vector3> RobotcarReader::getLdmrsCloud(Timestamp from, Timestamp to,
+std::vector<Vector3> RobotcarReader::GetLdmrsCloud(Timestamp from, Timestamp to,
                                                    Timestamp base) const {
   std::vector<Vector3> cloud;
-  getPointCloudHelper(cloud, ldmrsDir, bodyToLdmrs.inverse(), base, mLdmrsTs,
-                      from, to, true);
+  GetPointCloudHelper(ldmrs_directory_, ldmrs_from_body_.inverse(), base,
+                      ldmrs_timestamps_, from, to, true, cloud);
   return cloud;
 }
 
-std::array<StdVectorA<std::pair<Vector2, double>>, RobotcarReader::numCams>
+std::array<StdVectorA<std::pair<Vector2, double>>,
+           RobotcarReader::kNumberOfCameras>
 RobotcarReader::project(Timestamp from, Timestamp to, Timestamp base,
-                        bool useLmsFront, bool useLmsRear,
-                        bool useLdmrs) const {
-  LOG(INFO) << "projection time window: [" << timeOfDay(toChronoTimePoint(from))
-            << ", " << timeOfDay(toChronoTimePoint(to)) << "]";
-  std::vector<Vector3> lmsFrontCloud;
-  if (useLmsFront) lmsFrontCloud = getLmsFrontCloud(from, to, base);
-  std::vector<Vector3> lmsRearCloud;
-  if (useLmsRear) lmsRearCloud = getLmsRearCloud(from, to, base);
-  std::vector<Vector3> ldmrsCloud;
-  if (useLdmrs) ldmrsCloud = getLdmrsCloud(from, to, base);
+                        bool use_lms_front, bool use_lms_rear,
+                        bool use_ldmrs) const {
+  LOG(INFO) << "projection time window: [" << TimeOfDay(from) << ", "
+            << TimeOfDay(to) << "]";
+  std::vector<Vector3> lms_front_cloud;
+  if (use_lms_front) lms_front_cloud = GetLmsFrontCloud(from, to, base);
+  std::vector<Vector3> lms_rear_cloud;
+  if (use_lms_rear) lms_rear_cloud = GetLmsRearCloud(from, to, base);
+  std::vector<Vector3> ldmrs_cloud;
+  if (use_ldmrs) ldmrs_cloud = GetLdmrsCloud(from, to, base);
   std::vector<Vector3> cloud;
-  cloud.reserve(lmsFrontCloud.size() + lmsRearCloud.size() + ldmrsCloud.size());
-  cloud.insert(cloud.end(), lmsFrontCloud.begin(), lmsFrontCloud.end());
-  cloud.insert(cloud.end(), lmsRearCloud.begin(), lmsRearCloud.end());
-  cloud.insert(cloud.end(), ldmrsCloud.begin(), ldmrsCloud.end());
+  cloud.reserve(lms_front_cloud.size() + lms_rear_cloud.size() +
+                ldmrs_cloud.size());
+  cloud.insert(cloud.end(), lms_front_cloud.begin(), lms_front_cloud.end());
+  cloud.insert(cloud.end(), lms_rear_cloud.begin(), lms_rear_cloud.end());
+  cloud.insert(cloud.end(), ldmrs_cloud.begin(), ldmrs_cloud.end());
   return project(cloud);
 }
 
-std::array<StdVectorA<std::pair<Vector2, double>>, RobotcarReader::numCams>
+std::array<StdVectorA<std::pair<Vector2, double>>,
+           RobotcarReader::kNumberOfCameras>
 RobotcarReader::project(const std::vector<Vector3> &cloud) const {
-  std::array<StdVectorA<std::pair<Vector2, double>>, RobotcarReader::numCams>
+  std::array<StdVectorA<std::pair<Vector2, double>>,
+             RobotcarReader::kNumberOfCameras>
       result;
-  for (int camInd = 0; camInd < RobotcarReader::numCams; ++camInd) {
-    SE3 bodyToCam = mCam.bodyToCam(camInd);
+  for (int ci = 0; ci < RobotcarReader::kNumberOfCameras; ++ci) {
+    SE3 bodyToCam = camera_bundle_.camera_from_body(ci);
     for (const Vector3 &p : cloud) {
       Vector3 moved = bodyToCam * p;
-      if (!mCam.cam(camInd).isMappable(moved)) continue;
+      if (!camera_bundle_.camera(ci).IsMappable(moved)) continue;
       double depth = moved.norm();
-      Vector2 projected = mCam.cam(camInd).map(moved);
-      result[camInd].push_back({projected, depth});
+      Vector2 projected = camera_bundle_.camera(ci).Map(moved);
+      result[ci].push_back({projected, depth});
     }
   }
   return result;
 }
 
-Timestamp RobotcarReader::minTs() const {
-  return std::max({mLeftTs[0], mRearTs[0], mRightTs[0], mGroundTruthTs[0],
-                   mLmsFrontTs[0], mLmsRearTs[0], mLdmrsTs[0]});
+Timestamp RobotcarReader::min_timestamp() const {
+  return std::max({left_timestamps_[0], rear_timestamps_[0],
+                   right_timestamps_[0], ground_truth_pose_timestamps_[0],
+                   lms_front_timestamps_[0], lms_rear_timestamps_[0],
+                   ldmrs_timestamps_[0]});
 }
 
-Timestamp RobotcarReader::maxTs() const {
-  return std::min({mLeftTs.back(), mRearTs.back(), mRightTs.back(),
-                   mGroundTruthTs.back(), mLmsFrontTs.back(), mLmsRearTs.back(),
-                   mLdmrsTs.back()});
+Timestamp RobotcarReader::max_timestamp() const {
+  return std::min({left_timestamps_.back(), rear_timestamps_.back(),
+                   right_timestamps_.back(),
+                   ground_truth_pose_timestamps_.back(),
+                   lms_front_timestamps_.back(), lms_rear_timestamps_.back(),
+                   ldmrs_timestamps_.back()});
 }
 
-// Here goes a large piece of code for timestamp synchronization between
-// different cameras. The auxiliary functions might be moved to another place,
-// but I don't know where yet.
-constexpr int npos = -1;
-
-Timestamp timestampDist(Timestamp a, Timestamp b) {
-  return a < b ? b - a : a - b;
-}
-
-Timestamp triDist(Timestamp x1, Timestamp x2, Timestamp x3) {
-  return timestampDist(x1, x2) + timestampDist(x1, x3) + timestampDist(x2, x3);
-}
-
-std::vector<int> closestNotHigherInds(const std::vector<Timestamp> &a,
-                                      const std::vector<Timestamp> &b) {
-  CHECK(!b.empty());
-  std::vector<int> inds(a.size(), npos);
-  int indB = 0, indA = 0;
-  while (indB < b.size() && b[indB] > a[indA]) indA++;
-  for (; indA < a.size(); ++indA) {
-    if (indB + 1 == b.size() && a[indA] < b[indB]) break;
-    while (indB + 1 < b.size() && b[indB + 1] <= a[indA]) ++indB;
-    inds[indA] = indB;
-  }
-  return inds;
-}
-
-std::vector<int> closestNotLowerInds(const std::vector<Timestamp> &a,
-                                     const std::vector<Timestamp> &b) {
-  CHECK(!b.empty());
-  std::vector<int> inds(a.size(), npos);
-  int indA = 0, indB = 0;
-  while (indB < b.size() && b[indB] < a[indA]) indB++;
-  for (; indA < a.size(); ++indA) {
-    while (indB < b.size() && b[indB] < a[indA]) ++indB;
-    if (indB == b.size()) break;
-    inds[indA] = indB;
-  }
-  return inds;
-}
-
-std::vector<int> closestIndsInB(const std::vector<Timestamp> &a,
-                                const std::vector<Timestamp> &b) {
-  CHECK(!b.empty());
-  std::vector<int> closestToB(a.size());
-  int indB = 0;
-  for (int indA = 0; indA < a.size(); ++indA) {
-    while (indB + 1 < b.size() && b[indB + 1] < a[indA]) ++indB;
-    if (indB + 1 == b.size()) {
-      closestToB[indA] = indB;
-      continue;
-    }
-    if (timestampDist(a[indA], b[indB]) < timestampDist(a[indA], b[indB + 1]))
-      closestToB[indA] = indB;
-    else
-      closestToB[indA] = ++indB;
-  }
-  return closestToB;
-}
-
-void filterBest(std::vector<Timestamp> &a, const std::vector<Timestamp> &b,
-                const std::vector<Timestamp> &c, std::vector<int> &aToB,
-                std::vector<int> &aToC) {
-  constexpr int npos = -1;
-  std::vector<int> bestIndAInB(b.size(), npos);
-  std::vector<Timestamp> bestAInB(b.size());
-  for (int indA = 0; indA < a.size(); ++indA) {
-    Timestamp closeB = b[aToB[indA]], closeC = c[aToC[indA]];
-    Timestamp curDist = triDist(a[indA], closeB, closeC);
-    if (bestIndAInB[aToB[indA]] == npos || curDist < bestAInB[aToB[indA]]) {
-      bestAInB[aToB[indA]] = curDist;
-      bestIndAInB[aToB[indA]] = indA;
-    }
-  }
-
-  std::vector<char> removed(a.size(), false);
-  for (int indA = 0; indA < a.size(); ++indA) {
-    if (bestIndAInB[aToB[indA]] != indA) removed[indA] = true;
-  }
-  int newIndA = 0;
-  for (int oldIndA = 0; oldIndA < a.size(); ++oldIndA)
-    if (!removed[oldIndA]) {
-      a[newIndA] = a[oldIndA];
-      aToB[newIndA] = aToB[oldIndA];
-      aToC[newIndA] = aToC[oldIndA];
-      ++newIndA;
-    }
-  a.resize(newIndA);
-  aToB.resize(newIndA);
-  aToC.resize(newIndA);
-}
-
-void filterOutNoRef(std::vector<Timestamp> &v, std::vector<int> &inds) {
-  auto newIndsEnd = std::unique(inds.begin(), inds.end());
-  CHECK_EQ(newIndsEnd - inds.begin(), inds.end() - inds.begin());
-  int newInd = 0;
-  for (int i : inds) v[newInd++] = v[i];
-  v.resize(newInd);
-}
-
-void checkInds(const std::vector<Timestamp> &a, const std::vector<Timestamp> &b,
-               const std::vector<Timestamp> &c, int indA, int indB, int indC,
-               Timestamp &bestDist, int &bestIndB, int &bestIndC) {
-  if (indB == npos || indC == npos) return;
-  Timestamp dist = triDist(a[indA], b[indB], c[indC]);
-  if (dist < bestDist) {
-    bestDist = dist;
-    bestIndB = indB;
-    bestIndC = indC;
-  }
-}
-
-void mostConsistentTriples(std::vector<Timestamp> &a, std::vector<Timestamp> &b,
-                           std::vector<Timestamp> &c) {
-  std::vector<int> lowerInB = closestNotHigherInds(a, b);
-  std::vector<int> higherInB = closestNotLowerInds(a, b);
-  std::vector<int> lowerInC = closestNotHigherInds(a, c);
-  std::vector<int> higherInC = closestNotLowerInds(a, c);
-
-  std::vector<int> aToB(a.size()), aToC(a.size());
-  for (int indA = 0; indA < a.size(); ++indA) {
-    Timestamp bestDist = std::numeric_limits<Timestamp>::max();
-    int bestInB = npos, bestInC = npos;
-    checkInds(a, b, c, indA, lowerInB[indA], lowerInC[indA], bestDist, bestInB,
-              bestInC);
-    checkInds(a, b, c, indA, lowerInB[indA], higherInC[indA], bestDist, bestInB,
-              bestInC);
-    checkInds(a, b, c, indA, higherInB[indA], lowerInC[indA], bestDist, bestInB,
-              bestInC);
-    checkInds(a, b, c, indA, higherInB[indA], higherInC[indA], bestDist,
-              bestInB, bestInC);
-    aToB[indA] = bestInB;
-    aToC[indA] = bestInC;
-  }
-
-  filterBest(a, b, c, aToB, aToC);
-  filterBest(a, c, b, aToC, aToB);
-  filterOutNoRef(b, aToB);
-  filterOutNoRef(c, aToC);
-  CHECK_EQ(a.size(), b.size());
-  CHECK_EQ(a.size(), c.size());
-}
-
-double avgTriDist(const std::vector<Timestamp> &a,
-                  const std::vector<Timestamp> &b,
-                  const std::vector<Timestamp> &c) {
-  double sum = 0;
-  for (int i = 0; i < a.size(); ++i) sum += triDist(a[i], b[i], c[i]);
-  return sum / a.size();
-}
-
-void RobotcarReader::syncTimestamps() {
-  int oldSize = mLeftTs.size();
-  double oldAvgTriDist = avgTriDist(mLeftTs, mRearTs, mRightTs);
-  mostConsistentTriples(mLeftTs, mRearTs, mRightTs);
-  CHECK_EQ(mLeftTs.size(), mRightTs.size());
-  CHECK_EQ(mLeftTs.size(), mRearTs.size());
-  int newSize = mLeftTs.size();
-  double newAvgTriDist = avgTriDist(mLeftTs, mRearTs, mRightTs);
+void RobotcarReader::SyncTimestamps() {
+  int old_size = left_timestamps_.size();
+  double old_average_triplet_distance = AverageTripletDistance(
+      left_timestamps_, rear_timestamps_, right_timestamps_);
+  MostConsistentTriples(left_timestamps_, rear_timestamps_, right_timestamps_);
+  CHECK_EQ(left_timestamps_.size(), right_timestamps_.size());
+  CHECK_EQ(left_timestamps_.size(), rear_timestamps_.size());
+  int new_size = left_timestamps_.size();
+  double new_average_triplet_distance = AverageTripletDistance(
+      left_timestamps_, rear_timestamps_, right_timestamps_);
   LOG(INFO) << "triples filtered out for syncing timestamps: "
-            << oldSize - newSize;
-  LOG(INFO) << "old avg tridist (s) = " << oldAvgTriDist / 1e6;
-  LOG(INFO) << "new avg tridist (s) = " << newAvgTriDist / 1e6;
+            << old_size - new_size;
+  LOG(INFO) << "old avg tridist (s) = " << old_average_triplet_distance / 1.0e6;
+  LOG(INFO) << "new avg tridist (s) = " << new_average_triplet_distance / 1.0e6;
 }
 
 }  // namespace grpose

@@ -13,21 +13,21 @@
 namespace grpose {
 
 /**
- * @param groundtruth - The groundtruth trajectory.
+ * @param ground_truth - The groundtruth trajectory.
  * @param estimate - The estimated trajectory.
  * @return - The absolute translation errors between the estimate trajectory and
  * the groundtruth trajectory.
  */
-std::vector<double> absoluteTranslationError(const Trajectory& groundtruth,
+std::vector<double> AbsoluteTranslationError(const Trajectory& ground_truth,
                                              const Trajectory& estimate);
 
 /**
- * @param groundtruth - The groundtruth trajectory.
+ * @param ground_truth - The groundtruth trajectory.
  * @param estimate - The estimated trajectory.
  * @return - The absolute rotation errors between the estimate trajectory and
  * the groundtruth trajectory.
  */
-std::vector<double> absoluteRotationError(const Trajectory& groundtruth,
+std::vector<double> AbsoluteRotationError(const Trajectory& ground_truth,
                                           const Trajectory& estimate);
 
 }  // namespace grpose

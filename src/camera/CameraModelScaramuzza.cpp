@@ -1,26 +1,25 @@
 #include "camera/CameraModelScaramuzza.h"
-#include "defs.h"
-#include "util.h"
 
-#include <glog/logging.h>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <opencv2/opencv.hpp>
 #include <random>
 #include <vector>
+
+#include <glog/logging.h>
+#include <opencv2/opencv.hpp>
 
 namespace grpose {
 
 void adjustPrincipal(Vector2 &principal,
                      CameraModelScaramuzzaSettings::CenterShift centerMode) {
   switch (centerMode) {
-    case CameraModelScaramuzzaSettings::NO_SHIFT:
+    case CameraModelScaramuzzaSettings::kNoShift:
       break;
-    case CameraModelScaramuzzaSettings::MINUS_05:
+    case CameraModelScaramuzzaSettings::kMinus0_5:
       principal -= Vector2(0.5, 0.5);
       break;
-    case CameraModelScaramuzzaSettings::PLUS_05:
+    case CameraModelScaramuzzaSettings::kPlus0_5:
       principal += Vector2(0.5, 0.5);
       break;
   }
@@ -39,7 +38,7 @@ CameraModelScaramuzza::CameraModelScaramuzza(
       principalPoint_(fx_ * center[0], fy_ * center[1]),
       skew_(0),
       settings_(settings) {
-  adjustPrincipal(principalPoint_, settings.centerShift);
+  adjustPrincipal(principalPoint_, settings.center_shift);
   recalcBoundaries();
   setMapPolyCoeffs();
 }
@@ -52,16 +51,16 @@ CameraModelScaramuzza::CameraModelScaramuzza(
   CHECK(ifs.is_open()) << ("camera model file could not be open!");
 
   switch (type) {
-    case POLY_UNMAP:
+    case kPolynomialMap:
       readUnmap(ifs);
-      adjustPrincipal(principalPoint_, settings.centerShift);
+      adjustPrincipal(principalPoint_, settings.center_shift);
       recalcBoundaries();
       setMapPolyCoeffs();
       break;
-    case POLY_MAP:
+    case kPolynomialUnmap:
       readMap(ifs);
-      adjustPrincipal(principalPoint_, settings.centerShift);
-      maxAngle_ = settings.magicMaxAngle;
+      adjustPrincipal(principalPoint_, settings.center_shift);
+      maxAngle_ = settings.initial_max_angle;
       setUnmapPolyCoeffs();
       recalcBoundaries();
       break;
@@ -78,18 +77,18 @@ CameraModelScaramuzza::CameraModelScaramuzza(
       fy_(f),
       principalPoint_(f * cx, f * cy),
       settings_(settings) {
-  adjustPrincipal(principalPoint_, settings.centerShift);
+  adjustPrincipal(principalPoint_, settings.center_shift);
   unmapPolyCoeffs_.resize(1, 1);
   unmapPolyCoeffs_[0] = 1;
   recalcBoundaries();
 
   //    setMapPolyCoeffs();
-  CHECK_LT(settings.mapPolyDegree, 14);
+  CHECK_LT(settings.map_polynomial_degree, 14);
   VectorX mapPolyCoeffsFull(14);
   mapPolyCoeffsFull << 0., 1., 0, 1. / 3., 0, 2. / 15., 0, 17. / 315., 0,
       62. / 2835., 0, 1382. / 155925., 0,
       21844. / 6081075.;  // Taylor expansion of tan(x)
-  mapPolyCoeffs_ = mapPolyCoeffsFull.head(settings.mapPolyDegree + 1);
+  mapPolyCoeffs_ = mapPolyCoeffsFull.head(settings.map_polynomial_degree + 1);
 
   LOG(INFO) << "\n\n CAMERA MODEL:\n"
             << "unmap coeffs  = " << unmapPolyCoeffs_.transpose()
@@ -134,11 +133,11 @@ void CameraModelScaramuzza::readMap(std::istream &is) {
 void CameraModelScaramuzza::setMapPolyCoeffs() {
   // points of type (r, \theta), where r stands for scaled radius of a point
   // in the image and \theta stands for angle to z-axis of the unprojected ray
-  int nPnts = settings_.mapPolyPoints;
-  int deg = settings_.mapPolyDegree;
+  int nPnts = settings_.map_polynomial_points;
+  int deg = settings_.map_polynomial_degree;
   StdVectorA<Vector2> funcGraph;
   funcGraph.reserve(nPnts);
-  std::mt19937 gen(settings_.isDeterministic ? 42 : std::random_device()());
+  std::mt19937 gen(settings_.is_deterministic ? 42 : std::random_device()());
   std::uniform_real_distribution<> distr(0, radius_);
 
   for (int it = 0; it < nPnts; ++it) {
@@ -176,17 +175,17 @@ void CameraModelScaramuzza::setMapPolyCoeffs() {
 void CameraModelScaramuzza::setUnmapPolyCoeffs() {
   recalcMaxRadius();
 
-  unmapPolyDeg_ = settings_.unmapPolyDegree;
+  unmapPolyDeg_ = settings_.unmap_polynomial_degree;
 
-  MatrixX2 funcGraphFull(settings_.unmapPolyPoints, 2);
+  MatrixX2 funcGraphFull(settings_.unmap_polynomial_points, 2);
   int numTaken = 0;
 
-  std::mt19937 gen(settings_.isDeterministic ? 42 : std::random_device()());
+  std::mt19937 gen(settings_.is_deterministic ? 42 : std::random_device()());
   const double eps = 1e-3;
   std::uniform_real_distribution<double> distr(eps, maxAngle_);
   LOG(INFO) << "Fitting the unmap polynomial in [" << eps << ", " << maxAngle_
             << "]" << std::endl;
-  for (int i = 0; i < settings_.unmapPolyPoints; ++i) {
+  for (int i = 0; i < settings_.unmap_polynomial_points; ++i) {
     double theta = distr(gen);
     double r = calcMapPoly(theta);
     double z = r * std::tan(M_PI_2 - theta);
@@ -200,17 +199,17 @@ void CameraModelScaramuzza::setUnmapPolyCoeffs() {
   funcGraph.col(0) /=
       radius_;  // Normalizing the polynomial to take results from [0, 1]
 
-  MatrixXX A(funcGraph.rows(), settings_.unmapPolyDegree);
+  MatrixXX A(funcGraph.rows(), settings_.unmap_polynomial_degree);
   A.col(0).setOnes();
   A.col(1) = funcGraph.col(0).cwiseProduct(funcGraph.col(0));
-  for (int j = 2; j < settings_.unmapPolyDegree; ++j)
+  for (int j = 2; j < settings_.unmap_polynomial_degree; ++j)
     A.col(j) = A.col(j - 1).cwiseProduct(funcGraph.col(0));
   VectorX b = funcGraph.col(1);
 
   unmapPolyCoeffs_ = A.fullPivHouseholderQr().solve(b);
 
   double mult = radius_ * radius_;
-  for (int i = 1; i < settings_.unmapPolyDegree; ++i) {
+  for (int i = 1; i < settings_.unmap_polynomial_degree; ++i) {
     unmapPolyCoeffs_(i) /= mult;
     mult *= radius_;
   }

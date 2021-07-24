@@ -8,7 +8,7 @@ namespace grpose {
  * Reading the camera model from an intrinsics file as provided by the MultiFoV
  * datasets
  */
-Camera getMfovCam(const fs::path &intrinsicsFname) {
+Camera GetMfovCam(const fs::path &intrinsics_filename) {
   // Our CameraModel is partially compatible with the provided one (affine
   // transformation used in omni_cam is just scaling in our case, but no problem
   // raises since in this dataset no affine transformation is happening). We
@@ -16,33 +16,37 @@ Camera getMfovCam(const fs::path &intrinsicsFname) {
   // one.
 
   int width, height;
-  double unmapPolyCoeffs[5];
+  double unmap_poly_coeffs[5];
   Vector2 center;
-  std::ifstream camIfs(intrinsicsFname);
-  CHECK(camIfs.is_open()) << "could not open camera intrinsics file \""
-                          << intrinsicsFname.native() << "\"";
-  camIfs >> width >> height;
-  for (int i = 0; i < 5; ++i) camIfs >> unmapPolyCoeffs[i];
-  VectorX ourCoeffs(4);
-  ourCoeffs << unmapPolyCoeffs[0], unmapPolyCoeffs[2], unmapPolyCoeffs[3],
-      unmapPolyCoeffs[4];
-  ourCoeffs *= -1;
-  camIfs >> center[0] >> center[1];
-  return Camera(width, height,
-                CameraModelScaramuzza(width, height, 1.0, center, ourCoeffs));
+  std::ifstream camera_ifsteram(intrinsics_filename);
+  // TODO cleanup throw
+  CHECK(camera_ifsteram.is_open()) << "could not open camera intrinsics file \""
+                                   << intrinsics_filename.native() << "\"";
+  camera_ifsteram >> width >> height;
+  for (int i = 0; i < 5; ++i) camera_ifsteram >> unmap_poly_coeffs[i];
+  VectorX our_coefficients(4);
+  our_coefficients << unmap_poly_coeffs[0], unmap_poly_coeffs[2],
+      unmap_poly_coeffs[3], unmap_poly_coeffs[4];
+  our_coefficients *= -1;
+  camera_ifsteram >> center[0] >> center[1];
+  return Camera(
+      width, height,
+      CameraModelScaramuzza(width, height, 1.0, center, our_coefficients));
 }
 
-cv::Mat1f readBinMat(const fs::path &fname, int imgWidth, int imgHeight) {
-  std::ifstream depthsIfs(fname, std::ios::binary);
-  CHECK(depthsIfs.is_open()) << "failed to open file: " << fname;
-  cv::Mat1f depths(imgHeight, imgWidth);
-  for (int y = 0; y < imgHeight; ++y)
-    for (int x = 0; x < imgWidth; ++x)
-      depthsIfs.read(reinterpret_cast<char *>(&depths(y, x)), sizeof(float));
+cv::Mat1f ReadBinMat(const fs::path &filename, int image_width,
+                     int image_height) {
+  std::ifstream depths_ifstream(filename, std::ios::binary);
+  CHECK(depths_ifstream.is_open()) << "failed to open file: " << filename;
+  cv::Mat1f depths(image_height, image_width);
+  for (int y = 0; y < image_height; ++y)
+    for (int x = 0; x < image_width; ++x)
+      depths_ifstream.read(reinterpret_cast<char *>(&depths(y, x)),
+                           sizeof(float));
   return depths;
 }
 
-SE3 readFromMatrix3x4(std::istream &istream) {
+SE3 ReadFromMatrix3x4(std::istream &istream) {
   Matrix34 mat;
   for (int r = 0; r < 3; ++r)
     for (int c = 0; c < 4; ++c) istream >> mat(r, c);
@@ -57,169 +61,190 @@ SE3 readFromMatrix3x4(std::istream &istream) {
   return SE3(Rfixed, mat.col(3));
 }
 
-const std::vector<std::string> MultiCamReaderSettings::default_camNames = {
+const std::vector<std::string> MultiCamReaderSettings::default_camera_names = {
     "front", "right", "rear", "left"};
 
-const Eigen::AlignedBox2d MultiCamReader::Depths::boundingBox(
+const Eigen::AlignedBox2d MultiCamReader::Depths::bounding_box_(
     Vector2::Zero(),
-    Vector2(MultiCamReader::imgWidth - 1, MultiCamReader::imgHeight - 1));
+    Vector2(MultiCamReader::kImageWidth - 1, MultiCamReader::kImageHeight - 1));
 
-int MultiCamReaderSettings::numCams() const { return camNames.size(); }
+int MultiCamReaderSettings::NumberOfCameras() const {
+  return camera_names.size();
+}
 
-MultiCamReader::Depths::Depths(const fs::path &datasetDir, int frameInd,
-                               const MultiCamReaderSettings &newSettings)
-    : settings(newSettings) {
-  CHECK_GE(frameInd, 0);
-  CHECK_LT(frameInd, mNumFrames);
+MultiCamReader::Depths::Depths(const fs::path &dataset_directory,
+                               int frame_index,
+                               const MultiCamReaderSettings &settings)
+    : settings_(settings) {
+  CHECK_GE(frame_index, 0);
+  CHECK_LT(frame_index, kNumberOfFrames);
 
-  depths.reserve(settings.numCams());
-  for (int ci = 0; ci < settings.numCams(); ++ci) {
-    constexpr int maxlen = 100;
-    char innerName[maxlen];
-    snprintf(innerName, maxlen, "%s_%04d.bin", settings.camNames[ci].c_str(),
-             frameInd);
-    fs::path depthPath =
-        datasetDir / "data" / "depth" / settings.camNames[ci] / innerName;
-    depths.push_back(readBinMat(depthPath, imgWidth, imgHeight));
+  depths_.reserve(settings_.NumberOfCameras());
+  for (int ci = 0; ci < settings_.NumberOfCameras(); ++ci) {
+    constexpr int kMaxLen = 100;
+    // TODO cleanup fmt
+    char inner_name[kMaxLen];
+    snprintf(inner_name, kMaxLen, "%s_%04d.bin",
+             settings_.camera_names[ci].c_str(), frame_index);
+    fs::path depthPath = dataset_directory / "data" / "depth" /
+                         settings_.camera_names[ci] / inner_name;
+    depths_.push_back(ReadBinMat(depthPath, kImageWidth, kImageHeight));
   }
 }
 
-std::optional<double> MultiCamReader::Depths::depth(
-    int camInd, const Vector2 &point) const {
-  if (!boundingBox.contains(point)) return std::nullopt;
-  CHECK_GE(camInd, 0);
-  CHECK_LT(camInd, settings.numCams());
-  return std::optional<double>(double(depths[camInd](toCvPoint(point))));
+std::optional<double> MultiCamReader::Depths::Depth(
+    int camera_index, const Vector2 &point) const {
+  if (!bounding_box_.contains(point)) return std::nullopt;
+  // TODO cleanup throw
+  CHECK_GE(camera_index, 0);
+  CHECK_LT(camera_index, settings_.NumberOfCameras());
+  return std::make_optional(
+      static_cast<double>(depths_[camera_index](ToCvPoint(point))));
 }
 
-bool MultiCamReader::isMultiCam(const fs::path &datasetDir) {
-  fs::path infoDir = datasetDir / "info";
-  fs::path intrinsicsDir = infoDir / "intrinsics";
-  fs::path extrinsicsDir = infoDir / "extrinsics";
-  fs::path dataDir = datasetDir / "data";
-  fs::path imgDir = dataDir / "img";
-  fs::path depthDir = dataDir / "depth";
-  bool isMcam = fs::exists(infoDir / "body_to_world.txt");
-  for (const auto &camName : MultiCamReaderSettings::default_camNames) {
-    isMcam = isMcam && fs::exists(intrinsicsDir / (camName + ".txt"));
-    isMcam = isMcam && fs::exists(extrinsicsDir / (camName + "_to_body.txt"));
-    isMcam = isMcam && fs::exists(imgDir / camName);
-    isMcam = isMcam && fs::exists(depthDir / camName);
+bool MultiCamReader::IsMultiCam(const fs::path &dataset_directory) {
+  fs::path info_dir = dataset_directory / "info";
+  fs::path intrinsics_dir = info_dir / "intrinsics";
+  fs::path extrinsics_dir = info_dir / "extrinsics";
+  fs::path data_dir = dataset_directory / "data";
+  fs::path img_dir = data_dir / "img";
+  fs::path depth_dir = data_dir / "depth";
+  bool isMcam = fs::exists(info_dir / "body_to_world.txt");
+  for (const auto &camera_name : MultiCamReaderSettings::default_camera_names) {
+    isMcam = isMcam && fs::exists(intrinsics_dir / (camera_name + ".txt"));
+    isMcam =
+        isMcam && fs::exists(extrinsics_dir / (camera_name + "_to_body.txt"));
+    isMcam = isMcam && fs::exists(img_dir / camera_name);
+    isMcam = isMcam && fs::exists(depth_dir / camera_name);
   }
   return isMcam;
 }
 
-CameraBundle MultiCamReader::createCameraBundle(
-    const fs::path &datasetDir, const std::vector<std::string> &camNames) {
-  fs::path extrinsicsDir(datasetDir / "info" / "extrinsics");
-  fs::path intrinsicsDir(datasetDir / "info" / "intrinsics");
+CameraBundle MultiCamReader::CreateCameraBundle(
+    const fs::path &dataset_directory,
+    const std::vector<std::string> &camera_names) {
+  fs::path extrinsics_dir(dataset_directory / "info" / "extrinsics");
+  fs::path intrinsics_dir(dataset_directory / "info" / "intrinsics");
 
-  StdVectorA<Camera> cams;
-  StdVectorA<SE3> bodyToCam;
-  cams.reserve(camNames.size());
-  bodyToCam.reserve(camNames.size());
-  for (const auto &camName : camNames) {
-    std::ifstream extrinsicsFile(extrinsicsDir / (camName + "_to_body.txt"));
-    CHECK(extrinsicsFile.is_open());
-    bodyToCam.push_back(readFromMatrix3x4(extrinsicsFile).inverse());
-    cams.push_back(getMfovCam(intrinsicsDir / (camName + ".txt")));
+  StdVectorA<Camera> cameras;
+  StdVectorA<SE3> camera_from_body;
+  cameras.reserve(camera_names.size());
+  camera_from_body.reserve(camera_names.size());
+  for (const auto &camera_name : camera_names) {
+    std::ifstream extrinsics_file(extrinsics_dir /
+                                  (camera_name + "_to_body.txt"));
+    // TODO cleanup throw
+    CHECK(extrinsics_file.is_open());
+    camera_from_body.push_back(ReadFromMatrix3x4(extrinsics_file).inverse());
+    cameras.push_back(GetMfovCam(intrinsics_dir / (camera_name + ".txt")));
   }
 
-  return CameraBundle(bodyToCam.data(), cams.data(), camNames.size());
+  return CameraBundle(camera_from_body.data(), cameras.data(),
+                      camera_names.size());
 }
 
-StdVectorA<SE3> MultiCamReader::readBodyToWorld(const fs::path &datasetDir) {
-  std::ifstream trajIfs(datasetDir / "info" / "body_to_world.txt");
-  StdVectorA<SE3> bodyToWorld;
-  bodyToWorld.reserve(mNumFrames);
-  for (int fi = 0; fi < mNumFrames; ++fi)
-    bodyToWorld.push_back(readFromMatrix3x4(trajIfs));
-  return bodyToWorld;
+StdVectorA<SE3> MultiCamReader::ReadWorldFromBody(
+    const fs::path &dataset_directory) {
+  std::ifstream trajectory_file(dataset_directory / "info" /
+                                "body_to_world.txt");
+  StdVectorA<SE3> world_from_body;
+  world_from_body.reserve(kNumberOfFrames);
+  for (int fi = 0; fi < kNumberOfFrames; ++fi)
+    world_from_body.push_back(ReadFromMatrix3x4(trajectory_file));
+  return world_from_body;
 }
 
-MultiCamReader::MultiCamReader(const fs::path &_datasetDir,
+MultiCamReader::MultiCamReader(const fs::path &dataset_directory,
                                const MultiCamReaderSettings &settings)
-    : settings(settings),
-      datasetDir(_datasetDir),
-      mCam(createCameraBundle(_datasetDir, settings.camNames)),
-      bodyToWorld(readBodyToWorld(_datasetDir)) {
-  CHECK(isMultiCam(datasetDir));
+    : settings_(settings),
+      dataset_directory_(dataset_directory),
+      camera_bundle_(
+          CreateCameraBundle(dataset_directory, settings.camera_names)),
+      world_from_body_(ReadWorldFromBody(dataset_directory)) {
+  CHECK(IsMultiCam(dataset_directory));
 }
 
-int MultiCamReader::numFrames() const { return mNumFrames; }
+int MultiCamReader::NumberOfFrames() const { return kNumberOfFrames; }
 
-int MultiCamReader::firstTimestampToInd(Timestamp timestamp) const {
-  int ind = int(std::round(double(timestamp) / tsPerFrame));
+int MultiCamReader::FirstTimestampToIndex(Timestamp timestamp) const {
+  int ind = int(std::round(double(timestamp) / kFrameTimestampStep));
   CHECK_GE(ind, 0);
-  CHECK_LT(ind, mNumFrames);
+  CHECK_LT(ind, kNumberOfFrames);
   return ind;
 }
 
-std::vector<Timestamp> MultiCamReader::timestampsFromInd(int frameInd) const {
-  if (frameInd < 0) return std::vector<Timestamp>(settings.numCams(), 0);
-  if (frameInd >= mNumFrames)
-    return std::vector<Timestamp>(settings.numCams(),
-                                  tsPerFrame * (mNumFrames - 1));
-  return std::vector<Timestamp>(settings.numCams(), tsPerFrame * frameInd);
+std::vector<Timestamp> MultiCamReader::TimestampsFromIndex(
+    int frame_index) const {
+  if (frame_index < 0)
+    return std::vector<Timestamp>(settings_.NumberOfCameras(), 0);
+  if (frame_index >= kNumberOfFrames)
+    return std::vector<Timestamp>(settings_.NumberOfCameras(),
+                                  kFrameTimestampStep * (kNumberOfFrames - 1));
+  return std::vector<Timestamp>(settings_.NumberOfCameras(),
+                                kFrameTimestampStep * frame_index);
 }
 
-std::vector<fs::path> MultiCamReader::frameFiles(int frameInd) const {
-  CHECK_GE(frameInd, 0);
-  CHECK_LT(frameInd, mNumFrames);
+std::vector<fs::path> MultiCamReader::FrameFiles(int frame_index) const {
+  CHECK_GE(frame_index, 0);
+  CHECK_LT(frame_index, kNumberOfFrames);
 
   std::vector<fs::path> fnames;
-  fnames.reserve(settings.numCams());
-  for (int ci = 0; ci < settings.numCams(); ++ci) {
+  fnames.reserve(settings_.NumberOfCameras());
+  for (int ci = 0; ci < settings_.NumberOfCameras(); ++ci) {
     constexpr int maxlen = 100;
-    char innerName[maxlen];
-    snprintf(innerName, maxlen, "%s_%04d.jpg", settings.camNames[ci].c_str(),
-             frameInd);
-    fs::path imagePath =
-        datasetDir / "data" / "img" / settings.camNames[ci] / innerName;
+    // TODO cleanup fmt
+    char inner_name[maxlen];
+    snprintf(inner_name, maxlen, "%s_%04d.jpg",
+             settings_.camera_names[ci].c_str(), frame_index);
+    fs::path imagePath = dataset_directory_ / "data" / "img" /
+                         settings_.camera_names[ci] / inner_name;
     fnames.push_back(imagePath);
   }
   return fnames;
 }
 
-std::vector<DatasetReader::FrameEntry> MultiCamReader::frame(
-    int frameInd) const {
-  CHECK_GE(frameInd, 0);
-  CHECK_LT(frameInd, mNumFrames);
+std::vector<DatasetReader::FrameEntry> MultiCamReader::Frame(
+    int frame_index) const {
+  // TODO cleanup throw
+  CHECK_GE(frame_index, 0);
+  CHECK_LT(frame_index, kNumberOfFrames);
   std::vector<DatasetReader::FrameEntry> frame;
-  frame.reserve(settings.numCams());
-  std::vector<fs::path> fnames = frameFiles(frameInd);
-  for (int ci = 0; ci < settings.numCams(); ++ci) {
+  frame.reserve(settings_.NumberOfCameras());
+  std::vector<fs::path> fnames = FrameFiles(frame_index);
+  for (int ci = 0; ci < settings_.NumberOfCameras(); ++ci) {
     cv::Mat3b image = cv::imread(fnames[ci].string());
     CHECK_NE(image.data, (unsigned char *)nullptr)
         << "path: " << fnames[ci].string();
-    frame.push_back({image, Timestamp(frameInd)});
+    frame.push_back({image, Timestamp(frame_index)});
   }
   return frame;
 }
 
-CameraBundle MultiCamReader::cam() const { return mCam; }
+CameraBundle MultiCamReader::GetCameraBundle() const { return camera_bundle_; }
 
-std::unique_ptr<FrameDepths> MultiCamReader::depths(int frameInd) const {
+std::unique_ptr<FrameDepths> MultiCamReader::GetDepths(int frame_index) const {
   return std::unique_ptr<FrameDepths>(
-      new Depths(datasetDir, frameInd, settings));
+      new Depths(dataset_directory_, frame_index, settings_));
 }
 
-bool MultiCamReader::hasFrameToWorld(int frameInd) const {
-  return frameInd >= 0 && frameInd < mNumFrames;
+bool MultiCamReader::HasWorldFromFrame(int frame_index) const {
+  return frame_index >= 0 && frame_index < kNumberOfFrames;
 }
 
-SE3 MultiCamReader::frameToWorld(int frameInd) const {
-  CHECK_GE(frameInd, 0);
-  CHECK_LT(frameInd, bodyToWorld.size());
-  return bodyToWorld[frameInd];
+SE3 MultiCamReader::WorldFromFrame(int frame_index) const {
+  // TODO cleanup throw
+  CHECK_GE(frame_index, 0);
+  CHECK_LT(frame_index, world_from_body_.size());
+  return world_from_body_[frame_index];
 }
 
-Trajectory MultiCamReader::gtTrajectory() const {
-  StdMapA<Timestamp, SE3> timestampedWorldFromFrame;
-  for (int fi = 0; fi < numFrames(); ++fi) {
-    timestampedWorldFromFrame[timestampsFromInd(fi)[0]] = bodyToWorld[fi];
+Trajectory MultiCamReader::GroundTruthTrajectory() const {
+  StdMapA<Timestamp, SE3> timestamped_world_from_frame;
+  for (int fi = 0; fi < NumberOfFrames(); ++fi) {
+    timestamped_world_from_frame[TimestampsFromIndex(fi)[0]] =
+        world_from_body_[fi];
   }
-  return Trajectory{timestampedWorldFromFrame};
+  return Trajectory{timestamped_world_from_frame};
 }
 
 }  // namespace grpose

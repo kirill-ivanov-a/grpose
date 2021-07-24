@@ -15,7 +15,7 @@ class CameraModelPinhole {
    * @return 3D-direction in the camera frame, **UNNORMALIZED**
    */
   template <typename T>
-  Eigen::Matrix<T, 3, 1> unmap(const T *point) const {
+  Eigen::Matrix<T, 3, 1> Unmap(const T *point) const {
     using Vector3t = Eigen::Matrix<T, 3, 1>;
     using Vector2t = Eigen::Matrix<T, 2, 1>;
     Eigen::Map<const Vector2t> ptMap(point);
@@ -39,7 +39,7 @@ class CameraModelPinhole {
    * temporary incorporation of the Unified camera model.
    */
   template <typename T>
-  Eigen::Matrix<T, 2, 1> map(const T *direction) const {
+  Eigen::Matrix<T, 2, 1> Map(const T *direction) const {
     typedef Eigen::Matrix<T, 3, 1> Vector3t;
     typedef Eigen::Matrix<T, 2, 1> Vector2t;
     typedef Eigen::Matrix<T, Eigen::Dynamic, 1> VectorXt;

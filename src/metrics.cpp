@@ -8,16 +8,16 @@
 
 namespace grpose {
 
-std::vector<double> absoluteTranslationError(const Trajectory& groundtruth,
+std::vector<double> AbsoluteTranslationError(const Trajectory& ground_truth,
                                              const Trajectory& estimate) {
   // Align the estimate with the groundtruth.
-  const Trajectory estimate_aligned = estimate.alignTo(groundtruth);
+  const Trajectory estimate_aligned = estimate.AlignTo(ground_truth);
 
   std::vector<double> errors;
-  for (const Timestamp est_timestamp : estimate_aligned.timestamps()) {
+  for (const Timestamp est_timestamp : estimate_aligned.Timestamps()) {
     const SE3& world_from_est =
-        estimate_aligned.worldFromFrameAt(est_timestamp);
-    const SE3 world_from_gt = groundtruth.worldFromFrameAt(est_timestamp);
+        estimate_aligned.WorldFromFrameAt(est_timestamp);
+    const SE3 world_from_gt = ground_truth.WorldFromFrameAt(est_timestamp);
 
     const SE3 gt_from_est = world_from_gt.inverse() * world_from_est;
     errors.emplace_back(gt_from_est.translation().norm());
@@ -26,16 +26,16 @@ std::vector<double> absoluteTranslationError(const Trajectory& groundtruth,
   return errors;
 }
 
-std::vector<double> absoluteRotationError(const Trajectory& groundtruth,
+std::vector<double> AbsoluteRotationError(const Trajectory& ground_truth,
                                           const Trajectory& estimate) {
   // Align the estimate with the groundtruth.
-  const Trajectory estimate_aligned = estimate.alignTo(groundtruth);
+  const Trajectory estimate_aligned = estimate.AlignTo(ground_truth);
 
   std::vector<double> errors;
-  for (const Timestamp est_timestamp : estimate_aligned.timestamps()) {
+  for (const Timestamp est_timestamp : estimate_aligned.Timestamps()) {
     const SE3& world_from_est =
-        estimate_aligned.worldFromFrameAt(est_timestamp);
-    const SE3 world_from_gt = groundtruth.worldFromFrameAt(est_timestamp);
+        estimate_aligned.WorldFromFrameAt(est_timestamp);
+    const SE3 world_from_gt = ground_truth.WorldFromFrameAt(est_timestamp);
 
     errors.emplace_back(
         (world_from_gt.so3().inverse() * world_from_est.so3()).log().norm());

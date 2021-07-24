@@ -7,7 +7,7 @@ namespace grpose {
 
 NonCentralRelativePoseSolverSettings::NonCentralRelativePoseSolverSettings(
     double focal_length, bool verbose) {
-  updateRansacThreshold(ransac_reproj_threshold, focal_length);
+  UpdateRansacThreshold(ransac_reproj_threshold, focal_length);
   solver_verbose = verbose;
   if (solver_verbose == true) {
     LOG(INFO) << "RANSAC reprojection threshold: " << ransac_reproj_threshold
@@ -17,7 +17,7 @@ NonCentralRelativePoseSolverSettings::NonCentralRelativePoseSolverSettings(
   }
 }
 
-void NonCentralRelativePoseSolverSettings::updateRansacThreshold(
+void NonCentralRelativePoseSolverSettings::UpdateRansacThreshold(
     double reproj_threshold, double focal_length) {
   CHECK_GT(reproj_threshold, 0.0);
   CHECK_GT(focal_length, 0.0);

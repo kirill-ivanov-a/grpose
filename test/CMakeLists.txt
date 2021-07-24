@@ -1,4 +1,4 @@
-set(TESTS test_primer test_cameramodel test_util test_metrics test_trajectory)
+set(TESTS test_cameramodelscaramuzza test_util test_metrics test_trajectory)
 
 foreach (CUR_TEST ${TESTS})
     add_executable(${CUR_TEST} ${CUR_TEST}.cpp)

@@ -2,58 +2,56 @@
 #define GRPOSE_CAMERA_CAMERABUNDLE_
 
 #include <glog/logging.h>
+
 #include "camera/Camera.h"
 
 namespace grpose {
 
 class CameraBundle {
  public:
-  using CamPyr = StdVectorA<CameraBundle>;
+  CameraBundle(SE3 camera_from_body[], Camera cam[], int size);
 
-  CameraBundle();  // NOTE: default constructor here for convenience and testing
-  CameraBundle(SE3 bodyToCam[], Camera cam[], int size);
+  inline int NumberOfCameras() const { return bundle_.size(); }
 
-  inline int numCams() const { return bundle_.size(); }
+  inline Camera &camera(int index) {
+    CHECK_GE(index, 0);
+    CHECK_LT(index, bundle_.size());
 
-  inline Camera &cam(int ind) {
-    CHECK_GE(ind, 0);
-    CHECK_LT(ind, bundle_.size());
-
-    return bundle_[ind].cam;
+    return bundle_[index].camera;
   }
 
-  inline const Camera &cam(int ind) const {
-    CHECK_GE(ind, 0);
-    CHECK_LT(ind, bundle_.size());
+  inline const Camera &camera(int index) const {
+    CHECK_GE(index, 0);
+    CHECK_LT(index, bundle_.size());
 
-    return bundle_[ind].cam;
+    return bundle_[index].camera;
   }
 
-  inline SE3 camToBody(int ind) const {
-    CHECK_GE(ind, 0);
-    CHECK_LT(ind, bundle_.size());
+  inline SE3 body_from_camera(int index) const {
+    CHECK_GE(index, 0);
+    CHECK_LT(index, bundle_.size());
 
-    return bundle_[ind].thisToBody;
+    return bundle_[index].body_from_this;
   }
 
-  inline SE3 bodyToCam(int ind) const {
-    CHECK_GE(ind, 0);
-    CHECK_LT(ind, bundle_.size());
+  inline SE3 camera_from_body(int index) const {
+    CHECK_GE(index, 0);
+    CHECK_LT(index, bundle_.size());
 
-    return bundle_[ind].bodyToThis;
+    return bundle_[index].this_from_body;
   }
 
-  void setCamToBody(int ind, const SE3 &camToBody);
+  void set_body_from_camera(int index, const SE3 &body_from_camera);
 
  private:
   struct CameraEntry {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    CameraEntry(const SE3 &_bodyToThis, const Camera &cam);
+    CameraEntry(const SE3 &this_from_body, const Camera &camera);
 
-    SE3 bodyToThis;
-    SE3 thisToBody;
-    Camera cam;
+    SE3 this_from_body;
+    SE3 body_from_this;
+    Camera camera;
   };
 
   StdVectorA<CameraEntry> bundle_;

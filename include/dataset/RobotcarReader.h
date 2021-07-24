@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include <opencv2/opencv.hpp>
+
 #include "dataset/DatasetReader.h"
 
 namespace grpose {
@@ -11,25 +12,25 @@ namespace grpose {
 struct RobotcarReaderSettings {
   RobotcarReaderSettings();
 
-  CameraModelScaramuzzaSettings cam;
+  CameraModelScaramuzzaSettings camera_settings;
 
-  static constexpr bool default_fillVoGaps = false;
-  bool fillVoGaps = default_fillVoGaps;
+  static constexpr bool default_fill_odometry_gaps = false;
+  bool fill_odometry_gaps = default_fill_odometry_gaps;
 
-  static constexpr bool default_correctRtk = true;
-  bool correctRtk = default_correctRtk;
+  static constexpr bool default_correct_rtk = true;
+  bool correct_rtk = default_correct_rtk;
 
-  static constexpr double default_projectedTimeWindow = 2;
-  double projectedTimeWindow = default_projectedTimeWindow;
+  static constexpr double default_projected_time_window = 2;
+  double projected_time_window = default_projected_time_window;
 
-  static constexpr int default_maxProjectedPoints = 20'000;
-  int maxProjectedPoints = default_maxProjectedPoints;
+  static constexpr int default_max_projected_points = 20'000;
+  int max_projected_points = default_max_projected_points;
 
-  static constexpr double default_boxFilterSize = 3;
-  double boxFilterSize = default_boxFilterSize;
+  static constexpr double default_box_filter_size = 3;
+  double box_filter_size = default_box_filter_size;
 
-  static constexpr char default_outputDirectory[] = "output/default";
-  fs::path outputDirectory = default_outputDirectory;
+  static constexpr char default_output_directory[] = "output/default";
+  fs::path output_directory = default_output_directory;
 };
 
 /**
@@ -37,105 +38,94 @@ struct RobotcarReaderSettings {
  */
 class RobotcarReader : public DatasetReader {
  public:
-  static constexpr int imageWidth = 1024, imageHeight = 1024;
-  static constexpr int numCams = 3;
+  static constexpr int kImageWidth = 1024, kImageHeight = 1024;
+  static constexpr int kNumberOfCameras = 3;
 
-  static bool isRobotcar(const fs::path &chunkDir);
+  static bool IsRobotcar(const fs::path &segment_directory);
 
-  RobotcarReader(const fs::path &_chunkDir, const fs::path &modelsDir,
-                 const fs::path &extrinsicsDir,
-                 const std::optional<fs::path> &rtkDir = std::nullopt,
-                 const RobotcarReaderSettings &_settings = {});
+  RobotcarReader(const fs::path &segment_directory,
+                 const fs::path &camera_models_directory,
+                 const fs::path &extrinsics_directory,
+                 const std::optional<fs::path> &rtk_directory = std::nullopt,
+                 const RobotcarReaderSettings &settings = {});
 
-  void provideMasks(const fs::path &masksDir);
+  void ProvideMasks(const fs::path &masks_directory);
 
-  int numFrames() const override;
+  int NumberOfFrames() const override;
+  int FirstTimestampToIndex(Timestamp timestamp) const override;
+  std::vector<Timestamp> TimestampsFromIndex(int frame_index) const override;
+  std::vector<fs::path> FrameFiles(int frame_index) const override;
+  std::vector<FrameEntry> Frame(int frame_index) const override;
+  CameraBundle GetCameraBundle() const override { return camera_bundle_; }
+  std::unique_ptr<FrameDepths> GetDepths(int frame_index) const override;
+  bool HasWorldFromFrame(int frame_index) const override;
+  SE3 WorldFromFrame(int frame_index) const override;
+  Trajectory GroundTruthTrajectory() const override;
 
-  int firstTimestampToInd(Timestamp timestamp) const override;
+  SE3 WorldFromBodyAtTimestamp(Timestamp timestamp,
+                               bool use_odometry = false) const;
 
-  std::vector<Timestamp> timestampsFromInd(int frameInd) const override;
-
-  std::vector<fs::path> frameFiles(int frameInd) const override;
-
-  std::vector<FrameEntry> frame(int frameInd) const override;
-
-  CameraBundle cam() const override { return mCam; }
-
-  std::unique_ptr<FrameDepths> depths(int frameInd) const override;
-
-  bool hasFrameToWorld(int frameInd) const override;
-
-  SE3 frameToWorld(int frameInd) const override;
-
-  Trajectory gtTrajectory() const override;
-
-  SE3 tsToWorld(Timestamp ts, bool useVo = false) const;
-
-  std::vector<Vector3> getLmsFrontCloud(Timestamp from, Timestamp to,
+  // LMS Front, LMS Rear and LDMRS -- three lidars that are provided with the
+  // dataset; INS -- inertial sensor; Left, Rear, Right -- three cameras.
+  std::vector<Vector3> GetLmsFrontCloud(Timestamp from, Timestamp to,
                                         Timestamp base) const;
-
-  std::vector<Vector3> getLmsRearCloud(Timestamp from, Timestamp to,
+  std::vector<Vector3> GetLmsRearCloud(Timestamp from, Timestamp to,
                                        Timestamp base) const;
-
-  std::vector<Vector3> getLdmrsCloud(Timestamp from, Timestamp to,
+  std::vector<Vector3> GetLdmrsCloud(Timestamp from, Timestamp to,
                                      Timestamp base) const;
 
-  std::array<StdVectorA<std::pair<Vector2, double>>, numCams> project(
-      Timestamp from, Timestamp to, Timestamp base, bool useLmsFront = true,
-      bool useLmsRear = true, bool useLdmrs = true) const;
-  std::array<StdVectorA<std::pair<Vector2, double>>, numCams>
+  std::array<StdVectorA<std::pair<Vector2, double>>, kNumberOfCameras> project(
+      Timestamp from, Timestamp to, Timestamp base, bool use_lms_front = true,
+      bool use_lms_rear = true, bool use_ldmrs = true) const;
+  std::array<StdVectorA<std::pair<Vector2, double>>, kNumberOfCameras> project(
+      const std::vector<Vector3> &cloud) const;
 
-  project(const std::vector<Vector3> &cloud) const;
-
-  inline const std::vector<Timestamp> &lmsFrontTs() const {
-    return mLmsFrontTs;
+  inline const std::vector<Timestamp> &lms_front_timestamps() const {
+    return lms_front_timestamps_;
   }
-
-  inline const StdVectorA<SE3> &getGtBodyToWorld() const {
-    return gtBodyToWorld;
+  inline const StdVectorA<SE3> &ground_truth_world_from_body() const {
+    return ground_truth_world_from_body_;
   }
-
-  inline bool masksProvided() const { return mMasksProvided; }
-
-  Timestamp minTs() const;
-
-  Timestamp maxTs() const;
+  inline bool are_masks_provided() const { return are_masks_provided_; }
+  Timestamp min_timestamp() const;
+  Timestamp max_timestamp() const;
 
  private:
-  static const SE3 camToImage;
+  static const SE3 kImageFromCamera;
 
-  static CameraBundle createFromData(
-      const fs::path &modelsDir, const SE3 &bodyToLeft, const SE3 &bodyToRear,
-      const SE3 &bodyToRight, int w, int h,
-      const CameraModelScaramuzzaSettings &camSettings);
+  static CameraBundle CreateCameraBundle(
+      const fs::path &models_directory, const SE3 &left_from_body,
+      const SE3 &rear_from_body, const SE3 &right_from_body, int w, int h,
+      const CameraModelScaramuzzaSettings &camera_settings);
 
-  void syncTimestamps();
+  void SyncTimestamps();
 
-  void getPointCloudHelper(std::vector<Vector3> &cloud, const fs::path &scanDir,
-                           const SE3 &sensorToBody, Timestamp base,
+  void GetPointCloudHelper(const fs::path &scan_directory,
+                           const SE3 &body_from_sensor, Timestamp base,
                            const std::vector<Timestamp> &timestamps,
-                           Timestamp from, Timestamp to, bool isLdmrs) const;
+                           Timestamp from, Timestamp to, bool is_ldmrs,
+                           std::vector<Vector3> &cloud) const;
 
-  void printVoAndGT(const fs::path &outputDirectory) const;
+  void PrintOdometryAndGroundTruth(const fs::path &output_directory) const;
 
-  SE3 bodyToLeft, bodyToRear, bodyToRight;
-  SE3 bodyToLmsFront, bodyToLmsRear;
-  SE3 bodyToLdmrs;
-  SE3 bodyToIns;
-  StdVectorA<SE3> gtBodyToWorld;
-  StdVectorA<SE3> voBodyToWorld;
-  CameraBundle mCam;
-  fs::path chunkDir;
-  fs::path leftDir, rearDir, rightDir;
-  fs::path lmsFrontDir, lmsRearDir;
-  fs::path ldmrsDir;
-  std::vector<Timestamp> mLeftTs, mRearTs, mRightTs;
-  std::vector<Timestamp> mLmsFrontTs, mLmsRearTs;
-  std::vector<Timestamp> mLdmrsTs;
-  std::vector<Timestamp> mGroundTruthTs;
-  std::vector<Timestamp> mVoTs;
-  bool mMasksProvided;
-  RobotcarReaderSettings settings;
+  SE3 left_from_body_, rear_from_body_, right_from_body_;
+  SE3 lms_front_from_body_, lms_rear_from_body_;
+  SE3 ldmrs_from_body_;
+  SE3 ins_from_body_;
+  StdVectorA<SE3> ground_truth_world_from_body_;
+  StdVectorA<SE3> odometry_world_from_body_;
+  CameraBundle camera_bundle_;
+  fs::path segment_directory_;
+  fs::path left_directory_, rear_directory_, right_directory_;
+  fs::path lms_front_directory_, lms_rear_directory_;
+  fs::path ldmrs_directory_;
+  std::vector<Timestamp> left_timestamps_, rear_timestamps_, right_timestamps_;
+  std::vector<Timestamp> lms_front_timestamps_, lms_rear_timestamps_;
+  std::vector<Timestamp> ldmrs_timestamps_;
+  std::vector<Timestamp> ground_truth_pose_timestamps_;
+  std::vector<Timestamp> odometry_pose_timestamps_;
+  bool are_masks_provided_;
+  RobotcarReaderSettings settings_;
 };
 
 }  // namespace grpose

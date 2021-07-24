@@ -3,101 +3,115 @@
 
 #include <chrono>
 #include <fstream>
-#include <opencv2/opencv.hpp>
 #include <sstream>
 #include <vector>
+
+#include <opencv2/opencv.hpp>
+
 #include "types.h"
 
 namespace grpose {
 
 /**
  * A helper function to output a point cloud into a PLY file
- * @param out the stream to output into
+ * @param out_stream the stream to output into
  * @param points the vector of points
  * @param colors the corresponding colors
  */
-void printInPly(std::ostream &out, const std::vector<Vector3> &points,
+void PrintInPly(std::ostream &out_stream, const std::vector<Vector3> &points,
                 const std::vector<cv::Vec3b> &colors);
 
 /**
  * Read a vector of doubles encoded continuously into a binary file.
  */
-std::vector<double> readDoublesFromBin(const fs::path &filename);
+std::vector<double> ReadDoublesFromBin(const fs::path &filename);
 
 /**
- * Write the \p motion into \p out in the 3x4 matrix form in row-major order
+ * Write the \p motion into \p out_stream in the 3x4 matrix form in row-major
+ * order
  */
-void putInMatrixForm(std::ostream &out, const SE3 &motion);
+void PutInMatrixForm(std::ostream &out_stream, const SE3 &motion);
 
 /**
- * Draw a square on \p img with its center at position \p pos. Pass `cv::FILLED`
- * as \p thickness for it to be fiilled.
+ * Draw a square on \p image with its center at position \p position. Pass
+ * `cv::FILLED` as \p thickness for it to be fiilled.
  * @param size2 half of the size of the side of the square in pixels
  */
-void drawSquare(cv::Mat &img, const cv::Point &pos, int size2,
-                const cv::Scalar &col, int thickness);
+void DrawSquare(cv::Mat &image, const cv::Point &position, int size2,
+                const cv::Scalar &color, int thickness);
 
 /**
  * Absolute distance between timestamps in microseconds
  */
-Timestamp timestampDist(Timestamp a, Timestamp b);
+Timestamp TimestampDistance(Timestamp a, Timestamp b);
 
 /**
  * Randomly subsample a set of vectors in-place such that the total number of
- * points becomes \p neededTotal, while retaining the approximate proportion of
+ * points becomes \p needed_total, while retaining the approximate proportion of
  * original sizes of vectors.
  *
  * @param v an array of pointers to vectors that we want to sparsify
  */
 template <typename T>
-void sparsifyVectors(std::vector<T> *v[], int numVectors, int neededTotal) {
+void SparsifyVectors(std::vector<T> *v[], int number_of_vectors,
+                     int needed_total) {
   int total =
-      std::accumulate(v, v + numVectors, 0,
+      std::accumulate(v, v + number_of_vectors, 0,
                       [](int x, std::vector<T> *v) { return x + v->size(); });
-  if (total < neededTotal) return;
+  if (total < needed_total) return;
 
   std::mt19937 mt;
-  for (int i = 0; i < numVectors; ++i)
+  for (int i = 0; i < number_of_vectors; ++i)
     std::shuffle(v[i]->begin(), v[i]->end(), mt);
 
   int cur = 0;
-  for (int i = 0; i < numVectors - 1; ++i) {
-    int remain = double(v[i]->size()) / total * neededTotal;
+  for (int i = 0; i < number_of_vectors - 1; ++i) {
+    int remain = double(v[i]->size()) / total * needed_total;
     v[i]->resize(remain);
     cur += remain;
   }
-  v[numVectors - 1]->resize(neededTotal - cur);
+  v[number_of_vectors - 1]->resize(needed_total - cur);
 }
+
+template <typename T>
+T Average(const std::vector<T> &vector) {
+  if (vector.empty())
+    throw std::out_of_range("Computing Average for an empty vector!");
+  T sum = std::accumulate(vector.begin() + 1, vector.end(), vector[0]);
+  return sum / static_cast<T>(vector.size());
+}
+
+/**
+ * Linearly map values from \p values to colors according to \p colormap
+ */
+std::vector<cv::Vec3b> GetColors(std::vector<double> values, double min_value,
+                                 double max_value,
+                                 const cv::ColormapTypes &colormap);
 
 /**
  * @return Current date and time in a format suitable for creating files with a
  * name that includes it.
  */
-std::string curTimeBrief();
+std::string CurrentTimeBrief();
 
-// Some handy conversions
-Vector2 toVector2(cv::Point p);
-
-Vector2 toVector2(cv::Point2f p);
-
-cv::Point toCvPoint(const Vector2 &vec);
-
-cv::Vec3b toCvVec3b(cv::Scalar scalar);
-
-cv::Mat1b cvtBgrToGray(const cv::Mat3b &coloredImg);
-
-cv::Mat3b cvtBgrToGray3(const cv::Mat3b &coloredImg);
-
-cv::Mat3b cvtGrayToBgr(const cv::Mat1b &grayImg);
-
-ChronoTimePoint toChronoTimePoint(Timestamp timestamp);
+Vector2 ToVector2(cv::Point p);
+Vector2 ToVector2(cv::Point2f p);
+cv::Point ToCvPoint(const Vector2 &vec);
+cv::Vec3b ToCvVec3b(const cv::Scalar &scalar);
+cv::Mat1b ConvertBgrToGray(const cv::Mat3b &colored_image);
+cv::Mat3b ConvertBgrToGray3(const cv::Mat3b &colored_image);
+cv::Mat3b ConvertGrayToBgr(const cv::Mat1b &grayscale_image);
+ChronoTimePoint ToChronoTimePoint(Timestamp timestamp);
 
 /**
- * Translates the \p timePoint into a string representation with hours, minutes
+ * Translates the \p time_point into a string representation with hours, minutes
  * and seconds. This is most certainly shifted and does not take the time zone
  * into account, but it is still useful for logging and debugging purposes.
  */
-std::string timeOfDay(ChronoTimePoint timePoint);
+std::string TimeOfDay(ChronoTimePoint time_point);
+inline std::string TimeOfDay(Timestamp timestamp) {
+  return TimeOfDay(ToChronoTimePoint(timestamp));
+}
 
 }  // namespace grpose
 

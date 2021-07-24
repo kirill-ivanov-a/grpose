@@ -6,9 +6,9 @@
 
 namespace grpose {
 
-Trajectory Trajectory::fromFile(const fs::path &filename) {
+Trajectory Trajectory::FromFile(const fs::path &filename) {
   // Open the specified file.
-  assert(fs::is_regular_file(filename));
+  CHECK(fs::is_regular_file(filename));
   std::ifstream ifs(filename, std::ios_base::in);
 
   StdMapA<Timestamp, SE3> timestamped_poses;
@@ -22,6 +22,7 @@ Trajectory Trajectory::fromFile(const fs::path &filename) {
 
     // Check that the line is not comma-delimited.
     if (line.find(",") != std::string::npos) {
+      // TODO cleanup fmt
       std::stringstream error_msg;
       error_msg << "A comma was found in the trajectory file. Make sure it is "
                    "space-delimited, not "
@@ -56,7 +57,7 @@ Trajectory Trajectory::fromFile(const fs::path &filename) {
 
 Trajectory::Trajectory(const StdMapA<Timestamp, SE3> &timestamped_poses)
     : timestamped_poses_(timestamped_poses) {
-  for (const auto &[timestamp, pose] : timestampedPoses()) {
+  for (const auto &[timestamp, pose] : TimestampedPoses()) {
     timestamps_.emplace_back(timestamp);
     poses_.emplace_back(pose);
   }
@@ -75,88 +76,89 @@ Trajectory::Trajectory(const StdMapA<Timestamp, SE3> &timestamped_poses)
   }
 }
 
-int Trajectory::size() const { return poses_.size(); }
+int Trajectory::Size() const { return poses_.size(); }
 
-bool Trajectory::contains(Timestamp t) const {
-  return timestampedPoses().count(t) > 0;
+bool Trajectory::Contains(Timestamp t) const {
+  return TimestampedPoses().count(t) > 0;
 }
 
-const StdMapA<Timestamp, SE3> &Trajectory::timestampedPoses() const {
+const StdMapA<Timestamp, SE3> &Trajectory::TimestampedPoses() const {
   return timestamped_poses_;
 }
 
-const std::vector<Timestamp> &Trajectory::timestamps() const {
+const std::vector<Timestamp> &Trajectory::Timestamps() const {
   return timestamps_;
 }
 
-Timestamp Trajectory::firstTimestamp() const { return timestamps().front(); }
+Timestamp Trajectory::FirstTimestamp() const { return Timestamps().front(); }
 
-Timestamp Trajectory::lastTimestamp() const { return timestamps().back(); }
+Timestamp Trajectory::LastTimestamp() const { return Timestamps().back(); }
 
-const SE3 &Trajectory::worldFromFirstFrame() const { return poses_.front(); }
+const SE3 &Trajectory::WorldFromFirstFrame() const { return poses_.front(); }
 
-bool Trajectory::bounds(Timestamp t) const {
-  return firstTimestamp() <= t && t <= lastTimestamp();
+bool Trajectory::Bounds(Timestamp timestamp) const {
+  return FirstTimestamp() <= timestamp && timestamp <= LastTimestamp();
 }
 
-bool Trajectory::bounds(Trajectory traj) const {
-  return firstTimestamp() <= traj.firstTimestamp() &&
-         traj.lastTimestamp() <= lastTimestamp();
+bool Trajectory::Bounds(Trajectory trajectory) const {
+  return FirstTimestamp() <= trajectory.FirstTimestamp() &&
+         trajectory.LastTimestamp() <= LastTimestamp();
 }
 
-bool Trajectory::boundedBy(Trajectory traj) const {
-  return traj.firstTimestamp() <= firstTimestamp() &&
-         lastTimestamp() <= traj.lastTimestamp();
+bool Trajectory::BoundedBy(Trajectory trajectory) const {
+  return trajectory.FirstTimestamp() <= FirstTimestamp() &&
+         LastTimestamp() <= trajectory.LastTimestamp();
 }
 
-SE3 Trajectory::worldFromFrameAt(Timestamp t) const {
+SE3 Trajectory::WorldFromFrameAt(Timestamp timestamp) const {
   // If the exact specified timestamp is in the trajectory, the simply return
   // the associated pose.
-  if (timestampedPoses().count(t) > 0) {
-    return timestampedPoses().at(t);
+  if (TimestampedPoses().count(timestamp) > 0) {
+    return TimestampedPoses().at(timestamp);
   }
 
   // The exact specified timestamp is not in the trajectory, so we will need to
   // interpolate between timestamps. Check that the trajectory bounds the
   // specified timestamp.
-  if (!bounds(t)) {
+  if (!Bounds(timestamp)) {
     std::stringstream error_msg;
     error_msg << "This trajectory does not bound the specified timestamp, so "
                  "it cannot be "
                  "interpolated.\n  Specified timestamp: "
-              << t << "\n  Trajectory first timestamp: " << firstTimestamp()
-              << "\n  Trajectory last timestamp: " << lastTimestamp();
+              << timestamp
+              << "\n  Trajectory first timestamp: " << FirstTimestamp()
+              << "\n  Trajectory last timestamp: " << LastTimestamp();
     throw std::runtime_error(error_msg.str());
   }
 
   // Find the high and low indices which differ by 1 and surround the specified
   // timestamp.
   const int high_idx =
-      std::lower_bound(timestamps().begin(), timestamps().end(), t) -
-      timestamps().begin();
+      std::lower_bound(Timestamps().begin(), Timestamps().end(), timestamp) -
+      Timestamps().begin();
   const int low_idx = high_idx - 1;
-  assert(high_idx > 0 && high_idx < size());
+  assert(high_idx > 0 && high_idx < Size());
 
   // Get the timestamps at the computed high and low indices.
-  const Timestamp high_t = timestamps().at(high_idx);
-  const Timestamp low_t = timestamps().at(low_idx);
+  const Timestamp high_t = Timestamps().at(high_idx);
+  const Timestamp low_t = Timestamps().at(low_idx);
 
   // low_from_high = low_from_world * world_from_high
   SE3 low_from_high =
-      worldFromFrameAt(low_t).inverse() * worldFromFrameAt(high_t);
+      WorldFromFrameAt(low_t).inverse() * WorldFromFrameAt(high_t);
 
   // Compute what portion of the way from low_t to high_t is the specified
   // timestamp. Between 0 and 1.
-  double t_frac = double(t - low_t) / (high_t - low_t);
+  double t_frac = double(timestamp - low_t) / (high_t - low_t);
   SE3 low_from_t = SE3::exp(t_frac * low_from_high.log());
 
-  return worldFromFrameAt(low_t) *
+  return WorldFromFrameAt(low_t) *
          low_from_t;  // world_from_t = world_from_low * low_from_t
 }
 
-Trajectory Trajectory::rightTransform(const SE3 &old_from_new) const {
+Trajectory Trajectory::RightTransform(const SE3 &old_from_new) const {
   StdMapA<Timestamp, SE3> new_timestamped_poses;
-  for (const auto &[timestamp, world_from_old] : timestampedPoses()) {
+  for (const auto &[timestamp, world_from_old] : TimestampedPoses()) {
     // world_from_new = world_from_old * old_from_new
     new_timestamped_poses.emplace(
         std::make_pair(timestamp, world_from_old * old_from_new));
@@ -165,10 +167,10 @@ Trajectory Trajectory::rightTransform(const SE3 &old_from_new) const {
   return Trajectory{new_timestamped_poses};
 }
 
-Trajectory Trajectory::leftTransform(
+Trajectory Trajectory::LeftTransform(
     const SE3 &new_world_from_old_world) const {
   StdMapA<Timestamp, SE3> new_timestamped_poses;
-  for (const auto &[timestamp, old_world_from_old] : timestampedPoses()) {
+  for (const auto &[timestamp, old_world_from_old] : TimestampedPoses()) {
     new_timestamped_poses.emplace(std::make_pair(
         timestamp, new_world_from_old_world * old_world_from_old));
   }
@@ -176,44 +178,45 @@ Trajectory Trajectory::leftTransform(
   return Trajectory{new_timestamped_poses};
 }
 
-Trajectory Trajectory::alignTo(const Trajectory &base) const {
+Trajectory Trajectory::AlignTo(const Trajectory &base) const {
   // Check that this trajectory's first timestamp is bounded by the base
   // trajectory.
-  if (!base.bounds(firstTimestamp())) {
+  if (!base.Bounds(FirstTimestamp())) {
+    // TODO cleanup fmt
     std::stringstream error_msg;
     error_msg << "This trajectory's first timestamp is not bounded by the base "
                  "trajectory, so this "
                  "trajectory cannot be properly aligned to the base "
                  "trajectory.\n  This "
                  "first timestamp: "
-              << firstTimestamp()
-              << "\n  This last timestamp: " << lastTimestamp()
+              << FirstTimestamp()
+              << "\n  This last timestamp: " << LastTimestamp()
               << "\n  Base first "
                  "timestamp: "
-              << base.firstTimestamp()
-              << "\n  Base last timestamp: " << base.lastTimestamp();
+              << base.FirstTimestamp()
+              << "\n  Base last timestamp: " << base.LastTimestamp();
     throw std::runtime_error(error_msg.str());
   }
 
-  const SE3 worldr_from_ref = worldFromFirstFrame();
-  const SE3 worldb_from_base = base.worldFromFrameAt(firstTimestamp());
+  const SE3 worldr_from_ref = WorldFromFirstFrame();
+  const SE3 worldb_from_base = base.WorldFromFrameAt(FirstTimestamp());
   const SE3 worldb_from_worldr = worldb_from_base * worldr_from_ref.inverse();
 
-  return leftTransform(worldb_from_worldr);
+  return LeftTransform(worldb_from_worldr);
 }
 
 bool Trajectory::operator==(const Trajectory &other) const {
-  if (size() != other.size()) {
+  if (Size() != other.Size()) {
     return false;
   }
 
-  for (const auto &[timestamp, pose] : timestampedPoses()) {
-    if (other.contains(timestamp) == 0) {
+  for (const auto &[timestamp, pose] : TimestampedPoses()) {
+    if (other.Contains(timestamp) == 0) {
       return false;
     }
-    if (pose.translation() != other.worldFromFrameAt(timestamp).translation() ||
+    if (pose.translation() != other.WorldFromFrameAt(timestamp).translation() ||
         pose.unit_quaternion().coeffs() !=
-            other.worldFromFrameAt(timestamp).unit_quaternion().coeffs()) {
+            other.WorldFromFrameAt(timestamp).unit_quaternion().coeffs()) {
       return false;
     }
   }
@@ -222,8 +225,8 @@ bool Trajectory::operator==(const Trajectory &other) const {
 }
 
 std::ostream &operator<<(std::ostream &stream, const Trajectory &trajectory) {
-  for (Timestamp timestamp : trajectory.timestamps()) {
-    const SE3 world_from_frame = trajectory.worldFromFrameAt(timestamp);
+  for (Timestamp timestamp : trajectory.Timestamps()) {
+    const SE3 world_from_frame = trajectory.WorldFromFrameAt(timestamp);
     const Vector3 t = world_from_frame.translation();
     const Quaternion q = world_from_frame.unit_quaternion();
     stream << timestamp << ' ' << t[0] << ' ' << t[1] << ' ' << t[2] << ' '
@@ -232,53 +235,53 @@ std::ostream &operator<<(std::ostream &stream, const Trajectory &trajectory) {
   return stream;
 }
 
-void Trajectory::saveToFile(const fs::path &filename) const {
+void Trajectory::SaveToFile(const fs::path &filename) const {
   std::ofstream stream(filename);
   stream.precision(15);
   stream << (*this);
 }
 
-double Trajectory::cumulativeTranslation(Timestamp from, Timestamp to) const {
-  return cumulativeTranslationOrRotation(from, to, true);
+double Trajectory::CumulativeTranslation(Timestamp from, Timestamp to) const {
+  return CumulativeTranslationOrRotation(from, to, true);
 }
 
-double Trajectory::cumulativeRotation(Timestamp from, Timestamp to) const {
-  return cumulativeTranslationOrRotation(from, to, false);
+double Trajectory::CumulativeRotation(Timestamp from, Timestamp to) const {
+  return CumulativeTranslationOrRotation(from, to, false);
 }
 
-double Trajectory::cumulativeTranslationOrRotation(Timestamp from, Timestamp to,
+double Trajectory::CumulativeTranslationOrRotation(Timestamp from, Timestamp to,
                                                    bool isTranslation) const {
   if (from > to) throw std::runtime_error("Cumulative translation from > to");
-  if (!bounds(from))
+  if (!Bounds(from))
     throw std::runtime_error(
         "Cumulative translation or rotation \"from\"(=" + std::to_string(from) +
-        ") not in the trajectory [" + std::to_string(firstTimestamp()) + ", " +
-        std::to_string(lastTimestamp()) + "]");
-  if (!bounds(to))
+        ") not in the trajectory [" + std::to_string(FirstTimestamp()) + ", " +
+        std::to_string(LastTimestamp()) + "]");
+  if (!Bounds(to))
     throw std::runtime_error(
         "Cumulative translation or rotation \"to\" not in the trajectory");
 
   if (from == to) return 0.0;
 
   const int high_idx_from =
-      std::lower_bound(timestamps().begin(), timestamps().end(), from) -
-      timestamps().begin();
+      std::lower_bound(Timestamps().begin(), Timestamps().end(), from) -
+      Timestamps().begin();
   const int low_idx_to =
-      int(std::upper_bound(timestamps().begin(), timestamps().end(), to) -
-          timestamps().begin()) -
+      int(std::upper_bound(Timestamps().begin(), Timestamps().end(), to) -
+          Timestamps().begin()) -
       1;
 
   if (high_idx_from > low_idx_to) {
     const SE3 end_from_start =
-        worldFromFrameAt(to).inverse() * worldFromFrameAt(from);
+        WorldFromFrameAt(to).inverse() * WorldFromFrameAt(from);
     if (isTranslation)
       return end_from_start.translation().norm();
     else
       return end_from_start.so3().log().norm();
   }
 
-  const SE3 world_from_start = worldFromFrameAt(from);
-  const SE3 world_from_end = worldFromFrameAt(to);
+  const SE3 world_from_start = WorldFromFrameAt(from);
+  const SE3 world_from_end = WorldFromFrameAt(to);
   const SE3 high_idx_from_start =
       poses_[high_idx_from].inverse() * world_from_start;
   const SE3 low_idx_from_end = poses_[low_idx_to].inverse() * world_from_end;

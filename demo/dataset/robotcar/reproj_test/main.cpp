@@ -15,23 +15,24 @@ DEFINE_bool(gen_clouds, true,
 
 using namespace grpose;
 
-void testReproj(const CameraBundle &cameraBundle, const fs::path &outDir) {
-  for (int ci = 0; ci < cameraBundle.numCams(); ++ci) {
-    Camera cam = cameraBundle.cam(ci);
-    int h = cam.height(), w = cam.width();
+void TestReproj(const CameraBundle &camera_bundle,
+                const fs::path &output_directory) {
+  for (int ci = 0; ci < camera_bundle.NumberOfCameras(); ++ci) {
+    const Camera &camera = camera_bundle.camera(ci);
+    int h = camera.height(), w = camera.width();
     cv::Mat1d errors(h, w);
     for (int r = 0; r < h; ++r)
       for (int c = 0; c < w; ++c) {
         Vector2 p(c, r);
-        Vector2 repr = cam.map(cam.unmap(p));
+        Vector2 repr = camera.Map(camera.Unmap(p));
         errors(c, r) = (p - repr).norm();
       }
 
-    std::ofstream ofs(outDir /
-                      fs::path("reproj" + std::to_string(ci) + ".txt"));
+    std::ofstream reprojected_file(
+        output_directory / fs::path("reproj" + std::to_string(ci) + ".txt"));
     for (int r = 0; r < h; ++r) {
-      for (int c = 0; c < w; ++c) ofs << errors(r, c) << ' ';
-      ofs << '\n';
+      for (int c = 0; c < w; ++c) reprojected_file << errors(r, c) << ' ';
+      reprojected_file << '\n';
     }
 
     cv::imshow("errors" + std::to_string(ci), errors);
@@ -41,8 +42,8 @@ void testReproj(const CameraBundle &cameraBundle, const fs::path &outDir) {
 
 int main(int argc, char *argv[]) {
   std::string usage =
-      R"abacaba(Usage:   ./reproj_test chunk_dir rtk_dir
-Where chunk_dir is a directory with one part from Robotcar
+      R"abacaba(Usage:   ./reproj_test segment_dir rtk_dir
+Where segment_dir is a directory with one part from Robotcar
 and rtk_dir is a directory with RTK ground-truth for the dataset.
 It expects that the chunk has the respective ground-truth.
 It expects that the working dir is the root directory of the repository. Otherwise,
@@ -53,23 +54,25 @@ for more details on what is in the output and how to control it.
   gflags::SetUsageMessage(usage);
   google::InitGoogleLogging(argv[0]);
 
-  fs::path chunkDir = argv[1];
-  fs::path rtkDir = argv[2];
-  fs::path masksDir = FLAGS_masks_dir;
-  CHECK(fs::is_directory(chunkDir));
-  CHECK(fs::is_directory(rtkDir));
-  CHECK(fs::is_directory(masksDir));
+  fs::path segment_directory = argv[1];
+  fs::path rtk_directory = argv[2];
+  fs::path masks_directory = FLAGS_masks_dir;
+  CHECK(fs::is_directory(segment_directory));
+  CHECK(fs::is_directory(rtk_directory));
+  CHECK(fs::is_directory(masks_directory));
 
-  fs::path outDir = fs::path("output") / ("reproj_test_" + curTimeBrief());
-  fs::create_directories(outDir);
+  fs::path output_directory =
+      fs::path("output") / ("reproj_test_" + CurrentTimeBrief());
+  fs::create_directories(output_directory);
 
   RobotcarReaderSettings settings;
   //  rtkDir.reset();
-  RobotcarReader reader(chunkDir, FLAGS_models_dir, FLAGS_extrinsics_dir,
-                        std::make_optional(rtkDir), settings);
-  reader.provideMasks(masksDir);
+  RobotcarReader reader(segment_directory, FLAGS_models_dir,
+                        FLAGS_extrinsics_dir, std::make_optional(rtk_directory),
+                        settings);
+  reader.ProvideMasks(masks_directory);
 
-  testReproj(reader.cam(), outDir);
+  TestReproj(reader.GetCameraBundle(), output_directory);
 
   return 0;
 }

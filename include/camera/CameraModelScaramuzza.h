@@ -1,44 +1,46 @@
 #ifndef GRPOSE_CAMERA_CAMERAMODELSCARAMUZZA_
 #define GRPOSE_CAMERA_CAMERAMODELSCARAMUZZA_
 
+#include <string>
+
 #include <glog/logging.h>
 #include <Eigen/Dense>
 #include <opencv2/core.hpp>
-#include <string>
+
 #include "types.h"
 
 namespace grpose {
 
 struct CameraModelScaramuzzaSettings {
-  static constexpr int default_mapPolyDegree = 10;
-  int mapPolyDegree = default_mapPolyDegree;
+  static constexpr int default_map_polynomial_degree = 10;
+  int map_polynomial_degree = default_map_polynomial_degree;
 
-  static constexpr int default_unmapPolyDegree = 6;
-  int unmapPolyDegree = default_unmapPolyDegree;
+  static constexpr int default_unmap_polynomial_degree = 6;
+  int unmap_polynomial_degree = default_unmap_polynomial_degree;
 
-  static constexpr int default_mapPolyPoints = 2000;
-  int mapPolyPoints = default_mapPolyPoints;
+  static constexpr int default_map_polynomial_points = 2000;
+  int map_polynomial_points = default_map_polynomial_points;
 
-  static constexpr int default_unmapPolyPoints = 2000;
-  int unmapPolyPoints = default_unmapPolyPoints;
+  static constexpr int default_unmap_polynomial_points = 2000;
+  int unmap_polynomial_points = default_unmap_polynomial_points;
 
-  static constexpr double default_magicMaxAngle = 100.0 * (M_PI / 180.0);
-  double magicMaxAngle = default_magicMaxAngle;
+  static constexpr double default_initial_max_angle = 100.0 * (M_PI / 180.0);
+  double initial_max_angle = default_initial_max_angle;
 
-  enum CenterShift { NO_SHIFT, MINUS_05, PLUS_05 };
-  static constexpr CenterShift default_centerShift = NO_SHIFT;
-  CenterShift centerShift = default_centerShift;
+  enum CenterShift { kNoShift, kMinus0_5, kPlus0_5 };
+  static constexpr CenterShift default_center_shift = kNoShift;
+  CenterShift center_shift = default_center_shift;
 
-  static constexpr bool default_debugOutput = false;
-  bool debugOutput = default_debugOutput;
+  static constexpr bool default_debug_output = false;
+  bool debug_output = default_debug_output;
 
-  static constexpr bool default_isDeterministic = true;
-  bool isDeterministic = default_isDeterministic;
+  static constexpr bool default_is_deterministic = true;
+  bool is_deterministic = default_is_deterministic;
 };
 
 class CameraModelScaramuzza {
  public:
-  enum InputType { POLY_UNMAP, POLY_MAP };
+  enum InputType { kPolynomialMap, kPolynomialUnmap };
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -69,7 +71,7 @@ class CameraModelScaramuzza {
    * @return 3D-direction in the camera frame, **UNNORMALIZED**
    */
   template <typename T>
-  Eigen::Matrix<T, 3, 1> unmap(const T *point) const {
+  Eigen::Matrix<T, 3, 1> Unmap(const T *point) const {
     using Vector3t = Eigen::Matrix<T, 3, 1>;
     using Vector2t = Eigen::Matrix<T, 2, 1>;
     using VectorXt = Eigen::Matrix<T, Eigen::Dynamic, 1>;
@@ -108,7 +110,7 @@ class CameraModelScaramuzza {
    * temporary incorporation of the Unified camera model.
    */
   template <typename T>
-  Eigen::Matrix<T, 2, 1> map(const T *direction) const {
+  Eigen::Matrix<T, 2, 1> Map(const T *direction) const {
     using Vector3t = Eigen::Matrix<T, 3, 1>;
     using Vector2t = Eigen::Matrix<T, 2, 1>;
     using VectorXt = Eigen::Matrix<T, Eigen::Dynamic, 1>;

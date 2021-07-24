@@ -1,16 +1,17 @@
 #ifndef GRPOSE_TYPES_
 #define GRPOSE_TYPES_
 
-#include <Eigen/Core>
-#include <Eigen/StdVector>
 #include <chrono>
 #include <filesystem>
 #include <map>
 #include <memory>
 #include <queue>
+#include <vector>
+
+#include <Eigen/Core>
+#include <Eigen/StdVector>
 #include <sophus/se3.hpp>
 #include <sophus/sim3.hpp>
-#include <vector>
 
 namespace grpose {
 

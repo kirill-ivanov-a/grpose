@@ -6,76 +6,78 @@
 namespace grpose {
 
 struct MultiCamReaderSettings {
-  static const std::vector<std::string> default_camNames;
-  std::vector<std::string> camNames = default_camNames;
+  static const std::vector<std::string> default_camera_names;
+  std::vector<std::string> camera_names = default_camera_names;
 
-  int numCams() const;
+  int NumberOfCameras() const;
 };
 
 /**
- * The implementation of `DatasetReader` for the modified Multi-FoV dataset that
- * was generated for a surround-view-like 4 camera system.
+ * The implementation of `DatasetReader` for the modified Multi-FoV dataset
+ * (a.k.a. MultiCam) that was generated for a surround-view-like 4 camera
+ * system.
  */
 class MultiCamReader : public DatasetReader {
-  static constexpr int mNumFrames = 3000;
-  static constexpr int imgWidth = 640, imgHeight = 480;
+  static constexpr int kNumberOfFrames = 3000;
+  static constexpr int kImageWidth = 640, kImageHeight = 480;
 
   // We use a fixed step between images, and we postulate that it roughly equals
   // 30 frames per second. The whole dataset thus represents 1.5 minutes of
   // driving with really sharp turns without the decrease in speed.
-  static constexpr Timestamp tsPerFrame = 30000;
+  static constexpr Timestamp kFrameTimestampStep = 30000;
 
  public:
-  static bool isMultiCam(const fs::path &datasetDir);
+  static bool IsMultiCam(const fs::path &dataset_directory);
 
-  MultiCamReader(const fs::path &datasetDir,
+  MultiCamReader(const fs::path &dataset_directory,
                  const MultiCamReaderSettings &settings = {});
 
-  int numFrames() const override;
+  int NumberOfFrames() const override;
 
-  int firstTimestampToInd(Timestamp timestamp) const override;
+  int FirstTimestampToIndex(Timestamp timestamp) const override;
 
-  std::vector<Timestamp> timestampsFromInd(int frameInd) const override;
+  std::vector<Timestamp> TimestampsFromIndex(int frame_index) const override;
 
-  std::vector<fs::path> frameFiles(int frameInd) const override;
+  std::vector<fs::path> FrameFiles(int frame_index) const override;
 
-  std::vector<FrameEntry> frame(int frameInd) const override;
+  std::vector<FrameEntry> Frame(int frame_index) const override;
 
-  CameraBundle cam() const override;
+  CameraBundle GetCameraBundle() const override;
 
-  std::unique_ptr<FrameDepths> depths(int frameInd) const override;
+  std::unique_ptr<FrameDepths> GetDepths(int frame_index) const override;
 
-  bool hasFrameToWorld(int frameInd) const override;
+  bool HasWorldFromFrame(int frame_index) const override;
 
-  SE3 frameToWorld(int frameInd) const override;
+  SE3 WorldFromFrame(int frame_index) const override;
 
-  Trajectory gtTrajectory() const override;
+  Trajectory GroundTruthTrajectory() const override;
 
  private:
   class Depths : public FrameDepths {
    public:
-    Depths(const fs::path &datasetDir, int frameInd,
-           const MultiCamReaderSettings &newSettings);
+    Depths(const fs::path &dataset_directory, int frame_index,
+           const MultiCamReaderSettings &settings);
 
-    std::optional<double> depth(int camInd,
+    std::optional<double> Depth(int camera_index,
                                 const Vector2 &point) const override;
 
    private:
-    std::vector<cv::Mat1f> depths;
-    static const Eigen::AlignedBox2d boundingBox;
+    std::vector<cv::Mat1f> depths_;
+    static const Eigen::AlignedBox2d bounding_box_;
 
-    MultiCamReaderSettings settings;
+    MultiCamReaderSettings settings_;
   };
 
-  static CameraBundle createCameraBundle(
-      const fs::path &datasetDir, const std::vector<std::string> &camNames);
+  static CameraBundle CreateCameraBundle(
+      const fs::path &dataset_directory,
+      const std::vector<std::string> &camera_names);
 
-  static StdVectorA<SE3> readBodyToWorld(const fs::path &datasetDir);
+  static StdVectorA<SE3> ReadWorldFromBody(const fs::path &dataset_directory);
 
-  MultiCamReaderSettings settings;
-  fs::path datasetDir;
-  CameraBundle mCam;
-  StdVectorA<SE3> bodyToWorld;
+  MultiCamReaderSettings settings_;
+  fs::path dataset_directory_;
+  CameraBundle camera_bundle_;
+  StdVectorA<SE3> world_from_body_;
 };
 
 }  // namespace grpose

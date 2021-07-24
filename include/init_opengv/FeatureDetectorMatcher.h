@@ -1,109 +1,105 @@
 #ifndef GRPOSE_INITOPENGV_FEATUREDETECTORMATCHER_
 #define GRPOSE_INITOPENGV_FEATUREDETECTORMATCHER_
 
-#include <types.h>
 #include <opencv2/opencv.hpp>
 #include <opengv/types.hpp>
 
 #include "camera/CameraBundle.h"
 #include "dataset/DatasetReader.h"
 #include "init_opengv/MultiCamInitSettings.h"
+#include "types.h"
 
 namespace grpose {
 
 struct BearingVectorCorrespondences {
-  int numCameras;
-  int numCorrespondences;
-  std::vector<Timestamp> currentTimestamps, nextTimestamps;
-  opengv::bearingVectors_t bearingVectorsCurrent, bearingVectorsNext;
-  std::vector<int> correspondencesCurrent, correspondencesNext;
+  BearingVectorCorrespondences(int number_of_cameras);
 
-  BearingVectorCorrespondences(int numCameras);
-
-  void setCamTimestamp(int cameraInd, Timestamp currentTimestamp,
-                       Timestamp nextTimestamp);
+  void SetCamTimestamp(int camera_index, Timestamp current_timestamp,
+                       Timestamp next_timestamp);
 
   // Make sure that all bearing vectors pushed are normalized !!!
-  void pushBVC(opengv::bearingVector_t bearingVectorCurrent,
-               opengv::bearingVector_t bearingVectorNext,
-               int cameraCorrespondence);
+  void PushBvc(const opengv::bearingVector_t &first_bearing_vector,
+               const opengv::bearingVector_t &second_bearing_vector,
+               int camera_correspondence);
+
+  int number_of_cameras;
+  int number_of_correspondences;
+  std::vector<Timestamp> first_timestamps, second_timestamps;
+  opengv::bearingVectors_t first_bearing_vectors, second_bearing_vectors;
+  std::vector<int> first_correspondences, second_correspondences;
 };
 
 class FeatureDetectorMatcher {
  public:
   using FeatureType = FeatureDetectorMatcherSettings::FeatureType;
 
-  FeatureDetectorMatcher(FeatureDetectorMatcherSettings settings,
-                         CameraBundle cameraBundle);
+  FeatureDetectorMatcher(const CameraBundle &camera_bundle,
+                         const FeatureDetectorMatcherSettings &settings);
 
   BearingVectorCorrespondences getBearingVectors(
-      const std::vector<DatasetReader::FrameEntry> &frame_bundle,
-      const std::vector<DatasetReader::FrameEntry> &next_frame_bundle);
+      const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
+      const std::vector<DatasetReader::FrameEntry> &second_frame_bundle);
 
   template <typename T>
-  static double mapUnmap(const Eigen::Matrix<T, 2, 1> &point,
-                         const Camera &camera) {
-    return (point - camera.map(camera.unmap(point))).norm();
+  static double MapUnmapDistance(const Eigen::Matrix<T, 2, 1> &point,
+                                 const Camera &camera) {
+    return (point - camera.Map(camera.Unmap(point))).norm();
   }
 
  private:
   // Deprecated in favour of SIFT extraction and matching
-  void descriptorMatching(const cv::Mat &current_frame,
-                          const cv::Mat &next_frame, const cv::Mat &mask,
+  void DescriptorMatching(const cv::Mat &first_frame,
+                          const cv::Mat &second_frame, const cv::Mat &mask,
                           cv::Ptr<cv::Feature2D> detector,
-                          cv::Ptr<cv::Feature2D> desc_extractor,
-                          std::vector<cv::KeyPoint> keypoints_current,
-                          std::vector<cv::KeyPoint> &keypoints_next,
+                          cv::Ptr<cv::Feature2D> descriptor_extractor,
+                          std::vector<cv::KeyPoint> first_keypoints,
+                          std::vector<cv::KeyPoint> &second_keypoints,
                           std::vector<cv::DMatch> &matches);
 
   // Deprecated in favour of SIFT extraction and matching
-  void kltMatching(const cv::Mat &current_frame, const cv::Mat &next_frame,
-                   const std::vector<cv::KeyPoint> &keypoints_current,
-                   std::vector<cv::KeyPoint> &keypoints_next,
+  void KltMatching(const cv::Mat &first_frame, const cv::Mat &second_frame,
+                   const std::vector<cv::KeyPoint> &first_keypoints,
+                   std::vector<cv::KeyPoint> &second_keypoints,
                    std::vector<cv::DMatch> &matches);
 
-  std::vector<cv::KeyPoint> nms(const std::vector<cv::KeyPoint> &keypoints,
-                                float n_size);
+  std::vector<cv::KeyPoint> NonMaximumSuppression(
+      const std::vector<cv::KeyPoint> &keypoints, float n_size);
 
-  std::vector<cv::DMatch> ratioTestMatch(const cv::Mat &desc1,
-                                         const cv::Mat &desc2);
+  std::vector<cv::DMatch> RatioTestMatch(const cv::Mat &descriptors1,
+                                         const cv::Mat &descriptors2);
 
-  std::vector<cv::DMatch> crossCheckMatches(
+  std::vector<cv::DMatch> CrossCheckMatches(
       const std::vector<cv::DMatch> &matches1,
       const std::vector<cv::DMatch> &matches2);
 
-  FeatureDetectorMatcherSettings settings;
-
-  CameraBundle cameraBundle;
-
-  cv::Ptr<cv::Feature2D> feat_detector;
-  cv::Ptr<cv::DescriptorMatcher> desc_matcher;
+  CameraBundle camera_bundle_;
+  cv::Ptr<cv::Feature2D> feature_detector_;
+  cv::Ptr<cv::DescriptorMatcher> descriptor_matcher_;
+  FeatureDetectorMatcherSettings settings_;
 };
 
 /* DEBUG functions */
-void drawKeypoints(const cv::Mat &image,
+void DrawKeypoints(const cv::Mat &image,
                    const std::vector<cv::KeyPoint> &keypoints);
 
-void drawMatches(const cv::Mat &image1,
+void DrawMatches(const cv::Mat &image1,
                  const std::vector<cv::KeyPoint> &keypoints1,
                  const cv::Mat &image2,
                  const std::vector<cv::KeyPoint> &keypoints2,
                  const std::vector<cv::DMatch> &matches);
 
-/*
-  Backproject each keypoint then project it back into the image to create a test
-  point compare the geometric error between the keypoint and the test point get
-  an average geometric error which get's printed at the end
-*/
-void checkMapUnmap(const cv::Mat &image,
+//  Backproject each keypoint then project it into the image to create a
+//  test point, compare the geometric error between the keypoint and the test
+//  point, get an average geometric error which gets printed at the end
+void CheckMapUnmap(const cv::Mat &image,
                    const std::vector<cv::KeyPoint> &keypoints,
                    const Camera &camera);
 
-void checkCorrespondences(
+void CheckCorrespondences(
     const BearingVectorCorrespondences &correspondences,
     const CameraBundle &camera_bundle,
-    const std::vector<DatasetReader::FrameEntry> &frame_bundle,
-    const std::vector<DatasetReader::FrameEntry> &next_frame_bundle);
+    const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
+    const std::vector<DatasetReader::FrameEntry> &second_frame_bundle);
 
 }  // namespace grpose
 

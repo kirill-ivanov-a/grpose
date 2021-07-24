@@ -20,104 +20,96 @@ DEFINE_double(
 
 using namespace grpose;
 
-std::vector<cv::Vec3b> getColors(std::vector<double> vals, double minVal,
-                                 double maxVal, const cv::ColormapTypes &cmap) {
-  cv::Mat1b valsMat(vals.size(), 1);
-  for (int i = 0; i < vals.size(); ++i)
-    valsMat(i, 0) = (unsigned char)(std::clamp(
-        255 * (vals[i] - minVal) / (maxVal - minVal), 0.1, 254.0));
-  cv::Mat3b colorsMat;
-  cv::applyColorMap(valsMat, colorsMat, cmap);
-  std::vector<cv::Vec3b> colors(vals.size());
-  for (int i = 0; i < vals.size(); ++i) colors[i] = colorsMat(i, 0);
-  return colors;
-}
+cv::Mat3b PerPixelDepths(const DatasetReader *reader, int frame_index) {
+  CameraBundle camera_bundle = reader->GetCameraBundle();
+  int number_of_cameras = camera_bundle.NumberOfCameras();
+  auto frame = reader->Frame(frame_index);
+  std::vector<cv::Mat3b> images(number_of_cameras);
+  for (int ci = 0; ci < number_of_cameras; ++ci) images[ci] = frame[ci].frame;
 
-cv::Mat3b perPixelDepths(const DatasetReader *reader, int frameInd) {
-  CameraBundle cam = reader->cam();
-  int numCams = cam.numCams();
-  auto frame = reader->frame(frameInd);
-  std::vector<cv::Mat3b> images(numCams);
-  for (int ci = 0; ci < numCams; ++ci) images[ci] = frame[ci].frame;
-
-  std::vector<double> allDepths;
-  allDepths.reserve(numCams * images[0].rows * images[0].cols);
-  std::unique_ptr<FrameDepths> frameDepths = reader->depths(frameInd);
-  for (int ci = 0; ci < numCams; ++ci)
+  std::vector<double> all_depths;
+  all_depths.reserve(number_of_cameras * images[0].rows * images[0].cols);
+  std::unique_ptr<FrameDepths> frame_depths = reader->GetDepths(frame_index);
+  for (int ci = 0; ci < number_of_cameras; ++ci)
     for (int r = 0; r < images[ci].rows; ++r)
       for (int c = 0; c < images[ci].cols; ++c) {
-        std::optional<double> depth = frameDepths->depth(ci, Vector2(c, r));
-        allDepths.push_back(depth ? *depth : -1);
+        std::optional<double> depth = frame_depths->Depth(ci, Vector2(c, r));
+        all_depths.push_back(depth ? *depth : -1);
       }
-  std::vector<double> sorted = allDepths;
+  std::vector<double> sorted = all_depths;
   std::sort(sorted.begin(), sorted.end());
 
-  double minDepth = sorted[(int)(FLAGS_min_quot * allDepths.size())];
-  double maxDepth = sorted[(int)(FLAGS_max_quot * allDepths.size())];
-  LOG(INFO) << "depth bounds: " << minDepth << ", " << maxDepth << std::endl;
+  double min_depth = sorted[(int)(FLAGS_min_quot * all_depths.size())];
+  double max_depth = sorted[(int)(FLAGS_max_quot * all_depths.size())];
+  LOG(INFO) << "depth bounds: " << min_depth << ", " << max_depth << std::endl;
 
   std::vector<cv::Vec3b> colors =
-      getColors(allDepths, minDepth, maxDepth, cv::COLORMAP_JET);
+      GetColors(all_depths, min_depth, max_depth, cv::COLORMAP_JET);
 
   int i = 0;
-  std::vector<cv::Mat3b> depthImgs(numCams);
-  for (int ci = 0; ci < numCams; ++ci) {
-    depthImgs[ci] = cv::Mat3b(images[ci].rows, images[ci].cols);
+  std::vector<cv::Mat3b> depth_images(number_of_cameras);
+  for (int ci = 0; ci < number_of_cameras; ++ci) {
+    depth_images[ci] = cv::Mat3b(images[ci].rows, images[ci].cols);
     for (int r = 0; r < images[ci].rows; ++r)
       for (int c = 0; c < images[ci].cols; ++c)
-        depthImgs[ci](r, c) = colors[i++];
+        depth_images[ci](r, c) = colors[i++];
   }
 
-  cv::Mat3b allImages, allDepthImgs;
-  cv::hconcat(images.data(), images.size(), allImages);
-  cv::hconcat(depthImgs.data(), depthImgs.size(), allDepthImgs);
+  cv::Mat3b all_images, all_depth_images;
+  cv::hconcat(images.data(), images.size(), all_images);
+  cv::hconcat(depth_images.data(), depth_images.size(), all_depth_images);
   cv::Mat3b result;
-  cv::vconcat(allImages, allDepthImgs, result);
+  cv::vconcat(all_images, all_depth_images, result);
   return result;
 };
 
-void printTrajectory(const DatasetReader *reader, const fs::path &fname) {
-  int numFrames = reader->numFrames();
-  std::ofstream ofs(fname);
-  for (int fi = 0; fi < numFrames; ++fi)
-    putInMatrixForm(ofs, reader->frameToWorld(fi));
+void PrintTrajectory(const DatasetReader *reader, const fs::path &filename) {
+  int number_of_frames = reader->NumberOfFrames();
+  std::ofstream ofs(filename);
+  for (int fi = 0; fi < number_of_frames; ++fi)
+    PutInMatrixForm(ofs, reader->WorldFromFrame(fi));
 }
 
-void createCloud(const DatasetReader *reader, int firstFrame, int lastFrame,
-                 int frameStep, int pointsPerImage, const fs::path &outDir) {
-  CHECK_GE(lastFrame, firstFrame);
-  CHECK_GT(frameStep, 0);
+void CreateCloud(const DatasetReader *reader, int first_frame_index,
+                 int last_frame_index, int frame_index_step,
+                 int points_per_image, const fs::path &output_directory) {
+  CHECK_GE(last_frame_index, first_frame_index);
+  CHECK_GT(frame_index_step, 0);
 
-  CameraBundle cam = reader->cam();
-  int numCams = cam.numCams();
+  CameraBundle camera_bundle = reader->GetCameraBundle();
+  int number_of_cameras = camera_bundle.NumberOfCameras();
   std::vector<Vector3> cloud;
   std::vector<cv::Vec3b> colors;
-  int rowStep = std::ceil(cam.cam(0).height() / std::sqrt(pointsPerImage));
-  int colStep = std::ceil(cam.cam(0).width() / std::sqrt(pointsPerImage));
-  LOG(INFO) << "row, col steps = " << rowStep << ", " << colStep;
-  for (int fi = firstFrame; fi < lastFrame; fi += frameStep) {
-    std::unique_ptr<FrameDepths> frameDepths = reader->depths(fi);
-    auto frame = reader->frame(fi);
-    SE3 bodyToWorld = reader->frameToWorld(fi);
-    for (int ci = 0; ci < numCams; ++ci) {
-      SE3 camToWorld = bodyToWorld * cam.camToBody(ci);
-      for (int r = 0; r < cam.cam(ci).height(); r += rowStep)
-        for (int c = 0; c < cam.cam(ci).width(); c += colStep) {
+  int row_step =
+      std::ceil(camera_bundle.camera(0).height() / std::sqrt(points_per_image));
+  int col_step =
+      std::ceil(camera_bundle.camera(0).width() / std::sqrt(points_per_image));
+  LOG(INFO) << "row, col steps = " << row_step << ", " << col_step;
+  for (int fi = first_frame_index; fi < last_frame_index;
+       fi += frame_index_step) {
+    std::unique_ptr<FrameDepths> frame_depths = reader->GetDepths(fi);
+    auto frame = reader->Frame(fi);
+    SE3 world_from_body = reader->WorldFromFrame(fi);
+    for (int ci = 0; ci < number_of_cameras; ++ci) {
+      SE3 world_from_camera =
+          world_from_body * camera_bundle.body_from_camera(ci);
+      for (int r = 0; r < camera_bundle.camera(ci).height(); r += row_step)
+        for (int c = 0; c < camera_bundle.camera(ci).width(); c += col_step) {
           Vector2 p(c, r);
-          std::optional<double> depth = frameDepths->depth(ci, p);
-          if (depth &&
-              *depth <
-                  1e4) {  // Eliminating sky with super-high (not inf) depths
-            cloud.push_back(camToWorld * (depth.value() *
-                                          cam.cam(ci).unmap(p).normalized()));
+          std::optional<double> depth = frame_depths->Depth(ci, p);
+          // Eliminating sky with super-high (not inf) depths
+          if (depth && *depth < 1e4) {
+            cloud.push_back(world_from_camera *
+                            (depth.value() *
+                             camera_bundle.camera(ci).Unmap(p).normalized()));
             colors.push_back(frame[ci].frame(r, c));
           }
         }
     }
   }
 
-  std::ofstream ofs(outDir / "cloud.ply");
-  printInPly(ofs, cloud, colors);
+  std::ofstream ofs(output_directory / "cloud.ply");
+  PrintInPly(ofs, cloud, colors);
 }
 
 int main(int argc, char *argv[]) {
@@ -130,20 +122,24 @@ folders "data" and "info").
   gflags::SetUsageMessage(usage);
   google::InitGoogleLogging(argv[0]);
 
-  fs::path outDir = fs::path("output") / ("multicam_demo_" + curTimeBrief());
-  fs::create_directories(outDir);
+  fs::path output_directory =
+      fs::path("output") / ("multicam_demo_" + CurrentTimeBrief());
+  fs::create_directories(output_directory);
 
-  LOG(INFO) << "the output directory is " << outDir.string() << std::endl;
-  std::cout << "the output directory is " << outDir.string() << std::endl;
+  LOG(INFO) << "the output directory is " << output_directory.string()
+            << std::endl;
+  std::cout << "the output directory is " << output_directory.string()
+            << std::endl;
 
-  fs::path mcamDir = argv[1];
-  MultiCamReader reader(mcamDir);
+  fs::path multicam_directory = argv[1];
+  MultiCamReader reader(multicam_directory);
 
-  printTrajectory(&reader, outDir / "gt_traj.txt");
-  cv::Mat3b depths = perPixelDepths(&reader, FLAGS_frame_ind);
-  cv::imwrite((outDir / "alldepths.png").string(), depths);
+  PrintTrajectory(&reader, output_directory / "gt_traj.txt");
+  cv::Mat3b depths = PerPixelDepths(&reader, FLAGS_frame_ind);
+  cv::imwrite((output_directory / "alldepths.png").string(), depths);
 
-  createCloud(&reader, FLAGS_cloud_first_frame_ind, FLAGS_cloud_last_frame_ind,
-              FLAGS_cloud_frame_step, FLAGS_cloud_points_per_frame, outDir);
+  CreateCloud(&reader, FLAGS_cloud_first_frame_ind, FLAGS_cloud_last_frame_ind,
+              FLAGS_cloud_frame_step, FLAGS_cloud_points_per_frame,
+              output_directory);
   return 0;
 }

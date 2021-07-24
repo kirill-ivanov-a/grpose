@@ -4,15 +4,15 @@
 namespace grpose {
 
 Camera::Camera(int width, int height,
-               const Camera::CameraModelVariants &cameraModel)
-    : cameraModel_(cameraModel), width_(width), height_(height) {}
+               const Camera::CameraModelVariants &camera_model)
+    : camera_model_(camera_model), width_(width), height_(height) {}
 
-bool Camera::isOnImage(const Vector2 &p, int border) const {
-  bool inBorder =
+bool Camera::IsOnImage(const Vector2 &p, int border) const {
+  bool is_in_border =
       Eigen::AlignedBox2d(Vector2(border, border),
                           Vector2(width_ - border, height_ - border))
           .contains(p);
-  return inBorder && mask_(toCvPoint(p));
+  return is_in_border && mask_(ToCvPoint(p));
 }
 
 }  // namespace grpose

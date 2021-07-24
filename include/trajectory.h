@@ -12,7 +12,7 @@ class Trajectory {
    * file.
    * @returns - The trajectory created from the file.
    */
-  static Trajectory fromFile(const fs::path &filename);
+  static Trajectory FromFile(const fs::path &filename);
 
   /**
    * @brief - Construct a trajectory.
@@ -22,66 +22,68 @@ class Trajectory {
   /**
    * @returns - The number of timestamp-pose pairs in the trajectory.
    */
-  int size() const;
+  int Size() const;
 
   /**
    * @returns - True if the specified timestamp is in the trajectory.
    */
-  bool contains(Timestamp t) const;
+  bool Contains(Timestamp t) const;
 
   /**
    * @returns - The timestamped poses.
    */
-  const StdMapA<Timestamp, SE3> &timestampedPoses() const;
+  const StdMapA<Timestamp, SE3> &TimestampedPoses() const;
 
   /**
    * @returns - The timestamps, in ascending order.
    */
-  const std::vector<Timestamp> &timestamps() const;
+  const std::vector<Timestamp> &Timestamps() const;
 
   /**
    * @returns - The first timestamp.
    */
-  Timestamp firstTimestamp() const;
+  Timestamp FirstTimestamp() const;
 
   /**
    * @returns - The last timestamp.
    */
-  Timestamp lastTimestamp() const;
+  Timestamp LastTimestamp() const;
 
   /**
    * @returns - The pose with the earliest timestamp.
    */
-  const SE3 &worldFromFirstFrame() const;
+  const SE3 &WorldFromFirstFrame() const;
 
   /**
-   * @param t - The timestamp to check if it is bounded by this trajectory.
+   * @param timestamp - The timestamp to check if it is bounded by this
+   * trajectory.
    * @returns - True if the specified timestamp is between this trajectory's
    * first and last timestamps.
    */
-  bool bounds(Timestamp t) const;
+  bool Bounds(Timestamp timestamp) const;
 
   /**
-   * @param traj - The trajectory to check if it is bounded by this trajectory.
+   * @param trajectory - The trajectory to check if it is bounded by this
+   * trajectory.
    * @returns - True if all timestamps in the specified trajectory are between
    * this trajectory's first and last timestamps.
    */
-  bool bounds(Trajectory traj) const;
+  bool Bounds(Trajectory trajectory) const;
 
   /**
-   * @param traj - The trajectory to check if it bounds this trajectory.
+   * @param trajectory - The trajectory to check if it bounds this trajectory.
    * @returns - True if all timestamps in this trajectory are between the
    * specified trajectory's first and last timestamps.
    */
-  bool boundedBy(Trajectory traj) const;
+  bool BoundedBy(Trajectory trajectory) const;
 
   /**
-   * @param t - The timestamp to query the trajectory for.
+   * @param timestamp - The timestamp to query the trajectory for.
    * @returns - The pose at the specified timestamp. If this trajectory does not
    * have a pose exactly at the specified timestamp, then the trajectory is
    * interpolated to the timestamp.
    */
-  SE3 worldFromFrameAt(Timestamp t) const;
+  SE3 WorldFromFrameAt(Timestamp timestamp) const;
 
   /**
    * **WARNING**: Applying rightTransform does not produce a rigid
@@ -90,7 +92,7 @@ class Trajectory {
    * @returns - A copy of this trajectory where all poses were right-multiplied
    * by old_from_new.
    */
-  Trajectory rightTransform(const SE3 &old_from_new) const;
+  Trajectory RightTransform(const SE3 &old_from_new) const;
 
   /**
    * @param new_world_from_old_world - The transformation to left-multiply with
@@ -98,7 +100,7 @@ class Trajectory {
    * @returns - A copy of this trajectory where all poses were left-multiplied
    * by old_from_new.
    */
-  Trajectory leftTransform(const SE3 &new_world_from_old_world) const;
+  Trajectory LeftTransform(const SE3 &new_world_from_old_world) const;
 
   /**
    * @param base - The base trajectory to align to. Often this is some sort of
@@ -107,7 +109,7 @@ class Trajectory {
    * to all of its poses such that its first pose is aligned with the first pose
    * of the base trajectory.
    */
-  Trajectory alignTo(const Trajectory &base) const;
+  Trajectory AlignTo(const Trajectory &base) const;
 
   /**
    * **WARNING** double value comparison.
@@ -130,13 +132,13 @@ class Trajectory {
    * the TUM format into a file.
    * @param filename - The name of the file to write into.
    */
-  void saveToFile(const fs::path &filename) const;
+  void SaveToFile(const fs::path &filename) const;
 
-  double cumulativeTranslation(Timestamp from, Timestamp to) const;
-  double cumulativeRotation(Timestamp from, Timestamp to) const;
+  double CumulativeTranslation(Timestamp from, Timestamp to) const;
+  double CumulativeRotation(Timestamp from, Timestamp to) const;
 
  private:
-  double cumulativeTranslationOrRotation(Timestamp from, Timestamp to,
+  double CumulativeTranslationOrRotation(Timestamp from, Timestamp to,
                                          bool isTranslation) const;
 
   // A map from timestamps to poses.

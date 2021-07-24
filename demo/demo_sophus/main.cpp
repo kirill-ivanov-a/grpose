@@ -26,8 +26,8 @@ int main(int argc, char **argv) {
     std::cout << "The opencv_demo flag is not set" << std::endl;
 
   // This message will be put into your /tmp directory into a newly created log
-  // file. The behavior can be changed via command-line flags, run `demo_sophus
-  // --help` for more info.
+  // file. The behavior can be changed via command-line flags, run
+  // `demo_sophus --help` for more info.
   LOG(INFO) << "demo_sophus flies";
 
   Vector3 axis(0, 0, 1);  // rotate around Oz
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
   std::cout << "converted to coord2:\n"
             << vec_in_coord2.transpose() << std::endl;
 
-  std::cout << "converted back to coord2:\n"
+  std::cout << "converted back to coord1:\n"
             << (coord1_to_coord2.inverse() * vec_in_coord2).transpose()
             << std::endl;
 

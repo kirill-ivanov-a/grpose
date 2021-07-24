@@ -7,7 +7,7 @@ using namespace grpose;
 
 static const double kEpsilon = 1e-6;
 
-TEST(Metrics, absoluteTranslationError) {
+TEST(Metrics, AbsoluteTranslationError) {
   // Create some base trajectory and a reference trajectory which is a rigid
   // transformation of the base trajectory. Check that all errors are zero.
   {
@@ -37,7 +37,7 @@ TEST(Metrics, absoluteTranslationError) {
 
     // Compute the ATE between the groundtruth and the estimate.
     const std::vector<double> errors =
-        absoluteTranslationError(gt_trajectory, est_trajectory);
+        AbsoluteTranslationError(gt_trajectory, est_trajectory);
 
     // Expect that there are three error values, one for each pose.
     EXPECT_EQ(errors.size(), 3);
@@ -49,7 +49,7 @@ TEST(Metrics, absoluteTranslationError) {
   }
 }
 
-TEST(Metrics, absoluteRotationError) {
+TEST(Metrics, AbsoluteRotationError) {
   // Create some base trajectory and a reference trajectory which is a rigid
   // transformation of the base trajectory. Check that all errors are zero.
   {
@@ -79,7 +79,7 @@ TEST(Metrics, absoluteRotationError) {
 
     // Compute the ATE between the groundtruth and the estimate.
     const std::vector<double> errors =
-        absoluteRotationError(gt_trajectory, est_trajectory);
+        AbsoluteRotationError(gt_trajectory, est_trajectory);
 
     // Expect that there are three error values, one for each pose.
     EXPECT_EQ(errors.size(), 3);

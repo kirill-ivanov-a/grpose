@@ -54,120 +54,115 @@ DEFINE_double(
 
 using namespace grpose;
 
-std::vector<cv::Vec3b> getColors(std::vector<double> vals, double minVal,
-                                 double maxVal, const cv::ColormapTypes &cmap) {
-  cv::Mat1b valsMat(vals.size(), 1);
-  for (int i = 0; i < vals.size(); ++i)
-    valsMat(i, 0) = (unsigned char)(std::clamp(
-        255 * (vals[i] - minVal) / (maxVal - minVal), 0.1, 254.0));
-  cv::Mat3b colorsMat;
-  cv::applyColorMap(valsMat, colorsMat, cmap);
-  std::vector<cv::Vec3b> colors(vals.size());
-  for (int i = 0; i < vals.size(); ++i) colors[i] = colorsMat(i, 0);
-  return colors;
-}
-
-cv::Mat3b project(const RobotcarReader &reader, int idx) {
+cv::Mat3b Project(const RobotcarReader &reader, int index) {
   std::cout << "generating projections..." << std::endl;
 
-  auto frame = reader.frame(idx);
-  Timestamp baseTs = frame[0].timestamp;
-  Timestamp timeWin = FLAGS_time_win * 1e6;
-  Timestamp minTs = baseTs - timeWin, maxTs = baseTs + timeWin;
-  std::vector<Vector3> lmsFrontCloud =
-      reader.getLmsFrontCloud(minTs, maxTs, baseTs);
-  std::vector<Vector3> lmsRearCloud =
-      reader.getLmsRearCloud(minTs, maxTs, baseTs);
-  std::vector<Vector3> ldmrsCloud = reader.getLdmrsCloud(minTs, maxTs, baseTs);
+  auto frame = reader.Frame(index);
+  Timestamp base_timestamp = frame[0].timestamp;
+  Timestamp time_window = FLAGS_time_win * 1e6;
+  Timestamp min_timestamp = base_timestamp - time_window,
+            max_timestamp = base_timestamp + time_window;
+  std::vector<Vector3> lms_front_cloud =
+      reader.GetLmsFrontCloud(min_timestamp, max_timestamp, base_timestamp);
+  std::vector<Vector3> lms_rear_cloud =
+      reader.GetLmsRearCloud(min_timestamp, max_timestamp, base_timestamp);
+  std::vector<Vector3> ldmrs_cloud =
+      reader.GetLdmrsCloud(min_timestamp, max_timestamp, base_timestamp);
   std::vector<Vector3> cloud;
-  cloud.reserve(lmsFrontCloud.size() + lmsRearCloud.size() + ldmrsCloud.size());
-  cloud.insert(cloud.end(), lmsFrontCloud.begin(), lmsFrontCloud.end());
-  cloud.insert(cloud.end(), lmsRearCloud.begin(), lmsRearCloud.end());
-  cloud.insert(cloud.end(), ldmrsCloud.begin(), ldmrsCloud.end());
-  cv::Mat3b images[RobotcarReader::numCams];
+  cloud.reserve(lms_front_cloud.size() + lms_rear_cloud.size() +
+                ldmrs_cloud.size());
+  cloud.insert(cloud.end(), lms_front_cloud.begin(), lms_front_cloud.end());
+  cloud.insert(cloud.end(), lms_rear_cloud.begin(), lms_rear_cloud.end());
+  cloud.insert(cloud.end(), ldmrs_cloud.begin(), ldmrs_cloud.end());
+  cv::Mat3b images[RobotcarReader::kNumberOfCameras];
 
-  int s = FLAGS_rel_point_size *
-          (RobotcarReader::imageWidth + RobotcarReader::imageHeight) / 2;
+  int square_size =
+      FLAGS_rel_point_size *
+      (RobotcarReader::kImageWidth + RobotcarReader::kImageHeight) / 2;
 
-  CameraBundle cam = reader.cam();
-  StdVectorA<Vector2> points[RobotcarReader::numCams];
-  std::vector<double> depths[RobotcarReader::numCams];
-  std::vector<double> allDepths;
-  for (int ci = 0; ci < RobotcarReader::numCams; ++ci) {
-    SE3 bodyToCam = cam.bodyToCam(ci);
+  CameraBundle camera_bundle = reader.GetCameraBundle();
+  StdVectorA<Vector2> points[RobotcarReader::kNumberOfCameras];
+  std::vector<double> depths[RobotcarReader::kNumberOfCameras];
+  std::vector<double> all_depths;
+  for (int ci = 0; ci < RobotcarReader::kNumberOfCameras; ++ci) {
+    SE3 camera_from_body = camera_bundle.camera_from_body(ci);
     for (const Vector3 &p : cloud) {
-      Vector3 moved = bodyToCam * p;
-      if (!reader.cam().cam(ci).isMappable(moved)) continue;
+      Vector3 moved = camera_from_body * p;
+      if (!reader.GetCameraBundle().camera(ci).IsMappable(moved)) continue;
 
       double depth = moved.norm();
-      Vector2 projected = reader.cam().cam(ci).map(moved);
+      Vector2 projected = reader.GetCameraBundle().camera(ci).Map(moved);
       depths[ci].push_back(depth);
-      allDepths.push_back(depth);
+      all_depths.push_back(depth);
       points[ci].push_back(projected);
     }
   }
-  std::sort(allDepths.begin(), allDepths.end());
-  double minDepth = allDepths[(int)(0.05 * allDepths.size())];
-  double maxDepth = allDepths[(int)(0.90 * allDepths.size())];
+  std::sort(all_depths.begin(), all_depths.end());
+  double min_depth = all_depths[(int)(0.05 * all_depths.size())];
+  double max_depth = all_depths[(int)(0.90 * all_depths.size())];
 
-  for (int ci = 0; ci < RobotcarReader::numCams; ++ci) {
+  for (int ci = 0; ci < RobotcarReader::kNumberOfCameras; ++ci) {
     CHECK(frame[ci].frame.channels() == 3);
     std::vector<cv::Vec3b> colors =
-        getColors(depths[ci], minDepth, maxDepth, cv::COLORMAP_JET);
+        GetColors(depths[ci], min_depth, max_depth, cv::COLORMAP_JET);
     images[ci] = frame[ci].frame.clone();
     for (int j = 0; j < points[ci].size(); ++j)
-      drawSquare(images[ci], toCvPoint(points[ci][j]), s, colors[j],
+      DrawSquare(images[ci], ToCvPoint(points[ci][j]), square_size, colors[j],
                  cv::FILLED);
-    cv::bitwise_and(images[ci], cvtGrayToBgr(cam.cam(ci).mask()), images[ci]);
+    cv::bitwise_and(images[ci],
+                    ConvertGrayToBgr(camera_bundle.camera(ci).mask()),
+                    images[ci]);
   }
 
   cv::Mat3b result;
-  cv::hconcat(images, RobotcarReader::numCams, result);
+  cv::hconcat(images, RobotcarReader::kNumberOfCameras, result);
   return result;
 }
 
-void genClouds(const RobotcarReader &reader, Timestamp minTs, Timestamp maxTs,
-               Timestamp baseTs, const fs::path &outDir) {
-  constexpr int totalClouds = 3;
+void GenerateClouds(const RobotcarReader &reader, Timestamp min_timestamp,
+                    Timestamp max_timestamp, Timestamp base_timestamp,
+                    const fs::path &output_directory) {
+  constexpr int kTotalClouds = 3;
 
   std::cout << "generating clouds..." << std::endl;
 
-  std::vector<Vector3> lmsFrontCloud =
-      reader.getLmsFrontCloud(minTs, maxTs, baseTs);
-  std::vector<Vector3> lmsRearCloud =
-      reader.getLmsRearCloud(minTs, maxTs, baseTs);
-  std::vector<Vector3> ldmrsCloud = reader.getLdmrsCloud(minTs, maxTs, baseTs);
-  std::vector<Vector3> *clouds[totalClouds] = {&lmsFrontCloud, &lmsRearCloud,
-                                               &ldmrsCloud};
+  std::vector<Vector3> lms_front_cloud =
+      reader.GetLmsFrontCloud(min_timestamp, max_timestamp, base_timestamp);
+  std::vector<Vector3> lms_rear_cloud =
+      reader.GetLmsRearCloud(min_timestamp, max_timestamp, base_timestamp);
+  std::vector<Vector3> ldmrs_cloud =
+      reader.GetLdmrsCloud(min_timestamp, max_timestamp, base_timestamp);
+  std::vector<Vector3> *clouds[kTotalClouds] = {&lms_front_cloud,
+                                                &lms_rear_cloud, &ldmrs_cloud};
   LOG(INFO) << "total...";
-  LOG(INFO) << "points from LMS front: " << lmsFrontCloud.size();
-  LOG(INFO) << "points from LMS rear : " << lmsRearCloud.size();
-  LOG(INFO) << "points from LDMRS    : " << ldmrsCloud.size();
+  LOG(INFO) << "points from LMS front: " << lms_front_cloud.size();
+  LOG(INFO) << "points from LMS rear : " << lms_rear_cloud.size();
+  LOG(INFO) << "points from LDMRS    : " << ldmrs_cloud.size();
 
-  sparsifyVectors(clouds, totalClouds, FLAGS_cloud_points);
+  SparsifyVectors(clouds, kTotalClouds, FLAGS_cloud_points);
 
   LOG(INFO) << "filtered...";
-  LOG(INFO) << "points from LMS front: " << lmsFrontCloud.size();
-  LOG(INFO) << "points from LMS rear : " << lmsRearCloud.size();
-  LOG(INFO) << "points from LDMRS    : " << ldmrsCloud.size();
+  LOG(INFO) << "points from LMS front: " << lms_front_cloud.size();
+  LOG(INFO) << "points from LMS rear : " << lms_rear_cloud.size();
+  LOG(INFO) << "points from LDMRS    : " << ldmrs_cloud.size();
 
   std::cout << "saving clouds..." << std::endl;
   const cv::Vec3b gray(128, 128, 128);
-  std::ofstream ofsFront(outDir / FLAGS_out_front);
-  printInPly(ofsFront, lmsFrontCloud,
-             std::vector<cv::Vec3b>(lmsFrontCloud.size(), gray));
-  std::ofstream ofsRear(outDir / FLAGS_out_rear);
-  printInPly(ofsRear, lmsRearCloud,
-             std::vector<cv::Vec3b>(lmsRearCloud.size(), gray));
-  std::ofstream ofsLdmrs(outDir / FLAGS_out_ldmrs);
-  printInPly(ofsLdmrs, ldmrsCloud,
-             std::vector<cv::Vec3b>(ldmrsCloud.size(), gray));
+  std::ofstream ofs_front(output_directory / FLAGS_out_front);
+  PrintInPly(ofs_front, lms_front_cloud,
+             std::vector<cv::Vec3b>(lms_front_cloud.size(), gray));
+  std::ofstream ofs_rear(output_directory / FLAGS_out_rear);
+  PrintInPly(ofs_rear, lms_rear_cloud,
+             std::vector<cv::Vec3b>(lms_rear_cloud.size(), gray));
+  std::ofstream ofs_ldmrs(output_directory / FLAGS_out_ldmrs);
+  PrintInPly(ofs_ldmrs, ldmrs_cloud,
+             std::vector<cv::Vec3b>(ldmrs_cloud.size(), gray));
 }
 
 int main(int argc, char *argv[]) {
   std::string usage =
-      R"abacaba(Usage:   ./lidar_cloud chunk_dir rtk_dir
-Where chunk_dir is a directory with one part from Robotcar
+      R"abacaba(Usage:   ./lidar_cloud segment_dir rtk_dir
+Where segment_dir is a directory with one part from Robotcar
 and rtk_dir is a directory with RTK ground-truth for the dataset.
 It expects that the chunk has the respective ground-truth.
 It expects that the working dir is the root directory of the repository. Otherwise,
@@ -178,50 +173,57 @@ for more details on what is in the output and how to control it.
   gflags::SetUsageMessage(usage);
   google::InitGoogleLogging(argv[0]);
 
-  fs::path chunkDir = argv[1];
-  fs::path rtkDir = argv[2];
-  fs::path masksDir = FLAGS_masks_dir;
-  CHECK(fs::is_directory(chunkDir));
-  CHECK(fs::is_directory(rtkDir));
-  CHECK(fs::is_directory(masksDir));
+  fs::path segment_directory = argv[1];
+  fs::path rtk_directory = argv[2];
+  fs::path masks_directory = FLAGS_masks_dir;
+  CHECK(fs::is_directory(segment_directory));
+  CHECK(fs::is_directory(rtk_directory));
+  CHECK(fs::is_directory(masks_directory));
 
-  fs::path outDir = fs::path("output") / ("lidar_cloud_" + curTimeBrief());
-  fs::create_directories(outDir);
+  fs::path output_directory =
+      fs::path("output") / ("lidar_cloud_" + CurrentTimeBrief());
+  fs::create_directories(output_directory);
 
   RobotcarReaderSettings settings;
-  settings.fillVoGaps = FLAGS_fill_vo_gaps;
-  settings.projectedTimeWindow = FLAGS_time_win;
+  settings.fill_odometry_gaps = FLAGS_fill_vo_gaps;
+  settings.projected_time_window = FLAGS_time_win;
   //  rtkDir.reset();
-  RobotcarReader reader(chunkDir, FLAGS_models_dir, FLAGS_extrinsics_dir,
-                        std::make_optional(rtkDir), settings);
-  reader.provideMasks(masksDir);
+  RobotcarReader reader(segment_directory, FLAGS_models_dir,
+                        FLAGS_extrinsics_dir, std::make_optional(rtk_directory),
+                        settings);
+  reader.ProvideMasks(masks_directory);
 
-  std::cout << "Total frames: " << reader.numFrames() << std::endl;
+  std::cout << "Total frames: " << reader.NumberOfFrames() << std::endl;
 
-  Timestamp minTs = reader.minTs();
-  Timestamp maxTs = reader.maxTs();
-  Timestamp baseTs = minTs;
+  Timestamp min_timestamp = reader.min_timestamp();
+  Timestamp max_timestamp = reader.max_timestamp();
+  Timestamp base_timestamp = min_timestamp;
 
-  Trajectory gtTraj = reader.gtTrajectory();
-  gtTraj.saveToFile(outDir / FLAGS_gt_traj);
+  Trajectory ground_truth_trajectory = reader.GroundTruthTrajectory();
+  ground_truth_trajectory.SaveToFile(output_directory / FLAGS_gt_traj);
 
-  if (FLAGS_gen_clouds) genClouds(reader, minTs, maxTs, baseTs, outDir);
+  if (FLAGS_gen_clouds)
+    GenerateClouds(reader, min_timestamp, max_timestamp, base_timestamp,
+                   output_directory);
 
-  std::ofstream ofsTrajOrig(outDir / FLAGS_out_traj_orig);
-  for (const SE3 &bodyToWorld : reader.getGtBodyToWorld()) {
-    putInMatrixForm(ofsTrajOrig, bodyToWorld);
+  std::ofstream original_trajectory_file(output_directory /
+                                         FLAGS_out_traj_orig);
+  for (const SE3 &bodyToWorld : reader.ground_truth_world_from_body()) {
+    PutInMatrixForm(original_trajectory_file, bodyToWorld);
   }
 
-  std::ofstream ofsTrajInterp(outDir / FLAGS_out_traj_interp);
-  Timestamp allTime = maxTs - minTs;
-  double step = double(allTime) / FLAGS_interp_gran;
+  std::ofstream interpolated_trajectory_file(output_directory /
+                                             FLAGS_out_traj_interp);
+  Timestamp total_time = max_timestamp - min_timestamp;
+  double step = static_cast<double>(total_time) / FLAGS_interp_gran;
   for (int i = 0; i < FLAGS_interp_gran; ++i) {
-    Timestamp ts = minTs + step * i;
-    putInMatrixForm(ofsTrajInterp, reader.tsToWorld(ts));
+    Timestamp ts = min_timestamp + static_cast<Timestamp>(step * i);
+    PutInMatrixForm(interpolated_trajectory_file,
+                    reader.WorldFromBodyAtTimestamp(ts));
   }
 
-  cv::Mat3b proj = project(reader, FLAGS_project_idx);
-  cv::imwrite((outDir / FLAGS_out_project).string(), proj);
+  cv::Mat3b projected = Project(reader, FLAGS_project_idx);
+  cv::imwrite((output_directory / FLAGS_out_project).string(), projected);
 
   return 0;
 }

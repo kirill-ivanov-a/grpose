@@ -2,7 +2,6 @@
 #define GRPOSE_INITOPENGV_NONCENTRALRELATIVEPOSESOLVER_
 
 #include <glog/logging.h>
-#include <types.h>
 
 #include <opengv/relative_pose/CentralRelativeAdapter.hpp>
 #include <opengv/relative_pose/NoncentralRelativeAdapter.hpp>
@@ -18,42 +17,39 @@
 
 #include "init_opengv/FeatureDetectorMatcher.h"
 #include "init_opengv/MultiCamInitSettings.h"
+#include "types.h"
 
 namespace grpose {
 
 struct NonCentralRelativePoseSolution {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  int num_inliers;
-  SE3 relative_pose;  // transform from next frame to the current frame
-  opengv::points_t
-      triangulated_points;  // expressed in the coordinates of the current frame
+  int number_of_inliers;
+  SE3 first_frame_from_second_frame;
+  // expressed in the coordinates of the first frame
+  opengv::points_t triangulated_points;
 
-  SE3 gt_relative_pose;
+  SE3 ground_truth_relative_pose;
   std::pair<Timestamp, Timestamp> timestamps;
-  enum Status { SUCCESSFUL, FAILED, PENDING, NO_GT };
-  Status status;
 
-  // The following are unused for now, but we hope to write std for translation
-  // and rotation as well
-  //   double std_translation;
-  //   double std_rotation;
+  enum Status { kSuccessful, kFailed, kPending, kNoGroundTruth };
+  Status status;
 };
 
 class NonCentralRelativePoseSolver {
  public:
   using SolverAlgorithm = NonCentralRelativePoseSolverSettings::SolverAlgorithm;
-  using multiBearingVectors =
+  using MultiBearingVectors =
       std::vector<std::shared_ptr<opengv::bearingVectors_t>>;
 
   NonCentralRelativePoseSolver(
       const NonCentralRelativePoseSolverSettings &settings,
-      const opengv::translations_t &offsets,
-      const opengv::rotations_t &rotations);
+      const opengv::translations_t &body_from_camera_translations,
+      const opengv::rotations_t &body_from_camera_rotations);
 
   NonCentralRelativePoseSolver(
       const NonCentralRelativePoseSolverSettings &settings,
-      const StdVectorA<SE3> &cam_extrinsics);
+      const StdVectorA<SE3> &body_from_cameras);
 
   // Solve directly using output struct of correspondence finding module
   NonCentralRelativePoseSolution solve(const BearingVectorCorrespondences &bvcs,
@@ -62,51 +58,50 @@ class NonCentralRelativePoseSolver {
   // Just a convenience definition, should not use this one since doesn't do any
   // checks
   NonCentralRelativePoseSolution solve(
-      const opengv::bearingVectors_t &bearingVectorsCurrent,
-      const opengv::bearingVectors_t &bearingVectorsNext,
-      const std::vector<int> &correspondencesCurrent,
-      const std::vector<int> &correspondencesNext);
+      const opengv::bearingVectors_t &first_bearing_vectors,
+      const opengv::bearingVectors_t &second_bearing_vectors,
+      const std::vector<int> &first_correspondences,
+      const std::vector<int> &second_correspondences);
 
   // Actual method which solves the relative pose problem using OpenGV's 'multi'
   // formulation
   NonCentralRelativePoseSolution solve(
-      const multiBearingVectors &bearingVectorsCurrent,
-      const multiBearingVectors &bearingVectorsNext, int ransac_runs = 1);
+      const MultiBearingVectors &first_bearing_vectors,
+      const MultiBearingVectors &second_bearing_vectors, int ransac_runs = 1);
 
  private:
-  opengv::points_t triangulate(const multiBearingVectors &bearingVectorsCurrent,
-                               const multiBearingVectors &bearingVectorsNext,
-                               const SE3 &currentFromNext,
-                               const std::vector<std::vector<int>> &inliers);
+  opengv::points_t triangulate(
+      const MultiBearingVectors &first_bearing_vectors,
+      const MultiBearingVectors &second_bearing_vectors,
+      const SE3 &first_frame_from_second_frame,
+      const std::vector<std::vector<int>> &inliers);
 
   struct Extrinsics {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    int num_cameras;
-    StdVectorA<SE3> bodyFromCams;
-    opengv::translations_t
-        cam_offsets;  // convenience members, represents the same SE3
-                      // object just in OpenGV format
-    opengv::rotations_t cam_rotations;
+    int number_of_cameras;
+    StdVectorA<SE3> body_from_cameras;
+    // convenience members, represents the same SE3
+    // object just in OpenGV format
+    opengv::translations_t body_from_camera_translations;
+    opengv::rotations_t body_from_camera_rotations;
 
-    /*
-      offsets are the camera origin in the viewpoint frame
-      rotations are from the camera frame to viewpoint frame
-    */
-    Extrinsics(const opengv::translations_t &offsets,
-               const opengv::rotations_t &rotations);
+    //  offsets are the camera origin in the viewpoint frame
+    //  rotations are from the camera frame to viewpoint frame
+    Extrinsics(const opengv::translations_t &body_from_camera_translations,
+               const opengv::rotations_t &body_from_camera_rotations);
 
     /*
       Assumes SE3s gives the transform from camera frame to viewpoint frame
     */
-    Extrinsics(const StdVectorA<SE3> &cam_extrinsics);
+    Extrinsics(const StdVectorA<SE3> &body_from_cameras);
 
-  } extrinsics;
+  } extrinsics_;
 
-  NonCentralRelativePoseSolverSettings settings;
+  NonCentralRelativePoseSolverSettings settings_;
 };
 
-int countMultiCamInliers(std::vector<std::vector<int>> inliers);
+int CountMultiCamInliers(std::vector<std::vector<int>> &inliers);
 
 }  // namespace grpose
 

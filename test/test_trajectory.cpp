@@ -11,7 +11,7 @@ using namespace grpose;
 // stored relative to the executable.
 static fs::path kExecutableParentDpath;
 
-TEST(Trajectory, fromFile) {
+TEST(Trajectory, FromFile) {
   // TODO No floating-point comparisons!
   // Define the timestamps and poses that are expected to exist inside of the
   // test file.
@@ -23,22 +23,22 @@ TEST(Trajectory, fromFile) {
   // Read the timestamped poses from the file.
   const fs::path timestamped_poses_fpath =
       kExecutableParentDpath / "test-file_timestamped-poses.txt";
-  Trajectory traj = Trajectory::fromFile(timestamped_poses_fpath);
+  Trajectory traj = Trajectory::FromFile(timestamped_poses_fpath);
 
   // Expect that two timestamped poses were loaded from file.
-  EXPECT_EQ(traj.size(), 2);
+  EXPECT_EQ(traj.Size(), 2);
 
   // Expect that the first timestamped pose matches expectations.
-  EXPECT_TRUE(traj.contains(timestamp_1));
+  EXPECT_TRUE(traj.Contains(timestamp_1));
 
-  EXPECT_EQ(traj.worldFromFrameAt(timestamp_1).matrix(), pose_1.matrix());
+  EXPECT_EQ(traj.WorldFromFrameAt(timestamp_1).matrix(), pose_1.matrix());
 
   // Expect that the second timestamped pose matches expectations.
-  EXPECT_TRUE(traj.contains(timestamp_2));
-  EXPECT_EQ(traj.worldFromFrameAt(timestamp_2).matrix(), pose_2.matrix());
+  EXPECT_TRUE(traj.Contains(timestamp_2));
+  EXPECT_EQ(traj.WorldFromFrameAt(timestamp_2).matrix(), pose_2.matrix());
 }
 
-TEST(Trajectory, construction) {
+TEST(Trajectory, Construction) {
   {
     // Define a random set of timestamps and poses to be in the trajectory.
     const Timestamp timestamp_1{1234567891234567891};
@@ -54,11 +54,11 @@ TEST(Trajectory, construction) {
         {{timestamp_1, pose_1}, {timestamp_2, pose_2}, {timestamp_3, pose_3}}};
     const Trajectory trajectory{timestamped_poses};
 
-    EXPECT_EQ(trajectory.size(), 3);
+    EXPECT_EQ(trajectory.Size(), 3);
   }
 }
 
-TEST(Trajectory, worldFromFrameAt) {
+TEST(Trajectory, WorldFromFrameAt) {
   // Should throw an exception when trying to interpolate to an unbounded
   // timestamp. Shouldn't throw an exception if the timestamp is bounded.
   {
@@ -70,13 +70,13 @@ TEST(Trajectory, worldFromFrameAt) {
         {{timestamp_1, pose_1}, {timestamp_2, pose_2}}};
     const Trajectory traj{timestamped_poses};
 
-    EXPECT_THROW(traj.worldFromFrameAt(9), std::runtime_error);
-    EXPECT_THROW(traj.worldFromFrameAt(21), std::runtime_error);
-    EXPECT_NO_THROW(traj.worldFromFrameAt(15));
+    EXPECT_THROW(traj.WorldFromFrameAt(9), std::runtime_error);
+    EXPECT_THROW(traj.WorldFromFrameAt(21), std::runtime_error);
+    EXPECT_NO_THROW(traj.WorldFromFrameAt(15));
   }
 }
 
-TEST(Trajectory, alignTo) {
+TEST(Trajectory, AlignTo) {
   // Should throw an exception since the reference trajectory is not bounded by
   // the base trajectory.
   {
@@ -107,7 +107,7 @@ TEST(Trajectory, alignTo) {
          {base_timestamp_3, ref_from_base * base_pose_3}}};
     const Trajectory ref_traj{ref_timestamped_poses};
 
-    EXPECT_THROW(ref_traj.alignTo(base_traj), std::runtime_error);
+    EXPECT_THROW(ref_traj.AlignTo(base_traj), std::runtime_error);
   }
 
   // Create some base trajectory and some reference trajectory which is the same
@@ -135,13 +135,13 @@ TEST(Trajectory, alignTo) {
     std::mt19937 mt(42);
     const SE3 basew_from_refw{SO3::sampleUniform(mt), Vector3{1.0, -1.0, 2.0}};
     // world_from_ref = world_from_base * base_from_ref
-    const Trajectory ref_traj = base_traj.leftTransform(basew_from_refw);
-    const Trajectory aligned_traj = ref_traj.alignTo(base_traj);
+    const Trajectory ref_traj = base_traj.LeftTransform(basew_from_refw);
+    const Trajectory aligned_traj = ref_traj.AlignTo(base_traj);
 
     std::vector<double> trans_errors =
-        absoluteTranslationError(base_traj, aligned_traj);
+        AbsoluteTranslationError(base_traj, aligned_traj);
     std::vector<double> rot_errors =
-        absoluteTranslationError(base_traj, aligned_traj);
+        AbsoluteTranslationError(base_traj, aligned_traj);
 
     for (int fi = 0; fi < trans_errors.size(); ++fi) {
       EXPECT_LE(trans_errors[fi], 1e-12);

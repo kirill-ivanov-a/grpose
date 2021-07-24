@@ -50,7 +50,6 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/ext/Sophus)
 set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/types.h
         ${PROJECT_SOURCE_DIR}/include/util.h
-        ${PROJECT_SOURCE_DIR}/include/defs.h
         ${PROJECT_SOURCE_DIR}/include/metrics.h
         ${PROJECT_SOURCE_DIR}/include/trajectory.h
 
@@ -66,7 +65,7 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/init_opengv/FeatureDetectorMatcher.h
         ${PROJECT_SOURCE_DIR}/include/init_opengv/NonCentralRelativePoseSolver.h
         ${PROJECT_SOURCE_DIR}/include/init_opengv/MultiCamInitSettings.h
-        ${PROJECT_SOURCE_DIR}/include/init_opengv/PoseFileWriter.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/WriteToFile.h
         )
 
 set(grpose_SOURCE_FILES
@@ -85,7 +84,7 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/init_opengv/FeatureDetectorMatcher.cpp
         ${PROJECT_SOURCE_DIR}/src/init_opengv/NonCentralRelativePoseSolver.cpp
         ${PROJECT_SOURCE_DIR}/src/init_opengv/MultiCamInitSettings.cpp
-        ${PROJECT_SOURCE_DIR}/src/init_opengv/PoseFileWriter.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/WriteToFile.cpp
         )
 
 add_library(grpose

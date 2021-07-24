@@ -2,56 +2,63 @@
 
 namespace grpose {
 
-BearingVectorCorrespondences::BearingVectorCorrespondences(int numCameras)
-    : numCameras(numCameras),
-      numCorrespondences(0),
-      currentTimestamps(numCameras),
-      nextTimestamps(numCameras),
-      bearingVectorsCurrent(),
-      bearingVectorsNext(),
-      correspondencesCurrent(),
-      correspondencesNext() {}
+BearingVectorCorrespondences::BearingVectorCorrespondences(
+    int number_of_cameras)
+    : number_of_cameras(number_of_cameras),
+      number_of_correspondences(0),
+      first_timestamps(number_of_cameras),
+      second_timestamps(number_of_cameras),
+      first_bearing_vectors(),
+      second_bearing_vectors(),
+      first_correspondences(),
+      second_correspondences() {}
 
-void BearingVectorCorrespondences::setCamTimestamp(int cameraInd,
-                                                   Timestamp currentTimestamp,
-                                                   Timestamp nextTimestamp) {
-  currentTimestamps[cameraInd] = currentTimestamp;
-  nextTimestamps[cameraInd] = nextTimestamp;
+void BearingVectorCorrespondences::SetCamTimestamp(int camera_index,
+                                                   Timestamp first_timestamp,
+                                                   Timestamp second_timestamp) {
+  first_timestamps[camera_index] = first_timestamp;
+  second_timestamps[camera_index] = second_timestamp;
 }
 
-void BearingVectorCorrespondences::pushBVC(
-    opengv::bearingVector_t bearingVectorCurrent,
-    opengv::bearingVector_t bearingVectorNext, int cameraCorrespondence) {
+void BearingVectorCorrespondences::PushBvc(
+    const opengv::bearingVector_t &first_bearing_vector,
+    const opengv::bearingVector_t &second_bearing_vector,
+    int camera_correspondence) {
   // Make sure that all bearing vectors pushed are normalized !!!
-  bearingVectorsCurrent.push_back(bearingVectorCurrent.normalized());
+  first_bearing_vectors.push_back(first_bearing_vector.normalized());
 
-  bearingVectorsNext.push_back(bearingVectorNext.normalized());
+  second_bearing_vectors.push_back(second_bearing_vector.normalized());
 
-  correspondencesCurrent.push_back(cameraCorrespondence);
-  correspondencesNext.push_back(cameraCorrespondence);
-  numCorrespondences++;
+  first_correspondences.push_back(camera_correspondence);
+  second_correspondences.push_back(camera_correspondence);
+  number_of_correspondences++;
 }
 
 FeatureDetectorMatcher::FeatureDetectorMatcher(
-    FeatureDetectorMatcherSettings settings, CameraBundle cameraBundle)
-    : settings(settings), cameraBundle(cameraBundle) {
+    const CameraBundle &camera_bundle,
+    const FeatureDetectorMatcherSettings &settings)
+    : camera_bundle_(camera_bundle), settings_(settings) {
   decltype(cv::DescriptorMatcher::BRUTEFORCE_HAMMING) matcher_type;
   switch (settings.feature_type) {
-    case FeatureType::SIFT:
-      feat_detector =
-          cv::SIFT::create(settings.sift.nfeatures, settings.sift.nOctaveLayers,
-                           settings.sift.contrastThreshold,
-                           settings.sift.edgeThreshold, settings.sift.sigma);
+    case FeatureType::kSift:
+      feature_detector_ = cv::SIFT::create(
+          settings.sift_settings.number_of_features,
+          settings.sift_settings.number_of_octave_layers,
+          settings.sift_settings.contrast_threshold,
+          settings.sift_settings.edge_threshold, settings.sift_settings.sigma);
       matcher_type = cv::DescriptorMatcher::BRUTEFORCE;
       LOG(INFO) << "Feature detection and matching using SIFT";
       break;
 
-    case FeatureType::ORB:
-      feat_detector = cv::ORB::create(
-          settings.orb.nfeatures, settings.orb.scaleFactor,
-          settings.orb.nlevels, settings.orb.edgeThreshold,
-          settings.orb.firstLevel, settings.orb.WTA_K, settings.orb.scoreType,
-          settings.orb.patchSize, settings.orb.fastThreshold);
+    case FeatureType::kOrb:
+      feature_detector_ = cv::ORB::create(
+          settings.orb_settings.number_of_features,
+          settings.orb_settings.scale_factor,
+          settings.orb_settings.number_of_levels,
+          settings.orb_settings.edge_threshold,
+          settings.orb_settings.first_level, settings.orb_settings.wta_k,
+          settings.orb_settings.score_type, settings.orb_settings.patch_size,
+          settings.orb_settings.fast_threshold);
       matcher_type =
           cv::DescriptorMatcher::BRUTEFORCE_HAMMING;  // for binary descriptors
       LOG(INFO) << "Feature detection and matching using ORB";
@@ -62,51 +69,50 @@ FeatureDetectorMatcher::FeatureDetectorMatcher(
       break;
   }
 
-  desc_matcher = cv::DescriptorMatcher::create(matcher_type);
+  descriptor_matcher_ = cv::DescriptorMatcher::create(matcher_type);
 }
 
 BearingVectorCorrespondences FeatureDetectorMatcher::getBearingVectors(
-    const std::vector<DatasetReader::FrameEntry> &frame_bundle,
-    const std::vector<DatasetReader::FrameEntry> &next_frame_bundle) {
+    const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
+    const std::vector<DatasetReader::FrameEntry> &second_frame_bundle) {
   // Initializing bearing vectors to be returned
-  BearingVectorCorrespondences bvcs(frame_bundle.size());
+  BearingVectorCorrespondences bvcs(first_frame_bundle.size());
 
-  for (int i = 0; i < frame_bundle.size(); i++) {
+  for (int i = 0; i < first_frame_bundle.size(); i++) {
     // Push timestamps for this camera
-    bvcs.setCamTimestamp(i, frame_bundle[i].timestamp,
-                         next_frame_bundle[i].timestamp);
+    bvcs.SetCamTimestamp(i, first_frame_bundle[i].timestamp,
+                         second_frame_bundle[i].timestamp);
 
     // Get camera model for the current camera
-    Camera camera = cameraBundle.cam(i);
+    Camera camera = camera_bundle_.camera(i);
 
     // IMPORTANT use the mask for detection!!!
     auto mask = camera.mask();
 
     // Get picture in grayscale
-    cv::Mat1b frame_gray, next_frame_gray;
-    cv::cvtColor(frame_bundle[i].frame, frame_gray, cv::COLOR_BGR2GRAY);
-    cv::cvtColor(next_frame_bundle[i].frame, next_frame_gray,
+    cv::Mat1b frame_gray, second_frame_gray;
+    cv::cvtColor(first_frame_bundle[i].frame, frame_gray, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(second_frame_bundle[i].frame, second_frame_gray,
                  cv::COLOR_BGR2GRAY);
 
     // Keypoints and descriptors
     std::vector<cv::KeyPoint> keypoints, keypoints_next;
     cv::Mat desc, desc_next;  // d x N
 
-    feat_detector->detect(frame_gray, keypoints, mask);
-    feat_detector->detect(next_frame_gray, keypoints_next, mask);
+    feature_detector_->detect(frame_gray, keypoints, mask);
+    feature_detector_->detect(second_frame_gray, keypoints_next, mask);
 
-    // Apply non-maximal suppression
     // For ORB: Remove overlapping detections
     // FOR SIFT: Clean an area of dense detections
-    keypoints = nms(keypoints, 5);
-    keypoints_next = nms(keypoints_next, 5);
+    keypoints = NonMaximumSuppression(keypoints, 5);
+    keypoints_next = NonMaximumSuppression(keypoints_next, 5);
 
-    feat_detector->compute(frame_gray, keypoints, desc);
-    feat_detector->compute(next_frame_gray, keypoints_next, desc_next);
+    feature_detector_->compute(frame_gray, keypoints, desc);
+    feature_detector_->compute(second_frame_gray, keypoints_next, desc_next);
 
     // Get matches between frames using the selected method
-    std::vector<cv::DMatch> matches = crossCheckMatches(
-        ratioTestMatch(desc, desc_next), ratioTestMatch(desc_next, desc));
+    std::vector<cv::DMatch> matches = CrossCheckMatches(
+        RatioTestMatch(desc, desc_next), RatioTestMatch(desc_next, desc));
 
     std::cout << "Total matches: " << matches.size() << std::endl;
 
@@ -114,65 +120,48 @@ BearingVectorCorrespondences FeatureDetectorMatcher::getBearingVectors(
 
     // Get bearing vectors and correspondences from matches
     for (const auto &m : matches) {
-      cv::KeyPoint current_kp =
-          keypoints[m.queryIdx];  // keypoint from ith camera in frame_bundle
-      cv::KeyPoint next_kp =
-          keypoints_next[m.trainIdx];  // keypoint from ith camera in
-                                       // next_frame_bundle
+      // keypoint from ith camera in frame_bundle
+      cv::KeyPoint first_kp = keypoints[m.queryIdx];
+      // keypoint from ith camera in second_frame_bundle
+      cv::KeyPoint second_kp = keypoints_next[m.trainIdx];
 
-      Eigen::Vector2d current_pt, next_pt;
-      current_pt[0] = current_kp.pt.x;
-      current_pt[1] = current_kp.pt.y;
+      Eigen::Vector2d first_pt, second_pt;
+      first_pt[0] = first_kp.pt.x;
+      first_pt[1] = first_kp.pt.y;
 
-      next_pt[0] = next_kp.pt.x;
-      next_pt[1] = next_kp.pt.y;
+      second_pt[0] = second_kp.pt.x;
+      second_pt[1] = second_kp.pt.y;
 
       // Only add a correspondence between frames if the matched keypoint in
       // both frames passes the map(unmap()) check
       // => backproject-reproject error less than some number of px
       const double backproject_error = 1.0;
-      if (mapUnmap(current_pt, camera) < backproject_error &&
-          mapUnmap(next_pt, camera) < backproject_error) {
-        Eigen::Vector3d current_bearing = camera.unmap(current_pt).normalized();
-        Eigen::Vector3d next_bearing = camera.unmap(next_pt).normalized();
+      if (MapUnmapDistance(first_pt, camera) < backproject_error &&
+          MapUnmapDistance(second_pt, camera) < backproject_error) {
+        Eigen::Vector3d first_bearing = camera.Unmap(first_pt).normalized();
+        Eigen::Vector3d second_bearing = camera.Unmap(second_pt).normalized();
 
         // pass_matches.push_back(m);
-        bvcs.pushBVC(current_bearing, next_bearing, i);
+        bvcs.PushBvc(first_bearing, second_bearing, i);
       }
     }
-    // std::cout << "length of bvcs: " << bvcs.bearingVectorsCurrent.size()
-    //           << std::endl;
-
-    // /* FOR DEBUGGING */
-    // drawKeypoints(frame_gray, keypoints);
-    // drawKeypoints(next_frame_gray, keypoints_next);
-
-    /* Draw the matched feature correspondences */
-    // drawMatches(frame_gray, keypoints, next_frame_gray, keypoints_next,
-    //             matches);
-
-    // std::cout << "pass_matches size: " << pass_matches.size() << std::endl;
-    // drawMatches(frame_gray, keypoints, next_frame_gray, keypoints_next,
-    //             pass_matches);
-
-    // checkMapUnmap(frame_gray, keypoints, camera);
   }
 
   return bvcs;
 }
 
-std::vector<cv::DMatch> FeatureDetectorMatcher::ratioTestMatch(
-    const cv::Mat &desc1, const cv::Mat &desc2) {
-  CHECK_GE(settings.min_ratio, 1.0);
+std::vector<cv::DMatch> FeatureDetectorMatcher::RatioTestMatch(
+    const cv::Mat &descriptors1, const cv::Mat &descriptors2) {
+  CHECK_GE(settings_.min_ratio, 1.0);
   std::vector<std::vector<cv::DMatch>> matches;
-  desc_matcher->knnMatch(desc1, desc2, matches, 2);
+  descriptor_matcher_->knnMatch(descriptors1, descriptors2, matches, 2);
 
   std::vector<cv::DMatch> good_matches;
   for (const auto &match : matches) {
     if (match.size() == 1) {
       good_matches.push_back(match[0]);
     } else if (match.size() == 2) {
-      if (match[1].distance / match[0].distance > settings.min_ratio) {
+      if (match[1].distance / match[0].distance > settings_.min_ratio) {
         good_matches.push_back(match[0]);
       }
     }
@@ -180,7 +169,7 @@ std::vector<cv::DMatch> FeatureDetectorMatcher::ratioTestMatch(
   return good_matches;
 }
 
-std::vector<cv::DMatch> FeatureDetectorMatcher::crossCheckMatches(
+std::vector<cv::DMatch> FeatureDetectorMatcher::CrossCheckMatches(
     const std::vector<cv::DMatch> &matches1,
     const std::vector<cv::DMatch> &matches2) {
   std::vector<cv::DMatch> symmetric_matches;
@@ -194,7 +183,7 @@ std::vector<cv::DMatch> FeatureDetectorMatcher::crossCheckMatches(
   return symmetric_matches;
 }
 
-std::vector<cv::KeyPoint> FeatureDetectorMatcher::nms(
+std::vector<cv::KeyPoint> FeatureDetectorMatcher::NonMaximumSuppression(
     const std::vector<cv::KeyPoint> &keypoints, float n_size) {
   std::vector<cv::KeyPoint> nms_keypoints;
 
@@ -219,9 +208,7 @@ std::vector<cv::KeyPoint> FeatureDetectorMatcher::nms(
   return nms_keypoints;
 }
 
-/* DEBUG functions */
-
-void drawKeypoints(const cv::Mat &image,
+void DrawKeypoints(const cv::Mat &image,
                    const std::vector<cv::KeyPoint> &keypoints) {
   cv::Mat debug_image;
   cv::drawKeypoints(image, keypoints, debug_image);
@@ -229,7 +216,7 @@ void drawKeypoints(const cv::Mat &image,
   cv::waitKey(0);
 }
 
-void drawMatches(const cv::Mat &image1,
+void DrawMatches(const cv::Mat &image1,
                  const std::vector<cv::KeyPoint> &keypoints1,
                  const cv::Mat &image2,
                  const std::vector<cv::KeyPoint> &keypoints2,
@@ -240,12 +227,12 @@ void drawMatches(const cv::Mat &image1,
   cv::waitKey(0);
 }
 
-void checkMapUnmap(const cv::Mat &image,
+void CheckMapUnmap(const cv::Mat &image,
                    const std::vector<cv::KeyPoint> &keypoints,
                    const Camera &camera) {
   std::vector<cv::KeyPoint> bad_keypoints;
   for (const auto &kp : keypoints) {
-    double error = FeatureDetectorMatcher::mapUnmap(
+    double error = FeatureDetectorMatcher::MapUnmapDistance(
         Eigen::Vector2d(kp.pt.x, kp.pt.y), camera);
 
     if (error > 1.0) {
@@ -261,39 +248,41 @@ void checkMapUnmap(const cv::Mat &image,
   cv::waitKey(0);
 }
 
-void checkCorrespondences(
+void CheckCorrespondences(
     const BearingVectorCorrespondences &correspondences,
     const CameraBundle &camera_bundle,
-    const std::vector<DatasetReader::FrameEntry> &frame_bundle,
-    const std::vector<DatasetReader::FrameEntry> &next_frame_bundle) {
-  CHECK_EQ(correspondences.numCameras, frame_bundle.size());
-  CHECK_EQ(correspondences.numCameras, next_frame_bundle.size());
+    const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
+    const std::vector<DatasetReader::FrameEntry> &second_frame_bundle) {
+  CHECK_EQ(correspondences.number_of_cameras, first_frame_bundle.size());
+  CHECK_EQ(correspondences.number_of_cameras, second_frame_bundle.size());
 
-  std::vector<cv::Mat> debug_images_frame(correspondences.numCameras);
-  std::vector<cv::Mat> debug_images_frame_next(correspondences.numCameras);
-  for (int c = 0; c < correspondences.numCameras; c++) {
-    debug_images_frame[c] = frame_bundle[c].frame.clone();
-    debug_images_frame_next[c] = next_frame_bundle[c].frame.clone();
+  std::vector<cv::Mat> debug_images_frame(correspondences.number_of_cameras);
+  std::vector<cv::Mat> debug_images_frame_next(
+      correspondences.number_of_cameras);
+  for (int c = 0; c < correspondences.number_of_cameras; c++) {
+    debug_images_frame[c] = first_frame_bundle[c].frame.clone();
+    debug_images_frame_next[c] = second_frame_bundle[c].frame.clone();
   }
 
-  for (int i = 0; i < correspondences.numCorrespondences; i++) {
-    int cam = correspondences.correspondencesCurrent[i];
+  for (int i = 0; i < correspondences.number_of_correspondences; i++) {
+    int cam = correspondences.first_correspondences[i];
 
     Eigen::Vector2d point_frame =
-        camera_bundle.cam(cam).map(correspondences.bearingVectorsCurrent[i]);
+        camera_bundle.camera(cam).Map(correspondences.first_bearing_vectors[i]);
     cv::Point cv_point_frame(point_frame[0], point_frame[1]);
 
-    Eigen::Vector2d point_next_frame =
-        camera_bundle.cam(cam).map(correspondences.bearingVectorsNext[i]);
-    cv::Point cv_point_next_frame(point_next_frame[0], point_next_frame[1]);
+    Eigen::Vector2d point_second_frame = camera_bundle.camera(cam).Map(
+        correspondences.second_bearing_vectors[i]);
+    cv::Point cv_point_second_frame(point_second_frame[0],
+                                    point_second_frame[1]);
 
     cv::circle(debug_images_frame[cam], cv_point_frame, 5,
                cv::Scalar(0, 0, 255));
-    cv::circle(debug_images_frame_next[cam], cv_point_next_frame, 5,
+    cv::circle(debug_images_frame_next[cam], cv_point_second_frame, 5,
                cv::Scalar(0, 0, 255));
   }
 
-  for (int c = 0; c < correspondences.numCameras; c++) {
+  for (int c = 0; c < correspondences.number_of_cameras; c++) {
     cv::Mat debug_image;
     cv::hconcat(debug_images_frame[c], debug_images_frame_next[c], debug_image);
     cv::imshow("Check bearing correspondences", debug_image);
@@ -303,37 +292,35 @@ void checkCorrespondences(
 
 /* Deprecated functions */
 
-void FeatureDetectorMatcher::descriptorMatching(
-    const cv::Mat &current_frame, const cv::Mat &next_frame,
+void FeatureDetectorMatcher::DescriptorMatching(
+    const cv::Mat &first_frame, const cv::Mat &second_frame,
     const cv::Mat &mask, cv::Ptr<cv::Feature2D> detector,
-    cv::Ptr<cv::Feature2D> desc_extractor,
-    std::vector<cv::KeyPoint> keypoints_current,
-    std::vector<cv::KeyPoint> &keypoints_next,
+    cv::Ptr<cv::Feature2D> descriptor_extractor,
+    std::vector<cv::KeyPoint> first_keypoints,
+    std::vector<cv::KeyPoint> &second_keypoints,
     std::vector<cv::DMatch> &matches) {
   const double nms_region_size = 7.0;
 
   // Detect keypoints of the next frame
-  detector->detect(next_frame, keypoints_next, mask);
-  keypoints_next =
-      nms(keypoints_next,
-          nms_region_size);  // non-maximal suppression in neighbourhood
+  detector->detect(second_frame, second_keypoints, mask);
+  second_keypoints = NonMaximumSuppression(second_keypoints, nms_region_size);
 
   // Compute descriptors for both frames and use to find matches between frames
   cv::Mat desc, desc_next;  // d x N
-  desc_extractor->compute(current_frame, keypoints_current, desc);
-  desc_extractor->compute(next_frame, keypoints_next, desc_next);
+  descriptor_extractor->compute(first_frame, first_keypoints, desc);
+  descriptor_extractor->compute(second_frame, second_keypoints, desc_next);
 
-  matches = crossCheckMatches(ratioTestMatch(desc, desc_next),
-                              ratioTestMatch(desc_next, desc));
+  matches = CrossCheckMatches(RatioTestMatch(desc, desc_next),
+                              RatioTestMatch(desc_next, desc));
 }
 
-void FeatureDetectorMatcher::kltMatching(
-    const cv::Mat &current_frame, const cv::Mat &next_frame,
-    const std::vector<cv::KeyPoint> &keypoints_current,
-    std::vector<cv::KeyPoint> &keypoints_next,
+void FeatureDetectorMatcher::KltMatching(
+    const cv::Mat &first_frame, const cv::Mat &second_frame,
+    const std::vector<cv::KeyPoint> &first_keypoints,
+    std::vector<cv::KeyPoint> &second_keypoints,
     std::vector<cv::DMatch> &matches) {
-  std::vector<cv::Point2f> prev_pts, next_pts;
-  for (const auto &kp : keypoints_current) {
+  std::vector<cv::Point2f> prev_pts, second_pts;
+  for (const auto &kp : first_keypoints) {
     prev_pts.push_back(kp.pt);
   }
 
@@ -347,18 +334,18 @@ void FeatureDetectorMatcher::kltMatching(
   std::vector<u_char> status;
   std::vector<float> error;
   cv::calcOpticalFlowPyrLK(
-      current_frame, next_frame, prev_pts, next_pts, status, error,
+      first_frame, second_frame, prev_pts, second_pts, status, error,
       cv::Size2i(klt_win_size, klt_win_size), klt_max_level, termcrit);
 
   for (int i = 0; i < prev_pts.size(); i++) {
     if (status[i]) {
-      cv::KeyPoint kp = keypoints_current[i];
-      kp.pt = next_pts[i];
-      keypoints_next.push_back(kp);
+      cv::KeyPoint kp = first_keypoints[i];
+      kp.pt = second_pts[i];
+      second_keypoints.push_back(kp);
 
       cv::DMatch m;
       m.queryIdx = i;
-      m.trainIdx = keypoints_next.size() - 1;
+      m.trainIdx = second_keypoints.size() - 1;
       matches.push_back(m);
 
     } else {
