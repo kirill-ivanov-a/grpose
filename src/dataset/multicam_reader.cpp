@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include <fmt/format.h>
+
 #include "util.h"
 
 namespace grpose {
@@ -83,11 +85,8 @@ MultiCamReader::Depths::Depths(const fs::path &dataset_directory,
 
   depths_.reserve(settings_.NumberOfCameras());
   for (int ci = 0; ci < settings_.NumberOfCameras(); ++ci) {
-    constexpr int kMaxLen = 100;
-    // TODO cleanup fmt
-    char inner_name[kMaxLen];
-    snprintf(inner_name, kMaxLen, "%s_%04d.bin",
-             settings_.camera_names[ci].c_str(), frame_index);
+    std::string inner_name =
+        fmt::format("{:s}_{:04d}.bin", settings_.camera_names[ci], frame_index);
     fs::path depthPath = dataset_directory / "data" / "depth" /
                          settings_.camera_names[ci] / inner_name;
     depths_.push_back(ReadBinMat(depthPath, kImageWidth, kImageHeight));
@@ -193,11 +192,8 @@ std::vector<fs::path> MultiCamReader::FrameFiles(int frame_index) const {
   std::vector<fs::path> fnames;
   fnames.reserve(settings_.NumberOfCameras());
   for (int ci = 0; ci < settings_.NumberOfCameras(); ++ci) {
-    constexpr int maxlen = 100;
-    // TODO cleanup fmt
-    char inner_name[maxlen];
-    snprintf(inner_name, maxlen, "%s_%04d.jpg",
-             settings_.camera_names[ci].c_str(), frame_index);
+    std::string inner_name =
+        fmt::format("{:s}_{:04d}.jpg", settings_.camera_names[ci], frame_index);
     fs::path imagePath = dataset_directory_ / "data" / "img" /
                          settings_.camera_names[ci] / inner_name;
     fnames.push_back(imagePath);

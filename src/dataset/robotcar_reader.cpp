@@ -68,7 +68,6 @@ void ReadOdometryPoses(const fs::path &odometry_filename,
   // lbo = last but one
   SE3 last_from_lbo;
 
-  // TODO cleanup fmt
   std::ifstream odometry_file(odometry_filename);
   std::string header;
   std::getline(odometry_file, header);
@@ -117,7 +116,6 @@ void ReadRtk(const fs::path &rtk_filename, const SE3 &ins_from_body,
              bool correct_rtk, std::vector<Timestamp> &timestamps,
              StdVectorA<SE3> &rtkBodyToWorld) {
   std::ifstream rtk_file(rtk_filename);
-  // TODO cleanup fmt
   std::string cur_line;
   std::getline(rtk_file, cur_line);
   std::optional<SE3> first_from_world;

@@ -107,6 +107,7 @@ target_link_libraries(grpose
         ${GLOG_LIBRARIES}
         opengv
         sophus
+        fmt::fmt
         )
 
 add_subdirectory(demo)
