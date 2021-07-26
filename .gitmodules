@@ -7,3 +7,6 @@
 [submodule "ext/Sophus"]
 	path = ext/Sophus
 	url = https://github.com/strasdat/Sophus
+[submodule "ext/robotcar-dataset-sdk"]
+	path = ext/robotcar-dataset-sdk
+	url = https://github.com/ori-mrg/robotcar-dataset-sdk
