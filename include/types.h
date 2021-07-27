@@ -23,6 +23,7 @@ using VectorX = Eigen::VectorXd;
 using Vector2i = Eigen::Vector2i;
 
 using Matrix22 = Eigen::Matrix2d;
+using Matrix23 = Eigen::Matrix<double, 2, 3>;
 using Matrix33 = Eigen::Matrix3d;
 using Matrix34 = Eigen::Matrix<double, 3, 4>;
 using Matrix44 = Eigen::Matrix4d;

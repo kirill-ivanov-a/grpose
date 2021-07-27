@@ -10,10 +10,6 @@
 namespace grpose {
 
 struct RobotcarReaderSettings {
-  RobotcarReaderSettings();
-
-  CameraModelScaramuzzaSettings camera_settings;
-
   static constexpr bool default_fill_odometry_gaps = false;
   bool fill_odometry_gaps = default_fill_odometry_gaps;
 
@@ -95,8 +91,7 @@ class RobotcarReader : public DatasetReader {
 
   static CameraBundle CreateCameraBundle(
       const fs::path &models_directory, const SE3 &left_from_body,
-      const SE3 &rear_from_body, const SE3 &right_from_body, int w, int h,
-      const CameraModelScaramuzzaSettings &camera_settings);
+      const SE3 &rear_from_body, const SE3 &right_from_body, int w, int h);
 
   void SyncTimestamps();
 

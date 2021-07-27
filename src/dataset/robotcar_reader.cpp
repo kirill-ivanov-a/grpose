@@ -351,12 +351,6 @@ double AverageTripletDistance(const std::vector<Timestamp> &a,
 
 }  // namespace
 
-RobotcarReaderSettings::RobotcarReaderSettings() {
-  // TODO can this be done via named initialization?
-  camera_settings.unmap_polynomial_degree = 9;  // hand-tuned parameters
-  camera_settings.unmap_polynomial_points = 60000;
-}
-
 bool RobotcarReader::IsRobotcar(const fs::path &segment_directory) {
   return fs::exists(segment_directory / "mono_left.timestamps") &&
          fs::exists(segment_directory / "mono_left") &&
@@ -385,24 +379,15 @@ const SE3 RobotcarReader::kImageFromCamera =
 
 CameraBundle RobotcarReader::CreateCameraBundle(
     const fs::path &models_directory, const SE3 &left_from_body,
-    const SE3 &rear_from_body, const SE3 &right_from_body, int w, int h,
-    const CameraModelScaramuzzaSettings &camera_settings) {
+    const SE3 &rear_from_body, const SE3 &right_from_body, int w, int h) {
   fs::path left_model = models_directory / "mono_left.txt";
   fs::path rear_model = models_directory / "mono_rear.txt";
   fs::path right_model = models_directory / "mono_right.txt";
+  // TODO fix camera!
   Camera cameras[RobotcarReader::kNumberOfCameras] = {
-      Camera(w, h,
-             CameraModelScaramuzza(w, h, left_model,
-                                   CameraModelScaramuzza::kPolynomialUnmap,
-                                   camera_settings)),
-      Camera(w, h,
-             CameraModelScaramuzza(w, h, rear_model,
-                                   CameraModelScaramuzza::kPolynomialUnmap,
-                                   camera_settings)),
-      Camera(w, h,
-             CameraModelScaramuzza(w, h, right_model,
-                                   CameraModelScaramuzza::kPolynomialUnmap,
-                                   camera_settings))};
+      Camera(w, h, CameraModelId::kInvalidId, {}),
+      Camera(w, h, CameraModelId::kInvalidId, {}),
+      Camera(w, h, CameraModelId::kInvalidId, {})};
 
   SE3 camera_from_body[RobotcarReader::kNumberOfCameras] = {
       left_from_body, rear_from_body, right_from_body};
@@ -434,7 +419,7 @@ RobotcarReader::RobotcarReader(const fs::path &segment_directory,
       camera_bundle_(
           CreateCameraBundle(camera_models_directory, left_from_body_,
                              rear_from_body_, right_from_body_, kImageWidth,
-                             kImageHeight, settings.camera_settings)),
+                             kImageHeight)),
       segment_directory_(segment_directory),
       left_directory_(segment_directory_ / fs::path("mono_left")),
       rear_directory_(segment_directory_ / fs::path("mono_rear")),

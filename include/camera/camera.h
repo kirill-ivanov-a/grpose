@@ -3,48 +3,22 @@
 
 #include <variant>
 
-#include "camera/camera_model_pinhole.h"
-#include "camera/camera_model_scaramuzza.h"
+#include "camera/camera_model_generic.h"
 
 namespace grpose {
 
 class Camera {
  public:
-  using CameraModelVariants =
-      std::variant<CameraModelScaramuzza, CameraModelPinhole>;
-
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Camera(int width, int height, const CameraModelVariants &camera_model);
+  Camera(int width, int height, CameraModelId model_id,
+         const std::vector<double> &parameters);
+
+  inline Vector3 Unmap(const Vector2 &point) const;
 
   template <typename T>
-  Eigen::Matrix<T, 3, 1> UnmapUnnormalized(const T *point) const {
-    return std::visit(
-        [&](const auto &cam) { return cam.template Unmap<T>(point); },
-        camera_model_);
-  }
-  template <typename T>
-  Eigen::Matrix<T, 2, 1> Map(const T *direction) const {
-    return std::visit(
-        [&](const auto &cam) { return cam.template Map<T>(direction); },
-        camera_model_);
-  }
-  template <typename T>
-  inline Eigen::Matrix<T, 3, 1> UnmapUnnormalized(
-      const Eigen::Matrix<T, 2, 1> &point) const {
-    return UnmapUnnormalized(point.data());
-  }
-  template <typename T>
-  inline Eigen::Matrix<T, 3, 1> Unmap(
-      const Eigen::Matrix<T, 2, 1> &point) const {
-    Eigen::Matrix<T, 3, 1> direction = UnmapUnnormalized(point);
-    return direction.normalized();
-  }
-  template <typename T>
   inline Eigen::Matrix<T, 2, 1> Map(
-      const Eigen::Matrix<T, 3, 1> &direction) const {
-    return Map(direction.data());
-  }
+      const Eigen::Matrix<T, 3, 1> &direction) const;
 
   /**
    * Check if the direction can be mapped by this camera model. Note that some
@@ -54,7 +28,7 @@ class Camera {
    * this before mapping if you are unsure.
    */
   template <typename T>
-  bool IsMappable(const Eigen::Matrix<T, 3, 1> &ray) const;
+  bool IsMappable(const Eigen::Matrix<T, 3, 1> &direction) const;
 
   inline int width() const { return width_; }
   inline int height() const { return height_; }
@@ -101,41 +75,25 @@ class Camera {
   }
 
  private:
-  CameraModelVariants camera_model_;
+  CameraModelId model_id_;
+  std::vector<double> parameters_;
   cv::Mat1b mask_;
   int width_, height_;
 };
 
-namespace camera_internal {
-
-// Adapted from
-// http://blog.abuksigun.com/2018/09/the-simplest-way-to-check-method-exists.html
-// This checks if a given class CameraModelT has a method
-// CameraModelT::isMappable<ValueT>
-template <typename CameraModelT, typename ValueT>
-static constexpr bool HasIsMappable(...) {
-  return false;
+Vector3 Camera::Unmap(const Vector2 &point) const {
+  return CameraModelUnmap(model_id_, parameters_, point);
 }
-template <typename CameraModelT, typename ValueT>
-static constexpr bool HasIsMappable(
-    int, decltype(std::declval<CameraModelT>().IsMappable(
-             Eigen::Matrix<ValueT, 3, 1>())) * = {}) {
-  return true;
-}
-
-}  // namespace camera_internal
 
 template <typename T>
-bool Camera::IsMappable(const Eigen::Matrix<T, 3, 1> &ray) const {
-  return std::visit(
-      [&](const auto &cam) {
-        if constexpr (camera_internal::HasIsMappable<decltype(cam), T>(0)) {
-          return cam.IsMappable(ray);
-        } else {
-          return true;
-        }
-      },
-      camera_model_);
+Eigen::Matrix<T, 2, 1> Camera::Map(
+    const Eigen::Matrix<T, 3, 1> &direction) const {
+  return CameraModelMap(model_id_, parameters_, direction);
+}
+
+template <typename T>
+bool Camera::IsMappable(const Eigen::Matrix<T, 3, 1> &direction) const {
+  return CameraModelIsMappable(model_id_, parameters_, direction);
 }
 
 }  // namespace grpose

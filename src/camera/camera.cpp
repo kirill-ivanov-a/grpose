@@ -3,9 +3,12 @@
 
 namespace grpose {
 
-Camera::Camera(int width, int height,
-               const Camera::CameraModelVariants &camera_model)
-    : camera_model_(camera_model), width_(width), height_(height) {}
+Camera::Camera(int width, int height, CameraModelId model_id,
+               const std::vector<double> &parameters)
+    : model_id_(model_id),
+      parameters_(parameters),
+      width_(width),
+      height_(height) {}
 
 bool Camera::IsOnImage(const Vector2 &p, int border) const {
   bool is_in_border =

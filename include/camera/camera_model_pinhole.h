@@ -1,61 +1,49 @@
 #ifndef GRPOSE_CAMERA_CAMERAMODELPINHOLE_
 #define GRPOSE_CAMERA_CAMERAMODELPINHOLE_
 
+#include "camera/camera_model.h"
 #include "util.h"
 
 namespace grpose {
 
-class CameraModelPinhole {
+class CameraModelPinhole : public CameraModel<CameraModelPinhole> {
  public:
-  /**
-   * Generic unmapping (image plane -> bearing vector). Was used to interface
-   * with ceres's automatic differentiation, can be used again later.
-   * @tparam T float, double or ceres::Jet
-   * @param point 2 coordinates of a point on the image
-   * @return 3D-direction in the camera frame, **UNNORMALIZED**
-   */
-  template <typename T>
-  Eigen::Matrix<T, 3, 1> Unmap(const T *point) const {
-    using Vector3t = Eigen::Matrix<T, 3, 1>;
-    using Vector2t = Eigen::Matrix<T, 2, 1>;
-    Eigen::Map<const Vector2t> ptMap(point);
-    Vector2t pt = ptMap;
-    Vector3t direction(T(0.0), T(0.0), T(1.0));
-    direction[1] = (pt[1] - principalPoint_[1]) / fy_;
-    direction[0] = (pt[0] - skew_ * direction[1] - principalPoint_[0]) / fx_;
-
-    return direction;
-  }
+  static constexpr CameraModelId model_id = CameraModelId::kPinhole;
 
   /**
-   * Generic mapping (bearing vector -> image plane). Was used to interface with
-   * ceres's automatic differentiation, can be used again later.
-   * @tparam T float, double or ceres::Jet
+   * Generic mapping (bearing vector -> image plane).
+   * @tparam T double or ceres::Jet
    * @param direction 3 coordinates of a direction in the camera frame (norm not
    * important)
    * @return 2D-point on the image
-   *
-   * WARNING: as for now, it can only be compiled with T=double because of the
-   * temporary incorporation of the Unified camera model.
    */
   template <typename T>
-  Eigen::Matrix<T, 2, 1> Map(const T *direction) const {
-    typedef Eigen::Matrix<T, 3, 1> Vector3t;
-    typedef Eigen::Matrix<T, 2, 1> Vector2t;
-    typedef Eigen::Matrix<T, Eigen::Dynamic, 1> VectorXt;
+  static Eigen::Matrix<T, 2, 1> Map(const Eigen::Matrix<T, 3, 1> &direction,
+                                    const std::vector<double> &parameters);
 
-    Vector2t res(
-        (T(fx_) * direction[0] + T(skew_) * direction[1]) / direction[2] +
-            T(principalPoint_[0]),
-        res[1] = T(fy_) * direction[1] / direction[2] + T(principalPoint_[1]));
-    return res;
-  }
+  static Vector3 Unmap(const Vector2 &point,
+                       const std::vector<double> &parameters);
+
 
  private:
-  double fx_, fy_;
-  Vector2 principalPoint_;
-  double skew_;
+  static constexpr int fx_id_ = 0, fy_id_ = 1;
+  static constexpr int px_id_ = 2, py_id_ = 3;
+  static constexpr int skew_id_ = 4;
 };
+
+template <typename T>
+Eigen::Matrix<T, 2, 1> CameraModelPinhole::Map(
+    const Eigen::Matrix<T, 3, 1> &direction,
+    const std::vector<double> &parameters) {
+  const double fx(parameters[fx_id_]), fy(parameters[fy_id_]);
+  const double px(parameters[px_id_]), py(parameters[py_id_]);
+  const double skew(parameters[skew_id_]);
+
+  Eigen::Matrix<T, 2, 1> point(
+      (fx * direction[0] + skew * direction[1]) / direction[2] + px,
+      fy * direction[1] / direction[2] + py);
+  return point;
+}
 
 }  // namespace grpose
 
