@@ -11,6 +11,9 @@ sudo apt install git g++ cmake libgflags-dev libgoogle-glog-dev libfmt-dev
 ### OpenCV
 The OpenGV solver initialization pipeline requires a version of OpenCV from 4.4. Please install it from [here](https://opencv.org/releases/) and provide the installation directory to CMake by setting the additional flag `-DOPENCV_INSTALL_DIR=<your OpenCV install dir>`
 
+### Ceres
+This project also requires [Ceres Solver](http://ceres-solver.org/). The installation instructions can be found [here](http://ceres-solver.org/installation.html).
+
 ### Building All Demos and the Libarary
   ```bash
   mkdir build

@@ -20,9 +20,10 @@ endif ()
 
 
 find_package(Eigen3 REQUIRED)
+find_package(fmt REQUIRED)
 find_package(gflags REQUIRED)
 find_package(Glog REQUIRED)
-find_package(fmt REQUIRED)
+find_package(Ceres REQUIRED)
 
 # Find version of OpenCV with free SIFT
 # If not found, ask user to provide the path to one
@@ -98,16 +99,18 @@ target_include_directories(grpose
         ${EIGEN3_INCLUDE_DIR}
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/ext/Sophus
+        ${CERES_INCLUDE_DIRS}
         )
 
 target_link_libraries(grpose
         PUBLIC
-        gflags
-        ${OpenCV_LIBS}
-        ${GLOG_LIBRARIES}
         opengv
         sophus
         fmt::fmt
+        gflags
+        ${OpenCV_LIBS}
+        ${GLOG_LIBRARIES}
+        ${CERES_LIBRARIES}
         )
 
 add_subdirectory(demo)
