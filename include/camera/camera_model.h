@@ -11,7 +11,9 @@
 
 namespace grpose {
 
-enum class CameraModelId { kInvalidId = -1, kPinhole };
+// Numbers after kScaramuzza refer to the unmapping/mapping polynomial degree,
+// see include/camera/camera_model_scaramuzza.h for details.
+enum class CameraModelId { kInvalid = -1, kPinhole, kMultiFov };
 
 /**
  * The result of differentiating CameraModelImpl::Map(direction, parameters)
@@ -57,9 +59,8 @@ class CameraModel {
       const std::vector<double> &parameters);
 
   template <typename PointDerived>
-  static Vector3 UnmapApproximation(
-      const Eigen::MatrixBase<PointDerived> &point,
-      const std::vector<double> &parameters);
+  static Vector3 UnmapApproximate(const Eigen::MatrixBase<PointDerived> &point,
+                                  const std::vector<double> &parameters);
 
   template <typename PointDerived>
   static Vector3 Unmap(const Eigen::MatrixBase<PointDerived> &point,
@@ -107,12 +108,12 @@ DifferentiatedMapResult CameraModel<Derived>::DifferentiateMap(
 
 template <typename Derived>
 template <typename PointDerived>
-Vector3 CameraModel<Derived>::UnmapApproximation(
+Vector3 CameraModel<Derived>::UnmapApproximate(
     const Eigen::MatrixBase<PointDerived> &point,
     const std::vector<double> &parameters) {
   GRPOSE_CHECK_IS_VECTOR2(point);
 
-  return Vector3(0, 0, 1);
+  return Vector3(0.0, 0.0, 1.0);
 }
 
 template <typename Derived>
@@ -134,20 +135,22 @@ Vector3 CameraModel<Derived>::Unmap(
 
   ceres::HomogeneousVectorParameterization parameterization(3);
 
-  Vector3 direction =
-      Derived::UnmapApproximation(point, parameters).normalized();
+  Vector3 direction = Derived::UnmapApproximate(point, parameters).normalized();
   for (int it = 0; it < kMaxIterations; ++it) {
     const auto [mapped, map_jacobian] =
         Derived::DifferentiateMap(direction, parameters);
     const Vector2 residual = point - mapped;
     if (residual.squaredNorm() < kMinDifferenceSquaredNorm) break;
+
     Eigen::Matrix<double, 3, 2, Eigen::RowMajor> plus_jacobian;
     parameterization.ComputeJacobian(direction.data(), plus_jacobian.data());
+
     const Matrix22 residual_jacobian = map_jacobian * plus_jacobian;
     Vector2 delta = residual_jacobian.fullPivHouseholderQr().solve(residual);
     const double squared_delta_norm = delta.squaredNorm();
     if (squared_delta_norm > kMaxStepSquaredNorm)
       delta *= kMaxStepNorm / std::sqrt(squared_delta_norm);
+
     Vector3 new_direction;
     parameterization.Plus(direction.data(), delta.data(), new_direction.data());
     direction = new_direction;

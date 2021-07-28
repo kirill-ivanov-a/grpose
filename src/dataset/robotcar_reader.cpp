@@ -385,9 +385,9 @@ CameraBundle RobotcarReader::CreateCameraBundle(
   fs::path right_model = models_directory / "mono_right.txt";
   // TODO fix camera!
   Camera cameras[RobotcarReader::kNumberOfCameras] = {
-      Camera(w, h, CameraModelId::kInvalidId, {}),
-      Camera(w, h, CameraModelId::kInvalidId, {}),
-      Camera(w, h, CameraModelId::kInvalidId, {})};
+      Camera(w, h, CameraModelId::kInvalid, {}),
+      Camera(w, h, CameraModelId::kInvalid, {}),
+      Camera(w, h, CameraModelId::kInvalid, {})};
 
   SE3 camera_from_body[RobotcarReader::kNumberOfCameras] = {
       left_from_body, rear_from_body, right_from_body};

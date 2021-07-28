@@ -1,4 +1,5 @@
 #include "camera/camera_model_pinhole.h"
+#include "camera/camera_model_scaramuzza.h"
 
 #include <random>
 #include <vector>
@@ -6,7 +7,6 @@
 #include <ceres/autodiff_cost_function.h>
 #include <ceres/local_parameterization.h>
 #include <gtest/gtest.h>
-#include <Eigen/Householder>
 
 using namespace grpose;
 
@@ -19,13 +19,41 @@ struct CameraParameters<CameraModelPinhole> {
   int width = 1920, height = 1080;
 };
 
+template <>
+struct CameraParameters<CameraModelMultiFov> {
+  // Parameters in the MultiFov/MultiCam datasets
+  std::vector<double> parameters = {-179.471829787234,
+                                    0.0,
+                                    0.002316743975,
+                                    -3.635968439375e-06,
+                                    2.0546506810625e-08,
+                                    320.0,
+                                    240.0,
+                                    1.0,
+                                    0.0,
+                                    0.0,
+                                    256.2124,
+                                    138.2261,
+                                    -3.8287,
+                                    23.8296,
+                                    8.0091,
+                                    -0.5033,
+                                    6.7625,
+                                    4.3653,
+                                    -1.2425,
+                                    -1.2663,
+                                    -0.1870,
+                                    0.0};
+  int width = 640, height = 480;
+};
+
 template <typename CameraModelT>
 class CameraModelTest : public ::testing::Test {
  protected:
   CameraParameters<CameraModelT> camera_parameters;
 };
 
-using CameraModels = ::testing::Types<CameraModelPinhole>;
+using CameraModels = ::testing::Types<CameraModelMultiFov>;
 TYPED_TEST_SUITE(CameraModelTest, CameraModels);
 
 TYPED_TEST(CameraModelTest, UnmapDerivedMap) {

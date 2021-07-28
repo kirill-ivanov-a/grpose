@@ -34,7 +34,7 @@ Camera GetMfovCam(const fs::path &intrinsics_filename) {
   our_coefficients *= -1;
   camera_ifsteram >> center[0] >> center[1];
   // TODO fix Camera!
-  return Camera(width, height, CameraModelId::kInvalidId, {});
+  return Camera(width, height, CameraModelId::kInvalid, {});
 }
 
 cv::Mat1f ReadBinMat(const fs::path &filename, int image_width,

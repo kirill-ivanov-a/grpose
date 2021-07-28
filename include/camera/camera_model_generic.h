@@ -4,6 +4,7 @@
 #include <fmt/format.h>
 
 #include "camera/camera_model_pinhole.h"
+#include "camera/camera_model_scaramuzza.h"
 
 namespace grpose {
 
@@ -28,7 +29,7 @@ Vector3 CameraModelUnmap(CameraModelId model_id,
                          const Eigen::MatrixBase<PointDerived> &point);
 
 template <typename PointDerived>
-Vector3 CameraModelUnmapApproximation(
+Vector3 CameraModelUnmapApproximate(
     CameraModelId model_id, const std::vector<double> &parameters,
     const Eigen::MatrixBase<PointDerived> &point);
 
@@ -55,8 +56,10 @@ using Vector3t = Eigen::Matrix<typename EigenMatrixType::Scalar, 3, 1>;
       CameraModelId model_id, const std::vector<double> &parameters,         \
       const Eigen::MatrixBase<InputType> &__input) {                         \
     switch (model_id) {                                                      \
-      case CameraModelPinhole::model_id:                                     \
+      case CameraModelPinhole::kModelId:                                     \
         return CameraModelPinhole::MethodName(__input, parameters);          \
+      case CameraModelMultiFov::kModelId:                                    \
+        return CameraModelMultiFov::MethodName(__input, parameters);         \
       default:                                                               \
         throw std::domain_error(                                             \
             fmt::format("Unknown CameraModelId: {}", model_id));             \
@@ -69,7 +72,7 @@ GRPOSE_DEFINE_CAMERA_MODEL_METHOD(IsMappable, DirectionDerived, bool);
 GRPOSE_DEFINE_CAMERA_MODEL_METHOD(DifferentiateMap, DirectionDerived,
                                   DifferentiatedMapResult);
 GRPOSE_DEFINE_CAMERA_MODEL_METHOD(Unmap, PointDerived, Vector3);
-GRPOSE_DEFINE_CAMERA_MODEL_METHOD(UnmapApproximation, PointDerived, Vector3);
+GRPOSE_DEFINE_CAMERA_MODEL_METHOD(UnmapApproximate, PointDerived, Vector3);
 GRPOSE_DEFINE_CAMERA_MODEL_METHOD(UnmapUnnormalized, PointDerived, Vector3);
 
 }  // namespace grpose

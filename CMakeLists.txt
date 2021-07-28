@@ -57,8 +57,9 @@ set(grpose_HEADER_FILES
         include/camera/camera.h
         include/camera/camera_bundle.h
         include/camera/camera_model.h
-        include/camera/camera_model_generic.h
         include/camera/camera_model_pinhole.h
+        include/camera/camera_model_scaramuzza.h
+        include/camera/camera_model_generic.h
 
         ${PROJECT_SOURCE_DIR}/include/dataset/dataset_reader.h
         ${PROJECT_SOURCE_DIR}/include/dataset/robotcar_reader.h
@@ -77,8 +78,6 @@ set(grpose_SOURCE_FILES
 
         src/camera/camera.cpp
         src/camera/camera_bundle.cpp
-        src/camera/camera_model_generic.cpp
-        src/camera/camera_model_pinhole.cpp
 
         ${PROJECT_SOURCE_DIR}/src/dataset/dataset_reader.cpp
         ${PROJECT_SOURCE_DIR}/src/dataset/robotcar_reader.cpp

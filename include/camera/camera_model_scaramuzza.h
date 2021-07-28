@@ -1,203 +1,123 @@
-#ifndef GRPOSE_CAMERA_CAMERAMODELSCARAMUZZA_
-#define GRPOSE_CAMERA_CAMERAMODELSCARAMUZZA_
+#ifndef GRPOSE_CAMERA_CAMERA_MODEL_SCARAMUZZA_
+#define GRPOSE_CAMERA_CAMERA_MODEL_SCARAMUZZA_
 
-#include <string>
-
-#include <glog/logging.h>
-#include <Eigen/Dense>
-#include <opencv2/core.hpp>
-
-#include "util/types.h"
+#include "camera/camera_model.h"
 
 namespace grpose {
 
-struct CameraModelScaramuzzaSettings {
-  static constexpr int default_map_polynomial_degree = 10;
-  int map_polynomial_degree = default_map_polynomial_degree;
+template <int kPolynomialUnmapDegree, int kPolynomialMapDegree>
+class CameraModelScaramuzza;
 
-  static constexpr int default_unmap_polynomial_degree = 6;
-  int unmap_polynomial_degree = default_unmap_polynomial_degree;
+// MultiFoV / MultiCam dataset camera models have these degrees
+using CameraModelMultiFov = CameraModelScaramuzza<4, 11>;
 
-  static constexpr int default_map_polynomial_points = 2000;
-  int map_polynomial_points = default_map_polynomial_points;
+template <int kPolynomialUnmapDegree, int kPolynomialMapDegree>
+struct ScaramuzzaModelId;
 
-  static constexpr int default_unmap_polynomial_points = 2000;
-  int unmap_polynomial_points = default_unmap_polynomial_points;
-
-  static constexpr double default_initial_max_angle = 100.0 * (M_PI / 180.0);
-  double initial_max_angle = default_initial_max_angle;
-
-  enum CenterShift { kNoShift, kMinus0_5, kPlus0_5 };
-  static constexpr CenterShift default_center_shift = kNoShift;
-  CenterShift center_shift = default_center_shift;
-
-  static constexpr bool default_debug_output = false;
-  bool debug_output = default_debug_output;
-
-  static constexpr bool default_is_deterministic = true;
-  bool is_deterministic = default_is_deterministic;
+template <>
+struct ScaramuzzaModelId<4, 11> {
+  static constexpr CameraModelId kModelId = CameraModelId::kMultiFov;
 };
 
-class CameraModelScaramuzza {
+template <int kPolynomialUnmapDegree, int kPolynomialMapDegree>
+class CameraModelScaramuzza
+    : public CameraModel<
+          CameraModelScaramuzza<kPolynomialUnmapDegree, kPolynomialMapDegree>> {
  public:
-  enum InputType { kPolynomialMap, kPolynomialUnmap };
+  static constexpr CameraModelId kModelId =
+      ScaramuzzaModelId<kPolynomialUnmapDegree, kPolynomialMapDegree>::kModelId;
 
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  template <typename DirectionDerived>
+  static Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Map(
+      const Eigen::MatrixBase<DirectionDerived> &direction,
+      const std::vector<double> &parameters);
 
-  CameraModelScaramuzza(int width, int height, double scale,
-                        const Vector2 &center, const VectorX &unmapPolyCoeffs,
-                        const CameraModelScaramuzzaSettings &settings = {});
-
-  /**
-   * Initialize from a filename. For concrete file structure, please consult the
-   * source of this constructor.
-   */
-  CameraModelScaramuzza(int width, int height, const std::string &calibFileName,
-                        InputType type,
-                        const CameraModelScaramuzzaSettings &settings = {});
-
-  /**
-   * Initialize the model as a pinhole camera.
-   * Note that it is a special case of the more general Scaramuzza model we use.
-   */
-  CameraModelScaramuzza(int width, int height, double f, double cx, double cy,
-                        const CameraModelScaramuzzaSettings &settings = {});
-
-  /**
-   * Generic unmapping (image plane -> bearing vector). Was used to interface
-   * with ceres's automatic differentiation, can be used again later.
-   * @tparam T float, double or ceres::Jet
-   * @param point 2 coordinates of a point on the image
-   * @return 3D-direction in the camera frame, **UNNORMALIZED**
-   */
-  template <typename T>
-  Eigen::Matrix<T, 3, 1> Unmap(const T *point) const {
-    using Vector3t = Eigen::Matrix<T, 3, 1>;
-    using Vector2t = Eigen::Matrix<T, 2, 1>;
-    using VectorXt = Eigen::Matrix<T, Eigen::Dynamic, 1>;
-    Eigen::Map<const Vector2t> pt_(point);
-    Vector2t pt = pt_;
-
-    pt[1] = (pt[1] - principalPoint_[1]) / fy_;
-    pt[0] = (pt[0] - skew_ * pt[1] - principalPoint_[0]) / fx_;
-
-    VectorXt p = unmapPolyCoeffs_.cast<T>();
-
-    T rho2 = pt.squaredNorm();
-    T rho1 = sqrt(rho2);
-
-    T z = p[0];
-    T rhoN = rho2;
-    for (int i = 1; i < unmapPolyDeg_; i += 2) {
-      z += rhoN * p[i];
-      if (i + 1 < unmapPolyDeg_) z += rhoN * rho1 * p[i + 1];
-      rhoN *= rho2;
-    }
-
-    Vector3t res(pt[0], pt[1], z);
-    return res;
-  }
-
-  /**
-   * Generic mapping (bearing vector -> image plane). Was used to interface with
-   * ceres's automatic differentiation, can be used again later.
-   * @tparam T float, double or ceres::Jet
-   * @param direction 3 coordinates of a direction in the camera frame (norm not
-   * important)
-   * @return 2D-point on the image
-   *
-   * WARNING: as for now, it can only be compiled with T=double because of the
-   * temporary incorporation of the Unified camera model.
-   */
-  template <typename T>
-  Eigen::Matrix<T, 2, 1> Map(const T *direction) const {
-    using Vector3t = Eigen::Matrix<T, 3, 1>;
-    using Vector2t = Eigen::Matrix<T, 2, 1>;
-    using VectorXt = Eigen::Matrix<T, Eigen::Dynamic, 1>;
-
-    Eigen::Map<const Vector3t> pt_(direction);
-    Vector3t pt = pt_;
-    VectorXt p = mapPolyCoeffs_.cast<T>();
-
-    T angle = atan2(pt.template head<2>().norm(), pt[2]);
-
-    T r = p[0];
-    T angleN = angle;
-    for (int i = 1; i < p.rows(); ++i) {
-      r += p[i] * angleN;
-      angleN *= angle;
-    }
-
-    Vector2t res = pt.template head<2>().normalized() * r;
-    res[0] = T(fx_) * res[0] + T(skew_) * res[1] + T(principalPoint_[0]);
-    res[1] = T(fy_) * res[1] + T(principalPoint_[1]);
-    return res;
-  }
-
-  /**
-   * Check if the direction can be mapped by this camera model. Note that some
-   * directions (most notably, looking straight backward) are outside of the FoV
-   * of the camera, and as the mapping polynomial was not fitted to work with
-   * those, it may produce incorrect results and even map to the image! Check
-   * this before mapping if you are unsure.
-   */
-  template <typename T>
-  bool isMappable(const Eigen::Matrix<T, 3, 1> &ray) const {
-    T angle = atan2(ray.template head<2>().norm(), ray[2]);
-    return angle < maxAngle_;
-  }
-
-  inline Vector2 principalPoint() const { return principalPoint_; }
-  inline double minZ() const { return minZ_; }
-  inline double maxAngle() const { return maxAngle_; }
-  inline VectorX mapPolyCoeffs() const { return mapPolyCoeffs_; }
-  inline VectorX unmapPolyCoeffs() const { return unmapPolyCoeffs_; }
-  inline double fx() const { return fx_; }
-  inline double fy() const { return fy_; }
-  inline double skew() const { return skew_; }
+  template <typename PointDerived>
+  static Vector3 UnmapApproximate(const Eigen::MatrixBase<PointDerived> &point,
+                                  const std::vector<double> &parameters);
 
  private:
-  double getImgRadiusByAngle(double observeAngle) const;
-  void setImageCenter(const Vector2 &imcenter);
-  void setMapPolyCoeffs();
-  void setUnmapPolyCoeffs();
-  void readUnmap(std::istream &is);
-  void readMap(std::istream &is);
-
-  inline double calcUnmapPoly(double r) const {
-    double rN = r * r;
-    double res = unmapPolyCoeffs_[0];
-    for (int i = 1; i < unmapPolyDeg_; ++i) {
-      res += unmapPolyCoeffs_[i] * rN;
-      rN *= r;
-    }
-    return res;
-  }
-
-  inline double calcMapPoly(double funcVal) const {
-    double funcValN = funcVal;
-    double res = mapPolyCoeffs_[0];
-    for (int i = 1; i < mapPolyCoeffs_.rows(); ++i) {
-      res += mapPolyCoeffs_[i] * funcValN;
-      funcValN *= funcVal;
-    }
-    return res;
-  }
-  void recalcMaxRadius();
-  void recalcBoundaries();
-
-  int width_, height_;
-  int unmapPolyDeg_;
-  VectorX unmapPolyCoeffs_;
-  double fx_, fy_;
-  Vector2 principalPoint_;
-  double skew_;
-  double radius_;
-  double minZ_;
-  double maxAngle_;
-  VectorX mapPolyCoeffs_;
-  CameraModelScaramuzzaSettings settings_;
+  static constexpr int polynomial_unmap_start_ = 0;
+  static constexpr int px_id_ =
+      polynomial_unmap_start_ + kPolynomialUnmapDegree + 1;
+  static constexpr int py_id_ =
+      polynomial_unmap_start_ + kPolynomialUnmapDegree + 2;
+  static constexpr int c_id_ =
+      polynomial_unmap_start_ + kPolynomialUnmapDegree + 3;
+  static constexpr int d_id_ =
+      polynomial_unmap_start_ + kPolynomialUnmapDegree + 4;
+  static constexpr int e_id_ =
+      polynomial_unmap_start_ + kPolynomialUnmapDegree + 5;
+  static constexpr int polynomial_map_start_ =
+      polynomial_unmap_start_ + kPolynomialUnmapDegree + 6;
+  static constexpr int num_parameters_ =
+      kPolynomialUnmapDegree + kPolynomialMapDegree + 7;
 };
+
+// Implementation
+
+template <int kPolynomialUnmapDegree, int kPolynomialMapDegree>
+template <typename DirectionDerived>
+Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1>
+CameraModelScaramuzza<kPolynomialUnmapDegree, kPolynomialMapDegree>::Map(
+    const Eigen::MatrixBase<DirectionDerived> &direction,
+    const std::vector<double> &parameters) {
+  using Scalar = typename DirectionDerived::Scalar;
+  using Vector2t = Eigen::Matrix<Scalar, 2, 1>;
+
+  const double c = parameters[c_id_];
+  const double d = parameters[d_id_];
+  const double e = parameters[e_id_];
+  const double px = parameters[px_id_];
+  const double py = parameters[py_id_];
+
+  const Scalar direction_head2_norm = direction.template head<2>().norm();
+  if (direction_head2_norm <= std::numeric_limits<double>::epsilon())
+    return Vector2t(Scalar(px), Scalar(py));
+
+  const Scalar theta = atan(-direction[2] / direction_head2_norm);
+
+  int i = polynomial_map_start_ + kPolynomialMapDegree;
+  Scalar r(parameters[i--]);
+  for (; i >= polynomial_map_start_; --i) {
+    r = parameters[i] + theta * r;
+  }
+
+  const Vector2t raw_point =
+      direction.template head<2>() / direction_head2_norm * r;
+
+  const Vector2t point(c * raw_point[0] + d * raw_point[1] + px,
+                       e * raw_point[0] + raw_point[1] + py);
+  return point;
+}
+
+template <int kPolynomialUnmapDegree, int kPolynomialMapDegree>
+template <typename PointDerived>
+Vector3 CameraModelScaramuzza<kPolynomialUnmapDegree, kPolynomialMapDegree>::
+    UnmapApproximate(const Eigen::MatrixBase<PointDerived> &point,
+                     const std::vector<double> &parameters) {
+  const double c = parameters[c_id_];
+  const double d = parameters[d_id_];
+  const double e = parameters[e_id_];
+  const double px = parameters[px_id_];
+  const double py = parameters[py_id_];
+
+  Matrix22 affine;
+  affine << c, d, e, 1.0;
+  Vector2 rectified_point = affine.inverse() * (point - Vector2(px, py));
+
+  const double rectified_norm = rectified_point.norm();
+
+  int i = polynomial_unmap_start_ + kPolynomialUnmapDegree;
+  double z = parameters[i--];
+  for (; i >= polynomial_unmap_start_; --i) {
+    z = parameters[i] + z * rectified_norm;
+  }
+  z = -z;
+
+  const Vector3 direction(rectified_point[0], rectified_point[1], z);
+  return direction.normalized();
+}
 
 }  // namespace grpose
 
