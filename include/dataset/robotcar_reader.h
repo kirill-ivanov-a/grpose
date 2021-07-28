@@ -89,9 +89,11 @@ class RobotcarReader : public DatasetReader {
  private:
   static const SE3 kImageFromCamera;
 
-  static CameraBundle CreateCameraBundle(
-      const fs::path &models_directory, const SE3 &left_from_body,
-      const SE3 &rear_from_body, const SE3 &right_from_body, int w, int h);
+  static CameraBundle CreateCameraBundle(const fs::path &models_directory,
+                                         const SE3 &left_from_body,
+                                         const SE3 &rear_from_body,
+                                         const SE3 &right_from_body, int w,
+                                         int h);
 
   void SyncTimestamps();
 

@@ -1,19 +1,35 @@
 #ifndef GRPOSE_CAMERA_CAMERA_MODEL_
 #define GRPOSE_CAMERA_CAMERA_MODEL_
 
+#include <type_traits>
+
 #include <ceres/jet.h>
 #include <ceres/local_parameterization.h>
 
 #include "types.h"
+#include "util/type_traits.h"
 
 namespace grpose {
 
 enum class CameraModelId { kInvalidId = -1, kPinhole };
 
+/**
+ * The result of differentiating CameraModelImpl::Map(direction, parameters)
+ * w.r.t. normalized direction. Note that if the input direction was not
+ * normalized, it will still be, and the resulting derivative will be not w.r.t.
+ * the original direction.
+ */
 struct DifferentiatedMapResult {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+  /// Mapping result.
   Vector2 point;
+
+  /**
+   * Jacobian w.r.t. normalized direction. Despite being a 2x3 matrix, it is
+   * only well-defined on the 2-dimentional tangent space on S^2 to the
+   * direction being mapped.
+   */
   Matrix23 jacobian;
 };
 
@@ -31,37 +47,56 @@ struct DifferentiatedMapResult {
 template <typename Derived>
 class CameraModel {
  public:
-  static bool IsMappable(const Vector3 &directions,
+  template <typename DirectionDerived>
+  static bool IsMappable(const Eigen::MatrixBase<DirectionDerived> &direction,
                          const std::vector<double> &parameters);
 
+  template <typename DirectionDerived>
   static DifferentiatedMapResult DifferentiateMap(
-      const Vector3 &direction, const std::vector<double> &parameters);
+      const Eigen::MatrixBase<DirectionDerived> &direction,
+      const std::vector<double> &parameters);
 
-  static Vector3 UnmapApproximation(const Vector2 &point,
-                                    const std::vector<double> &parameters);
+  template <typename PointDerived>
+  static Vector3 UnmapApproximation(
+      const Eigen::MatrixBase<PointDerived> &point,
+      const std::vector<double> &parameters);
 
-  static Vector3 Unmap(const Vector2 &point,
+  template <typename PointDerived>
+  static Vector3 Unmap(const Eigen::MatrixBase<PointDerived> &point,
                        const std::vector<double> &parameters);
 
-  static Vector3 UnmapUnnormalized(const Vector2 &point,
+  template <typename PointDerived>
+  static Vector3 UnmapUnnormalized(const Eigen::MatrixBase<PointDerived> &point,
                                    const std::vector<double> &parameters);
 };
 
+// Implementation
+
 template <typename Derived>
-bool CameraModel<Derived>::IsMappable(const Vector3 &directions,
-                                      const std::vector<double> &parameters) {
+template <typename DirectionType>
+bool CameraModel<Derived>::IsMappable(
+    const Eigen::MatrixBase<DirectionType> &direction,
+    const std::vector<double> &parameters) {
+  GRPOSE_CHECK_IS_VECTOR3(direction);
+
   return true;
 }
 
 template <typename Derived>
+template <typename DirectionDerived>
 DifferentiatedMapResult CameraModel<Derived>::DifferentiateMap(
-    const Vector3 &direction, const std::vector<double> &parameters) {
+    const Eigen::MatrixBase<DirectionDerived> &direction,
+    const std::vector<double> &parameters) {
+  GRPOSE_CHECK_IS_VECTOR3(direction);
+
   using Jet3 = ceres::Jet<double, 3>;
 
-  Eigen::Matrix<Jet3, 3, 1> direction_jets = direction.template cast<Jet3>();
+  const Vector3 direction_normalized = direction.normalized();
+  Eigen::Matrix<Jet3, 3, 1> direction_jets =
+      direction_normalized.template cast<Jet3>();
   for (int i = 0; i < 3; ++i) direction_jets[i].v[i] = 1.0;
 
-  Eigen::Matrix<Jet3, 2, 1> point_jet =
+  const Eigen::Matrix<Jet3, 2, 1> point_jet =
       Derived::Map(direction_jets, parameters);
 
   DifferentiatedMapResult result;
@@ -71,45 +106,64 @@ DifferentiatedMapResult CameraModel<Derived>::DifferentiateMap(
 }
 
 template <typename Derived>
+template <typename PointDerived>
 Vector3 CameraModel<Derived>::UnmapApproximation(
-    const Vector2 &point, const std::vector<double> &parameters) {
+    const Eigen::MatrixBase<PointDerived> &point,
+    const std::vector<double> &parameters) {
+  GRPOSE_CHECK_IS_VECTOR2(point);
+
   return Vector3(0, 0, 1);
 }
 
 template <typename Derived>
-Vector3 CameraModel<Derived>::Unmap(const Vector2 &point,
-                                    const std::vector<double> &parameters) {
+template <typename PointDerived>
+Vector3 CameraModel<Derived>::Unmap(
+    const Eigen::MatrixBase<PointDerived> &point,
+    const std::vector<double> &parameters) {
+  GRPOSE_CHECK_IS_VECTOR2(point);
+
   constexpr int kMaxIterations = 100;
   constexpr double kMinStepSquaredNorm = 1e-6;
   constexpr double kMinDifferenceSquaredNorm = 1e-8;
 
+  // Each step by \Delta introduces rotation of the direction by the angle
+  // |\Delta|/2. We want to constraint this rotation s.t. it never happens more
+  // than by \pi/4
+  constexpr double kMaxStepNorm = M_PI_2;
+  constexpr double kMaxStepSquaredNorm = kMaxStepNorm * kMaxStepNorm;
+
   ceres::HomogeneousVectorParameterization parameterization(3);
 
-  Vector3 direction = Derived::UnmapApproximation(point, parameters);
+  Vector3 direction =
+      Derived::UnmapApproximation(point, parameters).normalized();
   for (int it = 0; it < kMaxIterations; ++it) {
-    auto [mapped, map_jacobian] =
+    const auto [mapped, map_jacobian] =
         Derived::DifferentiateMap(direction, parameters);
-    Vector2 residual = mapped - point;
+    const Vector2 residual = point - mapped;
     if (residual.squaredNorm() < kMinDifferenceSquaredNorm) break;
-
     Eigen::Matrix<double, 3, 2, Eigen::RowMajor> plus_jacobian;
     parameterization.ComputeJacobian(direction.data(), plus_jacobian.data());
-
-    Matrix22 residual_jacobian = map_jacobian * plus_jacobian;
+    const Matrix22 residual_jacobian = map_jacobian * plus_jacobian;
     Vector2 delta = residual_jacobian.fullPivHouseholderQr().solve(residual);
+    const double squared_delta_norm = delta.squaredNorm();
+    if (squared_delta_norm > kMaxStepSquaredNorm)
+      delta *= kMaxStepNorm / std::sqrt(squared_delta_norm);
     Vector3 new_direction;
     parameterization.Plus(direction.data(), delta.data(), new_direction.data());
     direction = new_direction;
-
-    if (delta.squaredNorm() < kMinStepSquaredNorm) break;
+    if (squared_delta_norm < kMinStepSquaredNorm) break;
   }
 
   return direction;
 }
 
 template <typename Derived>
+template <typename PointDerived>
 Vector3 CameraModel<Derived>::UnmapUnnormalized(
-    const Vector2 &point, const std::vector<double> &parameters) {
+    const Eigen::MatrixBase<PointDerived> &point,
+    const std::vector<double> &parameters) {
+  GRPOSE_CHECK_IS_VECTOR2(point);
+
   return Derived::Unmap(point, parameters);
 }
 

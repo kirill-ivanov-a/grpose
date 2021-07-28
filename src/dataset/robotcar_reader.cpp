@@ -416,10 +416,9 @@ RobotcarReader::RobotcarReader(const fs::path &segment_directory,
           ReadLidarFromBody(extrinsics_directory / "lms_rear.txt")),
       ldmrs_from_body_(ReadLidarFromBody(extrinsics_directory / "ldmrs.txt")),
       ins_from_body_(ReadInsFromBody(extrinsics_directory / "ins.txt")),
-      camera_bundle_(
-          CreateCameraBundle(camera_models_directory, left_from_body_,
-                             rear_from_body_, right_from_body_, kImageWidth,
-                             kImageHeight)),
+      camera_bundle_(CreateCameraBundle(
+          camera_models_directory, left_from_body_, rear_from_body_,
+          right_from_body_, kImageWidth, kImageHeight)),
       segment_directory_(segment_directory),
       left_directory_(segment_directory_ / fs::path("mono_left")),
       rear_directory_(segment_directory_ / fs::path("mono_rear")),

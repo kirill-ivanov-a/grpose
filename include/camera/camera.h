@@ -9,16 +9,15 @@ namespace grpose {
 
 class Camera {
  public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
   Camera(int width, int height, CameraModelId model_id,
          const std::vector<double> &parameters);
 
-  inline Vector3 Unmap(const Vector2 &point) const;
+  template <typename PointDerived>
+  inline Vector3 Unmap(const Eigen::MatrixBase<PointDerived> &point) const;
 
-  template <typename T>
-  inline Eigen::Matrix<T, 2, 1> Map(
-      const Eigen::Matrix<T, 3, 1> &direction) const;
+  template <typename DirectionDerived>
+  inline Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Map(
+      const Eigen::MatrixBase<DirectionDerived> &direction) const;
 
   /**
    * Check if the direction can be mapped by this camera model. Note that some
@@ -27,8 +26,8 @@ class Camera {
    * those, it may produce incorrect results and even map to the image! Check
    * this before mapping if you are unsure.
    */
-  template <typename T>
-  bool IsMappable(const Eigen::Matrix<T, 3, 1> &direction) const;
+  template <typename DirectionDerived>
+  bool IsMappable(const Eigen::MatrixBase<DirectionDerived> &direction) const;
 
   inline int width() const { return width_; }
   inline int height() const { return height_; }
@@ -81,18 +80,22 @@ class Camera {
   int width_, height_;
 };
 
-Vector3 Camera::Unmap(const Vector2 &point) const {
+// Implementation
+
+template <typename PointDerived>
+Vector3 Camera::Unmap(const Eigen::MatrixBase<PointDerived> &point) const {
   return CameraModelUnmap(model_id_, parameters_, point);
 }
 
-template <typename T>
-Eigen::Matrix<T, 2, 1> Camera::Map(
-    const Eigen::Matrix<T, 3, 1> &direction) const {
+template <typename DirectionDerived>
+Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Camera::Map(
+    const Eigen::MatrixBase<DirectionDerived> &direction) const {
   return CameraModelMap(model_id_, parameters_, direction);
 }
 
-template <typename T>
-bool Camera::IsMappable(const Eigen::Matrix<T, 3, 1> &direction) const {
+template <typename DirectionDerived>
+bool Camera::IsMappable(
+    const Eigen::MatrixBase<DirectionDerived> &direction) const {
   return CameraModelIsMappable(model_id_, parameters_, direction);
 }
 
