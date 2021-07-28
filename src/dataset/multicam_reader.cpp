@@ -4,7 +4,7 @@
 
 #include <fmt/format.h>
 
-#include "util.h"
+#include "util/util.h"
 
 namespace grpose {
 

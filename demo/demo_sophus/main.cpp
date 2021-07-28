@@ -6,7 +6,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
 
-#include "types.h"
+#include "util/types.h"
 
 DEFINE_bool(opencv_demo, false, "If set, the OpenCV demo is run as well");
 

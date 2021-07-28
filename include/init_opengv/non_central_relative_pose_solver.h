@@ -1,5 +1,5 @@
-#ifndef GRPOSE_INITOPENGV_NONCENTRALRELATIVEPOSESOLVER_
-#define GRPOSE_INITOPENGV_NONCENTRALRELATIVEPOSESOLVER_
+#ifndef GRPOSE_INIT_OPENGV_NON_CENTRAL_RELATIVE_POSE_SOLVER_
+#define GRPOSE_INIT_OPENGV_NON_CENTRAL_RELATIVE_POSE_SOLVER_
 
 #include <glog/logging.h>
 
@@ -17,7 +17,7 @@
 
 #include "init_opengv/feature_detector_matcher.h"
 #include "init_opengv/multicam_init_settings.h"
-#include "types.h"
+#include "util/types.h"
 
 namespace grpose {
 

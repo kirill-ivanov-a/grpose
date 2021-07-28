@@ -1,7 +1,7 @@
 #ifndef GRPOSE_TRAJECTORY_
 #define GRPOSE_TRAJECTORY_
 
-#include "types.h"
+#include "util/types.h"
 
 namespace grpose {
 

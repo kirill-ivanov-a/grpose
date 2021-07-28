@@ -1,12 +1,12 @@
-#ifndef GRPOSE_DATASET_DATASETREADER_
-#define GRPOSE_DATASET_DATASETREADER_
+#ifndef GRPOSE_DATASET_DATASET_READER_
+#define GRPOSE_DATASET_DATASET_READER_
 
 #include <memory>
 #include <optional>
 
 #include "camera/camera_bundle.h"
 #include "trajectory.h"
-#include "types.h"
+#include "util/types.h"
 
 namespace grpose {
 

@@ -49,8 +49,8 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/ext/Sophus)
 # set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g3 -DNDEBUG -march=native")
 
 set(grpose_HEADER_FILES
-        ${PROJECT_SOURCE_DIR}/include/types.h
-        ${PROJECT_SOURCE_DIR}/include/util.h
+        include/util/types.h
+        include/util/util.h
         ${PROJECT_SOURCE_DIR}/include/metrics.h
         ${PROJECT_SOURCE_DIR}/include/trajectory.h
 

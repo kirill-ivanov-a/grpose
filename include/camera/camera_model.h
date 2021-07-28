@@ -6,8 +6,8 @@
 #include <ceres/jet.h>
 #include <ceres/local_parameterization.h>
 
-#include "types.h"
 #include "util/type_traits.h"
+#include "util/types.h"
 
 namespace grpose {
 
@@ -73,9 +73,9 @@ class CameraModel {
 // Implementation
 
 template <typename Derived>
-template <typename DirectionType>
+template <typename DirectionDerived>
 bool CameraModel<Derived>::IsMappable(
-    const Eigen::MatrixBase<DirectionType> &direction,
+    const Eigen::MatrixBase<DirectionDerived> &direction,
     const std::vector<double> &parameters) {
   GRPOSE_CHECK_IS_VECTOR3(direction);
 

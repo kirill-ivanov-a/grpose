@@ -1,11 +1,11 @@
-#include "util.h"
+#include "util/util.h"
 
 #include <iostream>
 #include <vector>
 
 #include <glog/logging.h>
 
-#include "types.h"
+#include "util/types.h"
 
 namespace grpose {
 

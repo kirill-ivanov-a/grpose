@@ -1,8 +1,8 @@
-#ifndef GRPOSE_CAMERA_CAMERAMODELPINHOLE_
-#define GRPOSE_CAMERA_CAMERAMODELPINHOLE_
+#ifndef GRPOSE_CAMERA_CAMERA_MODEL_PINHOLE_
+#define GRPOSE_CAMERA_CAMERA_MODEL_PINHOLE_
 
 #include "camera/camera_model.h"
-#include "util.h"
+#include "util/util.h"
 
 namespace grpose {
 

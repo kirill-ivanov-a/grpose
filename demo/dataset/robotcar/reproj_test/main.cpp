@@ -1,5 +1,5 @@
 #include "dataset/robotcar_reader.h"
-#include "util.h"
+#include "util/util.h"
 
 DEFINE_string(models_dir, "data/models/robotcar",
               "Directory with omnidirectional camera models. It is provided in "

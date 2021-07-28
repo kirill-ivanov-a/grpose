@@ -9,7 +9,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "trajectory.h"
-#include "types.h"
+#include "util/types.h"
 
 namespace grpose {
 

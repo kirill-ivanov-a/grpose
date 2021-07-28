@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 
 #include "metrics.h"
-#include "types.h"
+#include "util/types.h"
 
 using namespace grpose;
 

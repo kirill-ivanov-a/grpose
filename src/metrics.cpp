@@ -5,7 +5,7 @@
 
 #include <glog/logging.h>
 
-#include "types.h"
+#include "util/types.h"
 
 namespace grpose {
 

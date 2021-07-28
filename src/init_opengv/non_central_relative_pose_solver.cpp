@@ -1,6 +1,6 @@
 #include "init_opengv/non_central_relative_pose_solver.h"
 
-#include <util.h>
+#include <util/util.h>
 
 #include <fstream>
 

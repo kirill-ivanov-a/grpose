@@ -1,5 +1,5 @@
 #include "dataset/multicam_reader.h"
-#include "util.h"
+#include "util/util.h"
 
 DEFINE_int32(frame_ind, 400,
              "The frame from which we want the per-pixel depths");

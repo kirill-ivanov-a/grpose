@@ -7,7 +7,7 @@
 #include <Eigen/Dense>
 #include <opencv2/core.hpp>
 
-#include "types.h"
+#include "util/types.h"
 
 namespace grpose {
 
