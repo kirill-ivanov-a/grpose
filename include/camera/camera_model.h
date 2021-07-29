@@ -124,6 +124,7 @@ Vector3 CameraModel<Derived>::Unmap(
   GRPOSE_CHECK_IS_VECTOR2(point);
 
   constexpr int kMaxIterations = 100;
+  // When the change is less than around 1/40 of a degree, we terminate
   constexpr double kMinStepSquaredNorm = 1e-6;
   constexpr double kMinDifferenceSquaredNorm = 1e-8;
 
@@ -136,11 +137,14 @@ Vector3 CameraModel<Derived>::Unmap(
   ceres::HomogeneousVectorParameterization parameterization(3);
 
   Vector3 direction = Derived::UnmapApproximate(point, parameters).normalized();
-  for (int it = 0; it < kMaxIterations; ++it) {
+  int it = 0;
+  for (; it < kMaxIterations; ++it) {
     const auto [mapped, map_jacobian] =
         Derived::DifferentiateMap(direction, parameters);
     const Vector2 residual = point - mapped;
-    if (residual.squaredNorm() < kMinDifferenceSquaredNorm) break;
+    if (residual.squaredNorm() < kMinDifferenceSquaredNorm) {
+      break;
+    }
 
     Eigen::Matrix<double, 3, 2, Eigen::RowMajor> plus_jacobian;
     parameterization.ComputeJacobian(direction.data(), plus_jacobian.data());
@@ -154,7 +158,9 @@ Vector3 CameraModel<Derived>::Unmap(
     Vector3 new_direction;
     parameterization.Plus(direction.data(), delta.data(), new_direction.data());
     direction = new_direction;
-    if (squared_delta_norm < kMinStepSquaredNorm) break;
+    if (squared_delta_norm < kMinStepSquaredNorm) {
+      break;
+    }
   }
 
   return direction;

@@ -27,6 +27,9 @@ class CameraModelScaramuzza
   static constexpr CameraModelId kModelId =
       ScaramuzzaModelId<kPolynomialUnmapDegree, kPolynomialMapDegree>::kModelId;
 
+  static constexpr int kNumParameters =
+      kPolynomialUnmapDegree + kPolynomialMapDegree + 7;
+
   template <typename DirectionDerived>
   static Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Map(
       const Eigen::MatrixBase<DirectionDerived> &direction,
@@ -50,8 +53,6 @@ class CameraModelScaramuzza
       polynomial_unmap_start_ + kPolynomialUnmapDegree + 5;
   static constexpr int polynomial_map_start_ =
       polynomial_unmap_start_ + kPolynomialUnmapDegree + 6;
-  static constexpr int num_parameters_ =
-      kPolynomialUnmapDegree + kPolynomialMapDegree + 7;
 };
 
 // Implementation
@@ -96,6 +97,8 @@ template <typename PointDerived>
 Vector3 CameraModelScaramuzza<kPolynomialUnmapDegree, kPolynomialMapDegree>::
     UnmapApproximate(const Eigen::MatrixBase<PointDerived> &point,
                      const std::vector<double> &parameters) {
+  GRPOSE_CHECK_IS_VECTOR2(point);
+
   const double c = parameters[c_id_];
   const double d = parameters[d_id_];
   const double e = parameters[e_id_];

@@ -53,7 +53,7 @@ class CameraModelTest : public ::testing::Test {
   CameraParameters<CameraModelT> camera_parameters;
 };
 
-using CameraModels = ::testing::Types<CameraModelMultiFov>;
+using CameraModels = ::testing::Types<CameraModelPinhole, CameraModelMultiFov>;
 TYPED_TEST_SUITE(CameraModelTest, CameraModels);
 
 TYPED_TEST(CameraModelTest, UnmapDerivedMap) {
@@ -181,9 +181,6 @@ TYPED_TEST(CameraModelTest, DifferentiateMap) {
 
   Eigen::Matrix<double, 2, 3, Eigen::RowMajor> map_jacobian_expected;
   double *j_data = map_jacobian_expected.data();
-
-  // should fail at compile time with static_assert
-  //  Vector2 point = TypeParam::Unmap(Vector3(0.0, 0.0, 0.0), parameters);
 
   ceres::HomogeneousVectorParameterization parameterization(3);
 

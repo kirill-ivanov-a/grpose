@@ -68,6 +68,8 @@ class MultiCamReader : public DatasetReader {
     MultiCamReaderSettings settings_;
   };
 
+  static Camera GetMfovCam(const fs::path &intrinsics_filename);
+
   static CameraBundle CreateCameraBundle(
       const fs::path &dataset_directory,
       const std::vector<std::string> &camera_names);

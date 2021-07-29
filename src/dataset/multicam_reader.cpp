@@ -1,9 +1,11 @@
 #include "dataset/multicam_reader.h"
 
 #include <fstream>
+#include <sstream>
 
 #include <fmt/format.h>
 
+#include "camera/camera.h"
 #include "util/util.h"
 
 namespace grpose {
@@ -12,29 +14,30 @@ namespace grpose {
  * Reading the camera model from an intrinsics file as provided by the MultiFoV
  * datasets
  */
-Camera GetMfovCam(const fs::path &intrinsics_filename) {
-  // Our CameraModel is partially compatible with the provided one (affine
-  // transformation used in omni_cam is just scaling in our case, but no problem
-  // raises since in this dataset no affine transformation is happening). We
-  // also compute the inverse polynomial ourselves instead of using the provided
-  // one.
-
-  int width, height;
-  double unmap_poly_coeffs[5];
-  Vector2 center;
+Camera MultiCamReader::GetMfovCam(const fs::path &intrinsics_filename) {
   std::ifstream camera_ifsteram(intrinsics_filename);
-  // TODO cleanup throw
-  CHECK(camera_ifsteram.is_open()) << "could not open camera intrinsics file \""
-                                   << intrinsics_filename.native() << "\"";
-  camera_ifsteram >> width >> height;
-  for (int i = 0; i < 5; ++i) camera_ifsteram >> unmap_poly_coeffs[i];
-  VectorX our_coefficients(4);
-  our_coefficients << unmap_poly_coeffs[0], unmap_poly_coeffs[2],
-      unmap_poly_coeffs[3], unmap_poly_coeffs[4];
-  our_coefficients *= -1;
-  camera_ifsteram >> center[0] >> center[1];
-  // TODO fix Camera!
-  return Camera(width, height, CameraModelId::kInvalid, {});
+
+  if (!camera_ifsteram.is_open())
+    throw std::runtime_error(
+        fmt::format("could not open camera intrinsics file \"{:s}\"",
+                    intrinsics_filename.string()));
+
+  std::vector<double> parameters;
+  double d;
+  while (camera_ifsteram >> d) parameters.push_back(d);
+
+  // + 2 for width and height
+  if (parameters.size() != CameraModelMultiFov::kNumParameters + 2)
+    throw std::runtime_error(fmt::format(
+        "Unexpected number of parameters in {:s}: expected {:d}, found {:d}",
+        intrinsics_filename.string(), CameraModelMultiFov::kNumParameters + 2,
+        parameters.size()));
+
+  // removing width and height
+  parameters.erase(parameters.begin(), parameters.begin() + 2);
+
+  return Camera(kImageWidth, kImageHeight, CameraModelId::kMultiFov,
+                parameters);
 }
 
 cv::Mat1f ReadBinMat(const fs::path &filename, int image_width,
