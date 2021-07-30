@@ -1,5 +1,6 @@
 #include "camera/camera_model_pinhole.h"
 #include "camera/camera_model_scaramuzza.h"
+#include "camera/camera_model_unified.h"
 
 #include <random>
 #include <vector>
@@ -47,18 +48,26 @@ struct CameraParameters<CameraModelMultiFov> {
   int width = 640, height = 480;
 };
 
+template <>
+struct CameraParameters<CameraModelUnified> {
+  std::vector<double> parameters = {330.0, 250.0, 320.0,  240.0, -0.1,
+                                    0.01,  0.001, 0.0015, 0.8};
+  int width = 640, height = 480;
+};
+
 template <typename CameraModelT>
 class CameraModelTest : public ::testing::Test {
  protected:
   CameraParameters<CameraModelT> camera_parameters;
 };
 
-using CameraModels = ::testing::Types<CameraModelPinhole, CameraModelMultiFov>;
+using CameraModels = ::testing::Types<CameraModelPinhole, CameraModelMultiFov,
+                                      CameraModelUnified>;
 TYPED_TEST_SUITE(CameraModelTest, CameraModels);
 
 TYPED_TEST(CameraModelTest, UnmapDerivedMap) {
   constexpr int kStepX = 10, kStepY = 10;
-  constexpr double kMinSquaredNorm = 1e-7;
+  constexpr double kMinSquaredNorm = 1e-6;
   constexpr double kMinUnmapMultiplier = 0.2;
   constexpr double kMaxUnmapMultiplier = 10;
 

@@ -9,6 +9,7 @@ namespace grpose {
 class CameraModelPinhole : public CameraModel<CameraModelPinhole> {
  public:
   static constexpr CameraModelId kModelId = CameraModelId::kPinhole;
+  static constexpr int kNumParameters = 5;
 
   /**
    * Generic mapping (bearing vector -> image plane).

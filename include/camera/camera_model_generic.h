@@ -5,6 +5,7 @@
 
 #include "camera/camera_model_pinhole.h"
 #include "camera/camera_model_scaramuzza.h"
+#include "camera/camera_model_unified.h"
 
 namespace grpose {
 
@@ -60,6 +61,8 @@ using Vector3t = Eigen::Matrix<typename EigenMatrixType::Scalar, 3, 1>;
         return CameraModelPinhole::MethodName(__input, parameters);          \
       case CameraModelMultiFov::kModelId:                                    \
         return CameraModelMultiFov::MethodName(__input, parameters);         \
+      case CameraModelUnified::kModelId:                                     \
+        return CameraModelUnified::MethodName(__input, parameters);          \
       default:                                                               \
         throw std::domain_error(                                             \
             fmt::format("Unknown CameraModelId: {}", model_id));             \

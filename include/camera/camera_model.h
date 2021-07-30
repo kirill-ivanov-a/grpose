@@ -11,9 +11,7 @@
 
 namespace grpose {
 
-// Numbers after kScaramuzza refer to the unmapping/mapping polynomial degree,
-// see include/camera/camera_model_scaramuzza.h for details.
-enum class CameraModelId { kInvalid = -1, kPinhole, kMultiFov };
+enum class CameraModelId { kInvalid = -1, kPinhole, kMultiFov, kUnified };
 
 /**
  * The result of differentiating CameraModelImpl::Map(direction, parameters)

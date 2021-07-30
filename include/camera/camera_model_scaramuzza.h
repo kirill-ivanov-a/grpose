@@ -26,7 +26,6 @@ class CameraModelScaramuzza
  public:
   static constexpr CameraModelId kModelId =
       ScaramuzzaModelId<kPolynomialUnmapDegree, kPolynomialMapDegree>::kModelId;
-
   static constexpr int kNumParameters =
       kPolynomialUnmapDegree + kPolynomialMapDegree + 7;
 
