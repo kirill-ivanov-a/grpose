@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <ceres/autodiff_cost_function.h>
-#include <ceres/local_parameterization.h>
 #include <gtest/gtest.h>
 
 using namespace grpose;
@@ -191,8 +190,6 @@ TYPED_TEST(CameraModelTest, DifferentiateMap) {
   Eigen::Matrix<double, 2, 3, Eigen::RowMajor> map_jacobian_expected;
   double *j_data = map_jacobian_expected.data();
 
-  ceres::HomogeneousVectorParameterization parameterization(3);
-
   for (int x = 0; x < this->camera_parameters.width; ++x)
     for (int y = 0; y < this->camera_parameters.height; ++y) {
       const Vector2 point(static_cast<double>(x), static_cast<double>(x));
@@ -206,12 +203,8 @@ TYPED_TEST(CameraModelTest, DifferentiateMap) {
 
       ASSERT_LT((map_actual - map_expected).squaredNorm(),
                 kMapSquaredNormError);
-
-      Eigen::Matrix<double, 3, 2, Eigen::RowMajor> tangent;
-      parameterization.ComputeJacobian(direction.data(), tangent.data());
-      Matrix22 tangent_error =
-          (map_jacobian_actual - map_jacobian_expected) * tangent;
-      ASSERT_LT(tangent_error.squaredNorm(), kMapSquaredNormError);
+      ASSERT_LT((map_jacobian_actual - map_jacobian_expected).squaredNorm(),
+                kMapSquaredNormError);
     }
 }
 

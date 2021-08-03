@@ -753,7 +753,6 @@ RobotcarReader::project(const std::vector<Vector3> &cloud) const {
     SE3 bodyToCam = camera_bundle_.camera_from_body(ci);
     for (const Vector3 &p : cloud) {
       Vector3 moved = bodyToCam * p;
-      if (!camera_bundle_.camera(ci).IsMappable(moved)) continue;
       double depth = moved.norm();
       Vector2 projected = camera_bundle_.camera(ci).Map(moved);
       result[ci].push_back({projected, depth});

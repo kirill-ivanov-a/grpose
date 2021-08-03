@@ -15,11 +15,6 @@ Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> CameraModelMap(
     const Eigen::MatrixBase<DirectionDerived> &direction);
 
 template <typename DirectionDerived>
-bool CameraModelIsMappable(
-    CameraModelId model_id, const std::vector<double> &parameters,
-    const Eigen::MatrixBase<DirectionDerived> &direction);
-
-template <typename DirectionDerived>
 DifferentiatedMapResult CameraModelDifferentiateMap(
     CameraModelId model_id, const std::vector<double> &parameters,
     const Eigen::MatrixBase<DirectionDerived> &direction);
@@ -71,7 +66,6 @@ using Vector3t = Eigen::Matrix<typename EigenMatrixType::Scalar, 3, 1>;
 
 GRPOSE_DEFINE_CAMERA_MODEL_METHOD(
     Map, PointDerived, camera_model_generic_internal::Vector2t<PointDerived>);
-GRPOSE_DEFINE_CAMERA_MODEL_METHOD(IsMappable, DirectionDerived, bool);
 GRPOSE_DEFINE_CAMERA_MODEL_METHOD(DifferentiateMap, DirectionDerived,
                                   DifferentiatedMapResult);
 GRPOSE_DEFINE_CAMERA_MODEL_METHOD(Unmap, PointDerived, Vector3);

@@ -11,12 +11,6 @@ class CameraModelPinhole : public CameraModel<CameraModelPinhole> {
   static constexpr CameraModelId kModelId = CameraModelId::kPinhole;
   static constexpr int kNumParameters = 5;
 
-  /**
-   * Generic mapping (bearing vector -> image plane).
-   * @param direction 3 coordinates of a direction in the camera frame (norm not
-   * important), DirectionDerived::Scalar should be either double or ceres::Jet
-   * @return 2D-point on the image
-   */
   template <typename DirectionDerived>
   static Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Map(
       const Eigen::MatrixBase<DirectionDerived> &direction,

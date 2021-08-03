@@ -89,7 +89,6 @@ cv::Mat3b Project(const RobotcarReader &reader, int index) {
     SE3 camera_from_body = camera_bundle.camera_from_body(ci);
     for (const Vector3 &p : cloud) {
       Vector3 moved = camera_from_body * p;
-      if (!reader.GetCameraBundle().camera(ci).IsMappable(moved)) continue;
 
       double depth = moved.norm();
       Vector2 projected = reader.GetCameraBundle().camera(ci).Map(moved);

@@ -7,27 +7,50 @@
 
 namespace grpose {
 
+/**
+ * A convenience class that stores camera model parameters, camera mask and
+ * provides mapping/unmapping functionality.
+ */
 class Camera {
  public:
   Camera(int width, int height, CameraModelId model_id,
          const std::vector<double> &parameters);
 
+  /**
+   * Mapping (image plane -> bearing vectors).
+   *
+   * @param point point on the image
+   * PointDerived::Scalar should be either double or ceres::Jet.
+   * @return Normalized direction in the camera frame.
+   */
   template <typename PointDerived>
   inline Vector3 Unmap(const Eigen::MatrixBase<PointDerived> &point) const;
 
+  /**
+   * Mapping (image plane -> bearing vectors). The result is normalized.
+   *
+   * @param direction direction in the camera frame (norm not
+   * important), DirectionDerived::Scalar should be either double or ceres::Jet
+   * @return 2D-point on the image.
+   */
   template <typename DirectionDerived>
   inline Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Map(
       const Eigen::MatrixBase<DirectionDerived> &direction) const;
 
   /**
-   * Check if the direction can be mapped by this camera model. Note that some
-   * directions (most notably, looking straight backward) are outside of the FoV
-   * of the camera, and as the mapping polynomial was not fitted to work with
-   * those, it may produce incorrect results and even map to the image! Check
-   * this before mapping if you are unsure.
+   * Mapping (image plane -> bearing vectors). The result is NOT guaranteed to
+   * be normalized.
+   *
+   * @param point point in the image plane.
+   * @return 2D-point on the image.
    */
+  template <typename PointDerived>
+  inline Vector3 UnmapUnnormalized(
+      const Eigen::MatrixBase<PointDerived> &point) const;
+
   template <typename DirectionDerived>
-  bool IsMappable(const Eigen::MatrixBase<DirectionDerived> &direction) const;
+  inline DifferentiatedMapResult DifferentiateMap(
+      const Eigen::MatrixBase<DirectionDerived> &direction) const;
 
   inline int width() const { return width_; }
   inline int height() const { return height_; }
@@ -44,18 +67,18 @@ class Camera {
   /**
    * Checks if a point is on image, takes the mask into account if it was
    * provided.
-   * @param p a point
-   * @param border Additional border inside the image, useful in SLAM
+   * @param p a point on the image plane.
+   * @param border Additional border inside the image, useful in SLAM.
    */
   bool IsOnImage(const Vector2 &p, int border = 0) const;
 
   /**
    * Undistort cv::Mat image. Can work both with colored and grayscale images.
-   * @tparam T cv::Vec3b if colored, unsigned char if grayscale
-   * @param img the image to be undistorted
+   * @tparam T cv::Vec3b if colored, unsigned char if grayscale.
+   * @param img the image to be undistorted.
    * @param camera_matrix the target camera matrix, in which we want the image
-   * to be drawn. Usually takes the form f 0 cx 0 f cy 0 0  1
-   * @return the image as if it was shot with the `cameraMatrix`
+   * to be drawn. Usually takes the form [f 0 cx; 0 f cy; 0 0 1].
+   * @return the image as if it was shot with the `cameraMatrix`.
    */
   template <typename T>
   cv::Mat_<T> Undistort(const cv::Mat_<T> &img,
@@ -81,10 +104,16 @@ Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Camera::Map(
   return CameraModelMap(model_id_, parameters_, direction);
 }
 
+template <typename PointDerived>
+Vector3 Camera::UnmapUnnormalized(
+    const Eigen::MatrixBase<PointDerived> &point) const {
+  return CameraModelUnmapUnnormalized(model_id_, parameters_, point);
+}
+
 template <typename DirectionDerived>
-bool Camera::IsMappable(
+DifferentiatedMapResult Camera::DifferentiateMap(
     const Eigen::MatrixBase<DirectionDerived> &direction) const {
-  return CameraModelIsMappable(model_id_, parameters_, direction);
+  return CameraModelDifferentiateMap(model_id_, parameters_, direction);
 }
 
 template <typename T>

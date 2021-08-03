@@ -19,6 +19,13 @@ struct ScaramuzzaModelId<4, 11> {
   static constexpr CameraModelId kModelId = CameraModelId::kMultiFov;
 };
 
+/**
+ * Omnidirectional camera model as used in
+ * https://sites.google.com/site/scarabotix/ocamcalib-toolbox .
+ *
+ * @tparam kPolynomialUnmapDegree approximate unmapping polynomial degree.
+ * @tparam kPolynomialMapDegree mapping polynomial degree.
+ */
 template <int kPolynomialUnmapDegree, int kPolynomialMapDegree>
 class CameraModelScaramuzza
     : public CameraModel<
@@ -40,18 +47,12 @@ class CameraModelScaramuzza
 
  private:
   static constexpr int polynomial_unmap_start_ = 0;
-  static constexpr int px_id_ =
-      polynomial_unmap_start_ + kPolynomialUnmapDegree + 1;
-  static constexpr int py_id_ =
-      polynomial_unmap_start_ + kPolynomialUnmapDegree + 2;
-  static constexpr int c_id_ =
-      polynomial_unmap_start_ + kPolynomialUnmapDegree + 3;
-  static constexpr int d_id_ =
-      polynomial_unmap_start_ + kPolynomialUnmapDegree + 4;
-  static constexpr int e_id_ =
-      polynomial_unmap_start_ + kPolynomialUnmapDegree + 5;
-  static constexpr int polynomial_map_start_ =
-      polynomial_unmap_start_ + kPolynomialUnmapDegree + 6;
+  static constexpr int px_id_ = kPolynomialUnmapDegree + 1;
+  static constexpr int py_id_ = kPolynomialUnmapDegree + 2;
+  static constexpr int c_id_ = kPolynomialUnmapDegree + 3;
+  static constexpr int d_id_ = kPolynomialUnmapDegree + 4;
+  static constexpr int e_id_ = kPolynomialUnmapDegree + 5;
+  static constexpr int polynomial_map_start_ = kPolynomialUnmapDegree + 6;
 };
 
 // Implementation
