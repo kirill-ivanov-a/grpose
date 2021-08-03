@@ -39,6 +39,8 @@ class Camera {
   inline void set_mask(const cv::Mat1b &mask) { mask_ = mask; }
   inline const cv::Mat1b &mask() const { return mask_; };
 
+  inline const std::vector<double> &parameters() const { return parameters_; }
+
   /**
    * Checks if a point is on image, takes the mask into account if it was
    * provided.
@@ -57,21 +59,7 @@ class Camera {
    */
   template <typename T>
   cv::Mat_<T> Undistort(const cv::Mat_<T> &img,
-                        const Matrix33 &camera_matrix) const {
-    Matrix33 Kinv = camera_matrix.inverse();
-    cv::Mat result = cv::Mat::zeros(img.rows, img.cols, img.type());
-
-    for (int y = 0; y < result.rows; ++y)
-      for (int x = 0; x < result.cols; ++x) {
-        Vector3 pnt(static_cast<double>(x), static_cast<double>(y), 1.);
-        Vector2 orig_pix = Map((Kinv * pnt).eval());
-        int orig_x = orig_pix[0], orig_y = orig_pix[1];
-        if (orig_x >= 0 && orig_x < result.cols && orig_y >= 0 &&
-            orig_y < result.rows)
-          result.at<T>(y, x) = img(orig_y, orig_x);
-      }
-    return result;
-  }
+                        const Matrix33 &camera_matrix) const;
 
  private:
   CameraModelId model_id_;
@@ -97,6 +85,24 @@ template <typename DirectionDerived>
 bool Camera::IsMappable(
     const Eigen::MatrixBase<DirectionDerived> &direction) const {
   return CameraModelIsMappable(model_id_, parameters_, direction);
+}
+
+template <typename T>
+cv::Mat_<T> Camera::Undistort(const cv::Mat_<T> &img,
+                              const Matrix33 &camera_matrix) const {
+  Matrix33 Kinv = camera_matrix.inverse();
+  cv::Mat result = cv::Mat::zeros(img.rows, img.cols, img.type());
+
+  for (int y = 0; y < result.rows; ++y)
+    for (int x = 0; x < result.cols; ++x) {
+      Vector3 pnt(static_cast<double>(x), static_cast<double>(y), 1.);
+      Vector2 orig_pix = Map((Kinv * pnt).eval());
+      int orig_x = orig_pix[0], orig_y = orig_pix[1];
+      if (orig_x >= 0 && orig_x < result.cols && orig_y >= 0 &&
+          orig_y < result.rows)
+        result.at<T>(y, x) = img(orig_y, orig_x);
+    }
+  return result;
 }
 
 }  // namespace grpose

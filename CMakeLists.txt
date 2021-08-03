@@ -24,6 +24,7 @@ find_package(fmt REQUIRED)
 find_package(gflags REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Ceres REQUIRED)
+find_package(Boost REQUIRED)
 
 # Find version of OpenCV with free SIFT
 # If not found, ask user to provide the path to one
@@ -64,6 +65,7 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/dataset/dataset_reader.h
         ${PROJECT_SOURCE_DIR}/include/dataset/robotcar_reader.h
         ${PROJECT_SOURCE_DIR}/include/dataset/multicam_reader.h
+        ${PROJECT_SOURCE_DIR}/include/dataset/autovision_reader.h
 
         ${PROJECT_SOURCE_DIR}/include/init_opengv/feature_detector_matcher.h
         ${PROJECT_SOURCE_DIR}/include/init_opengv/non_central_relative_pose_solver.h
@@ -82,6 +84,7 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/dataset/dataset_reader.cpp
         ${PROJECT_SOURCE_DIR}/src/dataset/robotcar_reader.cpp
         ${PROJECT_SOURCE_DIR}/src/dataset/multicam_reader.cpp
+        ${PROJECT_SOURCE_DIR}/src/dataset/autovision_reader.cpp
 
         ${PROJECT_SOURCE_DIR}/src/init_opengv/feature_detector_matcher.cpp
         ${PROJECT_SOURCE_DIR}/src/init_opengv/non_central_relative_pose_solver.cpp
@@ -101,6 +104,8 @@ target_include_directories(grpose
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/ext/Sophus
 
+        PRIVATE
+        ${Boost_INCLUDE_DIRS}
         )
 
 target_link_libraries(grpose

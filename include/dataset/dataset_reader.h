@@ -50,9 +50,10 @@ class DatasetReader {
   virtual int NumberOfFrames() const = 0;
 
   /**
-   * An index of the multi-frame that has the biggest timestamp still lower than
-   * \p timestamp. Note that we use the timestamp from the first camera in the
-   * bundle.
+   * An index of the first multi-frame that has the timestamp greater or equal
+   * than \p timestamp. Note that we use the timestamp from the first camera in
+   * the bundle. If the last frame's timestamp is smaller than \p timestamp,
+   * this returns NumberOfFrames().
    */
   virtual int FirstTimestampToIndex(Timestamp timestamp) const = 0;
 

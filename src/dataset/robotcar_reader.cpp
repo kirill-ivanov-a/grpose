@@ -13,7 +13,6 @@ SE3 Se3FromXyzrpy(double x, double y, double z, double roll, double pitch,
 
 SE3 ReadSe3FromExtrin(const fs::path &extrinsics_filename) {
   std::ifstream extrinsics_file(extrinsics_filename);
-  // TODO cleanup throw
   CHECK(extrinsics_file.is_open())
       << "Could not open extrinsics file " << extrinsics_filename;
   double x, y, z, roll, pitch, yaw;
@@ -43,7 +42,6 @@ SE3 ReadInsFromBody(const fs::path &extrinsics_filename) {
 
 void ReadTimestamps(const fs::path &timestamps_filename,
                     std::vector<Timestamp> &timestamps) {
-  // TODO cleanup throw
   CHECK(fs::exists(timestamps_filename))
       << timestamps_filename.native() + " does not exist";
   std::ifstream timestamps_file(timestamps_filename);
@@ -59,7 +57,6 @@ void ReadOdometryPoses(const fs::path &odometry_filename,
                        bool fill_odometry_gaps,
                        std::vector<Timestamp> &timestamps,
                        StdVectorA<SE3> &odometry_first_from_body) {
-  // TODO cleanup throw
   CHECK(fs::exists(odometry_filename))
       << odometry_filename.native() + " does not exist";
 
@@ -537,8 +534,11 @@ int RobotcarReader::FirstTimestampToIndex(Timestamp timestamp) const {
 
 std::vector<Timestamp> RobotcarReader::TimestampsFromIndex(
     int frame_index) const {
-  CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, NumberOfFrames());
+  if (frame_index < 0 || frame_index >= NumberOfFrames())
+    throw std::out_of_range(
+        fmt::format("RobotcarReader::TimestampsFromIndex: Index {:d} out of "
+                    "range [0, {:d})",
+                    frame_index, NumberOfFrames()));
 
   return std::vector{left_timestamps_[frame_index],
                      rear_timestamps_[frame_index],
@@ -546,8 +546,10 @@ std::vector<Timestamp> RobotcarReader::TimestampsFromIndex(
 }
 
 std::vector<fs::path> RobotcarReader::FrameFiles(int frame_index) const {
-  CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, NumberOfFrames());
+  if (frame_index < 0 || frame_index >= NumberOfFrames())
+    throw std::out_of_range(fmt::format(
+        "RobotcarReader::FrameFiles: Index {:d} out of range [0, {:d})",
+        frame_index, NumberOfFrames()));
 
   fs::path left_path =
       segment_directory_ / fs::path("mono_left") /
@@ -564,8 +566,11 @@ std::vector<fs::path> RobotcarReader::FrameFiles(int frame_index) const {
 
 std::vector<RobotcarReader::FrameEntry> RobotcarReader::Frame(
     int frame_index) const {
-  CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, NumberOfFrames());
+  if (frame_index < 0 || frame_index >= NumberOfFrames())
+    throw std::out_of_range(
+        fmt::format("RobotcarReader::Frame: Index {:d} out of range [0, {:d})",
+                    frame_index, NumberOfFrames()));
+
   std::vector<fs::path> filenames = FrameFiles(frame_index);
   fs::path left_path = filenames[0];
   fs::path rear_path = filenames[1];
@@ -591,7 +596,8 @@ std::vector<RobotcarReader::FrameEntry> RobotcarReader::Frame(
 
     return result;
   } else {
-    throw std::runtime_error("Image paths for frame contain invalid paths");
+    throw std::runtime_error(
+        "RobotcarReader::Frame: Image paths for frame contain invalid paths");
   }
 }
 
@@ -608,8 +614,10 @@ bool RobotcarReader::HasWorldFromFrame(int frame_index) const {
 }
 
 SE3 RobotcarReader::WorldFromFrame(int frame_index) const {
-  CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, NumberOfFrames());
+  if (frame_index < 0 || frame_index >= NumberOfFrames())
+    throw std::out_of_range(fmt::format(
+        "RobotcarReader::WorldFromFrame: Index {:d} out of range [0, {:d})",
+        frame_index, NumberOfFrames()));
 
   Timestamp timestamp = TimestampsFromIndex(frame_index)[0];
   CHECK_GE(timestamp, ground_truth_pose_timestamps_[0]);

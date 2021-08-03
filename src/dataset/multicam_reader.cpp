@@ -18,9 +18,10 @@ Camera MultiCamReader::GetMfovCam(const fs::path &intrinsics_filename) {
   std::ifstream camera_ifsteram(intrinsics_filename);
 
   if (!camera_ifsteram.is_open())
-    throw std::runtime_error(
-        fmt::format("could not open camera intrinsics file \"{:s}\"",
-                    intrinsics_filename.string()));
+    throw fmt::system_error(errno,
+                            "MultiCamReader::GetMfovCam: could not open camera "
+                            "intrinsics file '{:s}'",
+                            intrinsics_filename.string());
 
   std::vector<double> parameters;
   double d;
@@ -29,7 +30,8 @@ Camera MultiCamReader::GetMfovCam(const fs::path &intrinsics_filename) {
   // + 2 for width and height
   if (parameters.size() != CameraModelMultiFov::kNumParameters + 2)
     throw std::runtime_error(fmt::format(
-        "Unexpected number of parameters in {:s}: expected {:d}, found {:d}",
+        "MultiCamReader::GetMfovCam: Unexpected number of parameters in {:s}: "
+        "expected {:d}, found {:d}",
         intrinsics_filename.string(), CameraModelMultiFov::kNumParameters + 2,
         parameters.size()));
 
@@ -82,8 +84,10 @@ MultiCamReader::Depths::Depths(const fs::path &dataset_directory,
                                int frame_index,
                                const MultiCamReaderSettings &settings)
     : settings_(settings) {
-  CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, kNumberOfFrames);
+  if (frame_index < 0 || frame_index >= kNumberOfFrames)
+    throw std::out_of_range(fmt::format(
+        "MultiCamReader::Depths::Depths: Index {:d} out of range [0, {:d})",
+        frame_index, kNumberOfFrames));
 
   depths_.reserve(settings_.NumberOfCameras());
   for (int ci = 0; ci < settings_.NumberOfCameras(); ++ci) {
@@ -97,10 +101,12 @@ MultiCamReader::Depths::Depths(const fs::path &dataset_directory,
 
 std::optional<double> MultiCamReader::Depths::Depth(
     int camera_index, const Vector2 &point) const {
+  if (camera_index < 0 || camera_index >= settings_.NumberOfCameras())
+    throw std::out_of_range(
+        fmt::format("MultiCamReader::Depths::Depth: Camera index {:d} out of "
+                    "range [0, {:d})",
+                    camera_index, settings_.NumberOfCameras()));
   if (!bounding_box_.contains(point)) return std::nullopt;
-  // TODO cleanup throw
-  CHECK_GE(camera_index, 0);
-  CHECK_LT(camera_index, settings_.NumberOfCameras());
   return std::make_optional(
       static_cast<double>(depths_[camera_index](ToCvPoint(point))));
 }
@@ -134,10 +140,14 @@ CameraBundle MultiCamReader::CreateCameraBundle(
   cameras.reserve(camera_names.size());
   camera_from_body.reserve(camera_names.size());
   for (const auto &camera_name : camera_names) {
-    std::ifstream extrinsics_file(extrinsics_dir /
-                                  (camera_name + "_to_body.txt"));
-    // TODO cleanup throw
-    CHECK(extrinsics_file.is_open());
+    fs::path extrinsics_filename =
+        extrinsics_dir / (camera_name + "_to_body.txt");
+    std::ifstream extrinsics_file(extrinsics_filename);
+    if (!extrinsics_file.is_open())
+      throw fmt::system_error(errno,
+                              "MultiCamReader::CreateCameraBundle: Could not "
+                              "open extrinsics file '{:s}'",
+                              extrinsics_filename.string());
     camera_from_body.push_back(ReadFromMatrix3x4(extrinsics_file).inverse());
     cameras.push_back(GetMfovCam(intrinsics_dir / (camera_name + ".txt")));
   }
@@ -170,26 +180,28 @@ MultiCamReader::MultiCamReader(const fs::path &dataset_directory,
 int MultiCamReader::NumberOfFrames() const { return kNumberOfFrames; }
 
 int MultiCamReader::FirstTimestampToIndex(Timestamp timestamp) const {
-  int ind = int(std::round(double(timestamp) / kFrameTimestampStep));
-  CHECK_GE(ind, 0);
-  CHECK_LT(ind, kNumberOfFrames);
+  int ind = static_cast<int>((timestamp - 1) / kFrameTimestampStep + 1);
+  if (ind > NumberOfFrames()) ind = NumberOfFrames();
   return ind;
 }
 
 std::vector<Timestamp> MultiCamReader::TimestampsFromIndex(
     int frame_index) const {
-  if (frame_index < 0)
-    return std::vector<Timestamp>(settings_.NumberOfCameras(), 0);
-  if (frame_index >= kNumberOfFrames)
-    return std::vector<Timestamp>(settings_.NumberOfCameras(),
-                                  kFrameTimestampStep * (kNumberOfFrames - 1));
+  if (frame_index < 0 || frame_index >= NumberOfFrames())
+    throw std::out_of_range(
+        fmt::format("MultiCamReader::TimestampsFromIndex: Index {:d} out of "
+                    "range [0, {:d})",
+                    frame_index, NumberOfFrames()));
+
   return std::vector<Timestamp>(settings_.NumberOfCameras(),
                                 kFrameTimestampStep * frame_index);
 }
 
 std::vector<fs::path> MultiCamReader::FrameFiles(int frame_index) const {
-  CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, kNumberOfFrames);
+  if (frame_index < 0 || frame_index >= NumberOfFrames())
+    throw std::out_of_range(fmt::format(
+        "MultiCamReader::FrameFiles: Index {:d} out of range [0, {:d})",
+        frame_index, NumberOfFrames()));
 
   std::vector<fs::path> fnames;
   fnames.reserve(settings_.NumberOfCameras());
@@ -205,9 +217,12 @@ std::vector<fs::path> MultiCamReader::FrameFiles(int frame_index) const {
 
 std::vector<DatasetReader::FrameEntry> MultiCamReader::Frame(
     int frame_index) const {
-  // TODO cleanup throw
-  CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, kNumberOfFrames);
+  //  CHECK_GE(frame_index, 0);
+  if (frame_index < 0 || frame_index >= NumberOfFrames())
+    throw std::out_of_range(
+        fmt::format("MultiCamReader::Frame: Index {:d} out of range [0, {:d})",
+                    frame_index, NumberOfFrames()));
+
   std::vector<DatasetReader::FrameEntry> frame;
   frame.reserve(settings_.NumberOfCameras());
   std::vector<fs::path> fnames = FrameFiles(frame_index);
@@ -232,9 +247,11 @@ bool MultiCamReader::HasWorldFromFrame(int frame_index) const {
 }
 
 SE3 MultiCamReader::WorldFromFrame(int frame_index) const {
-  // TODO cleanup throw
-  CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, world_from_body_.size());
+  if (frame_index < 0 || frame_index >= NumberOfFrames())
+    throw std::out_of_range(fmt::format(
+        "MultiCamReader::WorldFromFrame: Index {:d} out of range [0, {:d})",
+        frame_index, NumberOfFrames()));
+
   return world_from_body_[frame_index];
 }
 
