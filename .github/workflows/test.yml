@@ -58,7 +58,7 @@ jobs:
       run: |
         cmake -B ${{github.workspace}}/build \
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-          -DCMAKE_CXX_COMPILER=/usr/bin/${{env.COMPILER}}
+          -DCMAKE_CXX_COMPILER=/usr/bin/${{env.COMPILER}} \
           -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j2
 
