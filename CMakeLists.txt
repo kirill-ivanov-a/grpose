@@ -37,9 +37,11 @@ if (NOT OpenCV_FOUND)
 endif ()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/googletest)
-set(BUILD_TESTS OFF)
-set(BUILD_EXAMPLES OFF)
+
+set(BUILD_TESTS OFF CACHE BOOL "Build OpenGV's and Sophus's tests")
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/opengv)
+
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build Sophus's examples")
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/Sophus)
 
 # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native ")
