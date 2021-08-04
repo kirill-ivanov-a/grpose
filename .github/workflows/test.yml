@@ -29,7 +29,8 @@ jobs:
     - name: Install apt dependencies
       run: |
         sudo apt update
-        sudo apt install -y clang libgtest-dev libgoogle-glog-dev libeigen3-dev libboost-dev
+        sudo apt install -y clang libgtest-dev libgoogle-glog-dev libeigen3-dev \
+          libboost-dev libfmt-dev
     
     - name: Install OpenCV 4.4
       run: |
