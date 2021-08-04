@@ -13,9 +13,11 @@ jobs:
       matrix:
         build_type: [ Release, Debug ]
         compiler: [ g++, clang++ ]
+
     env:
       BUILD_TYPE: ${{ matrix.build_type }}
-      CXX: ${{ matrix.compiler }}
+      COMPILER: ${{ matrix.compiler }}
+
     steps:
     - uses: actions/checkout@v2
       with:
@@ -31,12 +33,13 @@ jobs:
     
     - name: Install OpenCV 4.4
       run: |
-        wget https://github.com/opencv/opencv/archive/4.4.0.zip -P ${{github.workspace}}
-        unzip ${{github.workspace}}/4.4.0.zip -d ${{github.workspace}} && rm ${{github.workspace}}/4.4.0.zip
+        wget https://github.com/opencv/opencv/archive/4.4.0.zip -P ${{github.workspace}} -q
+        unzip -q ${{github.workspace}}/4.4.0.zip -d ${{github.workspace}} && rm ${{github.workspace}}/4.4.0.zip
         cd ${{github.workspace}}/opencv-4.4.0 && mkdir build && cd build
         cmake ../ -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-          -DBUILD_opencv_dnn=OFF -DBUILD_opencv_java_bindings_gen=OFF
+          -DBUILD_opencv_dnn=OFF -DBUILD_opencv_java_bindings_gen=OFF \
+          -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF
         cmake --build . -j2
         sudo make install
           
