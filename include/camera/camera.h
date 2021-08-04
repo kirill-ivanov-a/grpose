@@ -27,7 +27,7 @@ class Camera {
   inline Vector3 Unmap(const Eigen::MatrixBase<PointDerived> &point) const;
 
   /**
-   * Mapping (image plane -> bearing vectors). The result is normalized.
+   * Mapping (bearing vectors -> image plane). The result is normalized.
    *
    * @param direction direction in the camera frame (norm not
    * important), DirectionDerived::Scalar should be either double or ceres::Jet
@@ -48,6 +48,9 @@ class Camera {
   inline Vector3 UnmapUnnormalized(
       const Eigen::MatrixBase<PointDerived> &point) const;
 
+  /**
+   * Differentiate the mapping (bearing vectors -> image plane).
+   */
   template <typename DirectionDerived>
   inline DifferentiatedMapResult DifferentiateMap(
       const Eigen::MatrixBase<DirectionDerived> &direction) const;
