@@ -23,7 +23,7 @@ struct DifferentiatedMapResult {
   /// Mapping result.
   Vector2 point;
 
-  /// Jacobian w.r.t. direction
+  /// Jacobian w.r.t. direction.
   Matrix23 jacobian;
 };
 
@@ -82,7 +82,7 @@ class CameraModel {
       const std::vector<double> &parameters);
 
   /**
-   * Approximate mapping (bearing vectors -> image plane). It is used in
+   * Approximate mapping (image plane -> bearing vectors). It is used in
    * Unmap as an initialization of the optimization.
    * By default, returns (0 0 1)^T.
    */
