@@ -1,4 +1,4 @@
-#include "init_opengv/non_central_relative_pose_solver.h"
+#include "init_opengv/non_central_relative_pose_solver_old.h"
 
 #include <util/util.h>
 
@@ -8,7 +8,7 @@
 
 namespace grpose {
 
-NonCentralRelativePoseSolver::NonCentralRelativePoseSolver(
+NonCentralRelativePoseSolverOld::NonCentralRelativePoseSolverOld(
     const NonCentralRelativePoseSolverSettings &settings,
     const opengv::translations_t &body_from_camera_translations,
     const opengv::rotations_t &body_from_camera_rotations)
@@ -19,7 +19,7 @@ NonCentralRelativePoseSolver::NonCentralRelativePoseSolver(
          "non-central relative pose problem";
 }
 
-NonCentralRelativePoseSolver::NonCentralRelativePoseSolver(
+NonCentralRelativePoseSolverOld::NonCentralRelativePoseSolverOld(
     const NonCentralRelativePoseSolverSettings &settings,
     const StdVectorA<SE3> &body_from_cameras)
     : settings_(settings), extrinsics_(body_from_cameras) {
@@ -28,7 +28,7 @@ NonCentralRelativePoseSolver::NonCentralRelativePoseSolver(
          "non-central relative pose problem";
 }
 
-NonCentralRelativePoseSolver::Extrinsics::Extrinsics(
+NonCentralRelativePoseSolverOld::Extrinsics::Extrinsics(
     const opengv::translations_t &body_from_camera_translations,
     const opengv::rotations_t &body_from_camera_rotations)
     : body_from_camera_translations(body_from_camera_translations),
@@ -43,7 +43,7 @@ NonCentralRelativePoseSolver::Extrinsics::Extrinsics(
   }
 }
 
-NonCentralRelativePoseSolver::Extrinsics::Extrinsics(
+NonCentralRelativePoseSolverOld::Extrinsics::Extrinsics(
     const StdVectorA<SE3> &body_from_cameras)
     : body_from_cameras(body_from_cameras) {
   number_of_cameras = body_from_cameras.size();
@@ -53,7 +53,7 @@ NonCentralRelativePoseSolver::Extrinsics::Extrinsics(
   }
 }
 
-NonCentralRelativePoseSolution NonCentralRelativePoseSolver::solve(
+NonCentralRelativePoseSolution NonCentralRelativePoseSolverOld::solve(
     const BearingVectorCorrespondences &bvcs, int ransac_runs) {
   // Convert bearing and correspondence vectors format for the multi-camera
   // solver
@@ -74,7 +74,7 @@ NonCentralRelativePoseSolution NonCentralRelativePoseSolver::solve(
 
 // Just a convenience definition, should not use this one since doesn't do any
 // checks
-NonCentralRelativePoseSolution NonCentralRelativePoseSolver::solve(
+NonCentralRelativePoseSolution NonCentralRelativePoseSolverOld::solve(
     const opengv::bearingVectors_t &first_bearing_vectors,
     const opengv::bearingVectors_t &second_bearing_vectors,
     const std::vector<int> &first_correspondences,
@@ -88,6 +88,8 @@ NonCentralRelativePoseSolution NonCentralRelativePoseSolver::solve(
     m_bv2.push_back(std::make_shared<opengv::bearingVectors_t>());
   }
   for (int i = 0; i < first_bearing_vectors.size(); i++) {
+    // TODO Works only if first_correspondences[i] == second_correspondences[i]
+    // Otherwise, the correspondence information is lost
     m_bv1[first_correspondences[i]]->push_back(first_bearing_vectors[i]);
     m_bv2[second_correspondences[i]]->push_back(second_bearing_vectors[i]);
   }
@@ -98,7 +100,7 @@ NonCentralRelativePoseSolution NonCentralRelativePoseSolver::solve(
 // Actual method which solves the relative pose problem using OpenGV's 'multi'
 // formulation. It uses multi adapter from OpenGV to evenly sample
 // correspondences across the cameras in the rig
-NonCentralRelativePoseSolution NonCentralRelativePoseSolver::solve(
+NonCentralRelativePoseSolution NonCentralRelativePoseSolverOld::solve(
     const MultiBearingVectors &first_bearing_vectors,
     const MultiBearingVectors &second_bearing_vectors, int ransac_runs) {
   // Check both frames have the same number of cameras
@@ -284,7 +286,7 @@ NonCentralRelativePoseSolution NonCentralRelativePoseSolver::solve(
   return solution;
 }
 
-opengv::points_t NonCentralRelativePoseSolver::triangulate(
+opengv::points_t NonCentralRelativePoseSolverOld::triangulate(
     const MultiBearingVectors &first_bearing_vectors,
     const MultiBearingVectors &second_bearing_vectors,
     const SE3 &first_frame_from_second_frame,

@@ -41,7 +41,7 @@ class CameraBundle {
     return bundle_[index].this_from_body;
   }
 
-  void set_body_from_camera(int index, const SE3 &body_from_camera);
+  void SetBodyFromCamera(int index, const SE3 &body_from_camera);
 
  private:
   struct CameraEntry {

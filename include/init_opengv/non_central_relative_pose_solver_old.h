@@ -36,18 +36,18 @@ struct NonCentralRelativePoseSolution {
   Status status;
 };
 
-class NonCentralRelativePoseSolver {
+class NonCentralRelativePoseSolverOld {
  public:
   using SolverAlgorithm = NonCentralRelativePoseSolverSettings::SolverAlgorithm;
   using MultiBearingVectors =
       std::vector<std::shared_ptr<opengv::bearingVectors_t>>;
 
-  NonCentralRelativePoseSolver(
+  NonCentralRelativePoseSolverOld(
       const NonCentralRelativePoseSolverSettings &settings,
       const opengv::translations_t &body_from_camera_translations,
       const opengv::rotations_t &body_from_camera_rotations);
 
-  NonCentralRelativePoseSolver(
+  NonCentralRelativePoseSolverOld(
       const NonCentralRelativePoseSolverSettings &settings,
       const StdVectorA<SE3> &body_from_cameras);
 

@@ -1,3 +1,4 @@
 add_subdirectory(demo_sophus)
 add_subdirectory(dataset)
 add_subdirectory(metrics)
+add_subdirectory(benchmark)

@@ -14,8 +14,7 @@ CameraBundle::CameraBundle(SE3 camera_from_body[], Camera cam[], int size) {
     bundle_.emplace_back(camera_from_body[i], cam[i]);
 }
 
-void CameraBundle::set_body_from_camera(int index,
-                                        const SE3 &body_from_camera) {
+void CameraBundle::SetBodyFromCamera(int index, const SE3 &body_from_camera) {
   CHECK_GE(index, 0);
   CHECK_LT(index, bundle_.size());
 

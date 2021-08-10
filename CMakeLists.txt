@@ -70,9 +70,13 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/dataset/autovision_reader.h
 
         ${PROJECT_SOURCE_DIR}/include/init_opengv/feature_detector_matcher.h
-        ${PROJECT_SOURCE_DIR}/include/init_opengv/non_central_relative_pose_solver.h
+        ${PROJECT_SOURCE_DIR}/include/init_opengv/non_central_relative_pose_solver_old.h
         ${PROJECT_SOURCE_DIR}/include/init_opengv/multicam_init_settings.h
         ${PROJECT_SOURCE_DIR}/include/init_opengv/write_poses_to_file.h
+
+        ${PROJECT_SOURCE_DIR}/include/grpose/non_central_relative_pose_solver.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/bearing_vector_correspondences.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/opengv_solver.h
         )
 
 set(grpose_SOURCE_FILES
@@ -89,9 +93,13 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/dataset/autovision_reader.cpp
 
         ${PROJECT_SOURCE_DIR}/src/init_opengv/feature_detector_matcher.cpp
-        ${PROJECT_SOURCE_DIR}/src/init_opengv/non_central_relative_pose_solver.cpp
+        ${PROJECT_SOURCE_DIR}/src/init_opengv/non_central_relative_pose_solver_old.cpp
         ${PROJECT_SOURCE_DIR}/src/init_opengv/multicam_init_settings.cpp
         ${PROJECT_SOURCE_DIR}/src/init_opengv/write_poses_to_file.cpp
+
+        ${PROJECT_SOURCE_DIR}/src/grpose/non_central_relative_pose_solver.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/bearing_vector_correspondences.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver.cpp
         )
 
 add_library(grpose

@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "init_opengv/non_central_relative_pose_solver.h"
+#include "init_opengv/non_central_relative_pose_solver_old.h"
 
 namespace grpose {
 
