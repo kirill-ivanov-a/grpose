@@ -19,12 +19,12 @@ OpengvSolver::OpengvInternalSolver::algorithm_t OpengvSolver::ToOpengvAlgorithm(
   }
 }
 
-OpengvSolver::OpengvSolver(const std::shared_ptr<AdapterT>& opengv_adapter,
+OpengvSolver::OpengvSolver(const std::shared_ptr<OpengvAdapter>& opengv_adapter,
                            OpengvSolver::Algorithm algorithm,
                            bool deterministic)
     : opengv_adapter_(opengv_adapter),
-      opengv_solver_(*opengv_adapter_, ToOpengvAlgorithm(algorithm), false,
-                     !deterministic) {}
+      opengv_solver_(opengv_adapter_->Get(), ToOpengvAlgorithm(algorithm),
+                     false, !deterministic) {}
 
 bool OpengvSolver::Solve(const std::vector<int>& correspondence_indices,
                          StdVectorA<SE3>& frame1_from_frame2) const {

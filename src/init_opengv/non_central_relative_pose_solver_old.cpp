@@ -54,7 +54,7 @@ NonCentralRelativePoseSolverOld::Extrinsics::Extrinsics(
 }
 
 NonCentralRelativePoseSolution NonCentralRelativePoseSolverOld::solve(
-    const BearingVectorCorrespondences &bvcs, int ransac_runs) {
+    const BearingVectorCorrespondencesOld &bvcs, int ransac_runs) {
   // Convert bearing and correspondence vectors format for the multi-camera
   // solver
   MultiBearingVectors m_bv1, m_bv2;

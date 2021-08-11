@@ -2,7 +2,7 @@
 
 namespace grpose {
 
-BearingVectorCorrespondences::BearingVectorCorrespondences(
+BearingVectorCorrespondencesOld::BearingVectorCorrespondencesOld(
     int number_of_cameras)
     : number_of_cameras(number_of_cameras),
       number_of_correspondences(0),
@@ -13,14 +13,13 @@ BearingVectorCorrespondences::BearingVectorCorrespondences(
       first_correspondences(),
       second_correspondences() {}
 
-void BearingVectorCorrespondences::SetCamTimestamp(int camera_index,
-                                                   Timestamp first_timestamp,
-                                                   Timestamp second_timestamp) {
+void BearingVectorCorrespondencesOld::SetCamTimestamp(
+    int camera_index, Timestamp first_timestamp, Timestamp second_timestamp) {
   first_timestamps[camera_index] = first_timestamp;
   second_timestamps[camera_index] = second_timestamp;
 }
 
-void BearingVectorCorrespondences::PushBvc(
+void BearingVectorCorrespondencesOld::PushBvc(
     const opengv::bearingVector_t &first_bearing_vector,
     const opengv::bearingVector_t &second_bearing_vector,
     int camera_correspondence) {
@@ -72,11 +71,11 @@ FeatureDetectorMatcher::FeatureDetectorMatcher(
   descriptor_matcher_ = cv::DescriptorMatcher::create(matcher_type);
 }
 
-BearingVectorCorrespondences FeatureDetectorMatcher::getBearingVectors(
+BearingVectorCorrespondencesOld FeatureDetectorMatcher::getBearingVectors(
     const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
     const std::vector<DatasetReader::FrameEntry> &second_frame_bundle) {
   // Initializing bearing vectors to be returned
-  BearingVectorCorrespondences bvcs(first_frame_bundle.size());
+  BearingVectorCorrespondencesOld bvcs(first_frame_bundle.size());
 
   for (int i = 0; i < first_frame_bundle.size(); i++) {
     // Push timestamps for this camera
@@ -249,7 +248,7 @@ void CheckMapUnmap(const cv::Mat &image,
 }
 
 void CheckCorrespondences(
-    const BearingVectorCorrespondences &correspondences,
+    const BearingVectorCorrespondencesOld &correspondences,
     const CameraBundle &camera_bundle,
     const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
     const std::vector<DatasetReader::FrameEntry> &second_frame_bundle) {

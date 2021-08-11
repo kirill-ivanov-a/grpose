@@ -11,8 +11,8 @@
 
 namespace grpose {
 
-struct BearingVectorCorrespondences {
-  BearingVectorCorrespondences(int number_of_cameras);
+struct BearingVectorCorrespondencesOld {
+  BearingVectorCorrespondencesOld(int number_of_cameras);
 
   void SetCamTimestamp(int camera_index, Timestamp current_timestamp,
                        Timestamp next_timestamp);
@@ -36,7 +36,7 @@ class FeatureDetectorMatcher {
   FeatureDetectorMatcher(const CameraBundle &camera_bundle,
                          const FeatureDetectorMatcherSettings &settings);
 
-  BearingVectorCorrespondences getBearingVectors(
+  BearingVectorCorrespondencesOld getBearingVectors(
       const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
       const std::vector<DatasetReader::FrameEntry> &second_frame_bundle);
 
@@ -96,7 +96,7 @@ void CheckMapUnmap(const cv::Mat &image,
                    const Camera &camera);
 
 void CheckCorrespondences(
-    const BearingVectorCorrespondences &correspondences,
+    const BearingVectorCorrespondencesOld &correspondences,
     const CameraBundle &camera_bundle,
     const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
     const std::vector<DatasetReader::FrameEntry> &second_frame_bundle);

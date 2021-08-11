@@ -52,8 +52,8 @@ class NonCentralRelativePoseSolverOld {
       const StdVectorA<SE3> &body_from_cameras);
 
   // Solve directly using output struct of correspondence finding module
-  NonCentralRelativePoseSolution solve(const BearingVectorCorrespondences &bvcs,
-                                       int ransac_runs = 1);
+  NonCentralRelativePoseSolution solve(
+      const BearingVectorCorrespondencesOld &bvcs, int ransac_runs = 1);
 
   // Just a convenience definition, should not use this one since doesn't do any
   // checks

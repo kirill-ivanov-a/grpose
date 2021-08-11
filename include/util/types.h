@@ -1,5 +1,5 @@
-#ifndef GRPOSE_TYPES_
-#define GRPOSE_TYPES_
+#ifndef GRPOSE_UTIL_TYPES_
+#define GRPOSE_UTIL_TYPES_
 
 #include <chrono>
 #include <filesystem>

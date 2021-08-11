@@ -1,5 +1,5 @@
-#ifndef GRPOSE_UTIL_
-#define GRPOSE_UTIL_
+#ifndef GRPOSE_UTIL_UTIL_
+#define GRPOSE_UTIL_UTIL_
 
 #include <chrono>
 #include <fstream>
@@ -89,8 +89,8 @@ std::vector<cv::Vec3b> GetColors(std::vector<double> values, double min_value,
                                  const cv::ColormapTypes &colormap);
 
 /**
- * @return Current date and time in a format suitable for creating files with a
- * name that includes it.
+ * @return Current date and time in a format suitable for creating files
+ * with a name that includes it.
  */
 std::string CurrentTimeBrief();
 

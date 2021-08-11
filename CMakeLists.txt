@@ -36,6 +36,10 @@ if (NOT OpenCV_FOUND)
     endif ()
 endif ()
 
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -march=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g3 -DNDEBUG -march=native")
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/googletest)
 
 set(BUILD_TESTS OFF CACHE BOOL "Build OpenGV's and Sophus's tests")
@@ -44,25 +48,21 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/ext/opengv)
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build Sophus's examples")
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/Sophus)
 
-# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native ")
-# set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native")
-
-# set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -march=native")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
-# set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g3 -DNDEBUG -march=native")
-
 set(grpose_HEADER_FILES
-        include/util/types.h
-        include/util/util.h
         ${PROJECT_SOURCE_DIR}/include/metrics.h
         ${PROJECT_SOURCE_DIR}/include/trajectory.h
 
-        include/camera/camera.h
-        include/camera/camera_bundle.h
-        include/camera/camera_model.h
-        include/camera/camera_model_pinhole.h
-        include/camera/camera_model_scaramuzza.h
-        include/camera/camera_model_generic.h
+        ${PROJECT_SOURCE_DIR}/include/util/util.h
+        ${PROJECT_SOURCE_DIR}/include/util/types.h
+        ${PROJECT_SOURCE_DIR}/include/util/type_traits.h
+        ${PROJECT_SOURCE_DIR}/include/util/sampling.h
+
+        ${PROJECT_SOURCE_DIR}/include/camera/camera.h
+        ${PROJECT_SOURCE_DIR}/include/camera/camera_bundle.h
+        ${PROJECT_SOURCE_DIR}/include/camera/camera_model.h
+        ${PROJECT_SOURCE_DIR}/include/camera/camera_model_pinhole.h
+        ${PROJECT_SOURCE_DIR}/include/camera/camera_model_scaramuzza.h
+        ${PROJECT_SOURCE_DIR}/include/camera/camera_model_generic.h
 
         ${PROJECT_SOURCE_DIR}/include/dataset/dataset_reader.h
         ${PROJECT_SOURCE_DIR}/include/dataset/robotcar_reader.h
@@ -77,6 +77,10 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/grpose/non_central_relative_pose_solver.h
         ${PROJECT_SOURCE_DIR}/include/grpose/bearing_vector_correspondences.h
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_solver.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/opengv_adapter.h
+
+        ${PROJECT_SOURCE_DIR}/include/synthetic/scene.h
+        ${PROJECT_SOURCE_DIR}/include/synthetic/car_like_scene.h
         )
 
 set(grpose_SOURCE_FILES
@@ -84,8 +88,8 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/metrics.cpp
         ${PROJECT_SOURCE_DIR}/src/trajectory.cpp
 
-        src/camera/camera.cpp
-        src/camera/camera_bundle.cpp
+        ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
+        ${PROJECT_SOURCE_DIR}/src/camera/camera_bundle.cpp
 
         ${PROJECT_SOURCE_DIR}/src/dataset/dataset_reader.cpp
         ${PROJECT_SOURCE_DIR}/src/dataset/robotcar_reader.cpp
@@ -100,6 +104,10 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/grpose/non_central_relative_pose_solver.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/bearing_vector_correspondences.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/opengv_adapter.cpp
+
+        ${PROJECT_SOURCE_DIR}/src/synthetic/scene.cpp
+        ${PROJECT_SOURCE_DIR}/src/synthetic/car_like_scene.cpp
         )
 
 add_library(grpose

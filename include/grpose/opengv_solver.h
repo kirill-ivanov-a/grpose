@@ -6,6 +6,7 @@
 #include <opengv/sac_problems/relative_pose/NoncentralRelativePoseSacProblem.hpp>
 
 #include "grpose/non_central_relative_pose_solver.h"
+#include "grpose/opengv_adapter.h"
 
 namespace grpose {
 
@@ -17,9 +18,7 @@ class OpengvSolver : public NonCentralRelativePoseSolver {
     kSeventeenPoint           // Li 17pt algorithm
   };
 
-  using AdapterT = opengv::relative_pose::RelativeAdapterBase;
-
-  OpengvSolver(const std::shared_ptr<AdapterT> &opengv_adapter,
+  OpengvSolver(const std::shared_ptr<OpengvAdapter> &opengv_adapter,
                Algorithm algorithm, bool deterministic = true);
 
   bool Solve(const std::vector<int> &correspondence_indices,
@@ -32,7 +31,7 @@ class OpengvSolver : public NonCentralRelativePoseSolver {
   static OpengvInternalSolver::algorithm_t ToOpengvAlgorithm(
       Algorithm algorithm);
 
-  std::shared_ptr<AdapterT> opengv_adapter_;
+  std::shared_ptr<OpengvAdapter> opengv_adapter_;
   OpengvInternalSolver opengv_solver_;
 };
 
