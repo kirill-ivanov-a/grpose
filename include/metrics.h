@@ -22,6 +22,12 @@ namespace grpose {
 std::vector<double> AbsoluteTranslationError(const Trajectory& ground_truth,
                                              const Trajectory& estimate);
 
+double AbsoluteTranslationError(const SE3& world_from_true_frame,
+                                const SE3& world_from_estimate);
+
+double AngularTranslationError(const SE3& world_from_true_frame,
+                               const SE3& world_from_estimate);
+
 /**
  * @param ground_truth - The groundtruth trajectory.
  * @param estimate - The estimated trajectory.
@@ -30,6 +36,9 @@ std::vector<double> AbsoluteTranslationError(const Trajectory& ground_truth,
  */
 std::vector<double> AbsoluteRotationError(const Trajectory& ground_truth,
                                           const Trajectory& estimate);
+
+double AbsoluteRotationError(const SE3& world_from_true_frame,
+                             const SE3& world_from_estimate);
 
 }  // namespace grpose
 

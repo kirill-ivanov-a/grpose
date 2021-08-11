@@ -2,17 +2,22 @@
 
 namespace grpose::synthetic {
 
-SE3 CarLikeScene::WorldFromSecondFrame(double lengthwise_motion,
-                                       double turn_angle) {
+SE3 CarLikeScene::WorldFromFirstFrame(double car_height) {
+  return SE3::transZ(car_height);
+}
+
+SE3 CarLikeScene::WorldFromSecondFrame(double motion_length, double turn_angle,
+                                       double car_height) {
   const double cos_angle = std::cos(turn_angle);
-  const double widthwise_motion = lengthwise_motion * std::tan(turn_angle);
-  return SE3(SO3::rotZ(-turn_angle),
-             Vector3(widthwise_motion, lengthwise_motion, 0.0));
+  const double motion_x = motion_length * std::sin(turn_angle);
+  const double motion_y = motion_length * std::cos(turn_angle);
+  return SE3(SO3::rotZ(-turn_angle), Vector3(motion_x, motion_y, car_height));
 }
 
 CarLikeScene::CarLikeScene()
-    : world_from_body_{SE3(),
-                       WorldFromSecondFrame(lengthwise_motion_, turn_angle_)} {}
+    : world_from_body_{
+          WorldFromFirstFrame(car_height_),
+          WorldFromSecondFrame(motion_length_, turn_angle_, car_height_)} {}
 
 SE3 CarLikeScene::GetWorldFromBody(int frame_index) const {
   if (frame_index < 0 || frame_index > 1)

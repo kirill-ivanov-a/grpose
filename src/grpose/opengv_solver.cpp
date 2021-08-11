@@ -19,11 +19,26 @@ OpengvSolver::OpengvInternalSolver::algorithm_t OpengvSolver::ToOpengvAlgorithm(
   }
 }
 
+int OpengvSolver::MinimalNeededCorrespondences() const {
+  switch (algorithm_) {
+    case OpengvSolver::Algorithm::kSixPoint:
+      return 6;
+    case OpengvSolver::Algorithm::kSeventeenPoint:
+      return 17;
+    case OpengvSolver::Algorithm::kGeneralizedEigensolver:
+      return 8;
+    default:
+      throw std::domain_error(
+          fmt::format("Unknown algorithm type {}", algorithm_));
+  }
+}
+
 OpengvSolver::OpengvSolver(const std::shared_ptr<OpengvAdapter>& opengv_adapter,
                            OpengvSolver::Algorithm algorithm,
                            bool deterministic)
-    : opengv_adapter_(opengv_adapter),
-      opengv_solver_(opengv_adapter_->Get(), ToOpengvAlgorithm(algorithm),
+    : algorithm_(algorithm),
+      opengv_adapter_(opengv_adapter),
+      opengv_solver_(opengv_adapter_->Get(), ToOpengvAlgorithm(algorithm_),
                      false, !deterministic) {}
 
 bool OpengvSolver::Solve(const std::vector<int>& correspondence_indices,
