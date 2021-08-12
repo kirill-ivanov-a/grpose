@@ -10,8 +10,7 @@ class Scene {
   virtual ~Scene();
 
   virtual BearingVectorCorrespondences GetBearingVectorCorrespondences(
-      int number_of_correspondences, double angular_deviation = 0.0,
-      double cross_camera_fraction = 0.0,
+      int number_of_correspondences, double cross_camera_fraction = 0.0,
       unsigned long random_seed = 42) const = 0;
 
   virtual SE3 GetWorldFromBody(int frame_index) const = 0;

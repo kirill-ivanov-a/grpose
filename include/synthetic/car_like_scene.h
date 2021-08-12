@@ -12,8 +12,7 @@ class CarLikeScene : public Scene {
   CarLikeScene();
 
   BearingVectorCorrespondences GetBearingVectorCorrespondences(
-      int number_of_correspondences, double angular_deviation = 0.0,
-      double cross_camera_fraction = 0.0,
+      int number_of_correspondences, double cross_camera_fraction = 0.0,
       unsigned long random_seed = 42) const override;
 
   SE3 GetWorldFromBody(int frame_index) const override;
@@ -80,9 +79,7 @@ class CarLikeScene : public Scene {
 
 // Implementation
 
-inline double CarLikeScene::width() const {
-  return width_;
-}
+inline double CarLikeScene::width() const { return width_; }
 
 inline void CarLikeScene::SetWidth(double width) {
   if (width < 0)
@@ -91,9 +88,7 @@ inline void CarLikeScene::SetWidth(double width) {
   width_ = width;
 }
 
-inline double CarLikeScene::length() const {
-  return length_;
-}
+inline double CarLikeScene::length() const { return length_; }
 
 inline void CarLikeScene::SetLength(double length) {
   if (length < 0)

@@ -117,7 +117,8 @@ StdVectorA<SE3> EstimateFrame1FromFrame2(
     const OpengvSolver::Algorithm &algorithm, double angle_std = 0.0) {
   std::shared_ptr correspondences =
       std::make_shared<BearingVectorCorrespondences>(
-          scene.GetBearingVectorCorrespondences(FLAGS_num_corresps));
+          scene.GetBearingVectorCorrespondences(FLAGS_num_corresps,
+                                                FLAGS_frac_cross, mt()));
   correspondences->AddGaussianDirectionNoise(mt, angle_std);
   std::shared_ptr opengv_adapter = std::make_shared<OpengvAdapter>(
       correspondences, scene.GetBodyFromCameras());

@@ -32,8 +32,8 @@ StdVectorA<SE3> CarLikeScene::GetBodyFromCameras() const {
 }
 
 BearingVectorCorrespondences CarLikeScene::GetBearingVectorCorrespondences(
-    int number_of_correspondences, double angular_deviation,
-    double cross_camera_fraction, unsigned long random_seed) const {
+    int number_of_correspondences, double cross_camera_fraction,
+    unsigned long random_seed) const {
   BearingVectorCorrespondences correspondences;
   const int number_cross =
       static_cast<int>(cross_camera_fraction * number_of_correspondences);
