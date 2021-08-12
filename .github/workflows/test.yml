@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build_type: [ Release, Debug ]
+        build_type: [ Release ]
         compiler: [ g++, clang++ ]
 
     env:
@@ -29,7 +29,8 @@ jobs:
     - name: Install apt dependencies
       run: |
         sudo apt update
-        sudo apt install -y clang libgtest-dev libgoogle-glog-dev libeigen3-dev libboost-dev
+        sudo apt install -y clang libgtest-dev libgoogle-glog-dev libeigen3-dev \
+          libboost-dev libfmt-dev
     
     - name: Install OpenCV 4.4
       run: |
@@ -57,7 +58,8 @@ jobs:
       run: |
         cmake -B ${{github.workspace}}/build \
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-          -DCMAKE_CXX_COMPILER=/usr/bin/${{env.COMPILER}}
+          -DCMAKE_CXX_COMPILER=/usr/bin/${{env.COMPILER}} \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -j2
 
     - name: Test

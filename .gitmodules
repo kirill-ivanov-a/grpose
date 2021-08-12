@@ -3,7 +3,10 @@
 	url = https://github.com/google/googletest
 [submodule "ext/opengv"]
 	path = ext/opengv
-	url = https://github.com/laurentkneip/opengv
+	url = https://github.com/MikhailTerekhov/opengv
 [submodule "ext/Sophus"]
 	path = ext/Sophus
 	url = https://github.com/strasdat/Sophus
+[submodule "ext/robotcar-dataset-sdk"]
+	path = ext/robotcar-dataset-sdk
+	url = https://github.com/ori-mrg/robotcar-dataset-sdk
