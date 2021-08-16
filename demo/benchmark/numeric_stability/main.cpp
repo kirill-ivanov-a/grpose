@@ -26,22 +26,34 @@ DEFINE_double(max_motion_length, 20, "Maximal length of motion");
 DEFINE_int32(num_motion_lengths, 10, "Number of lengths of motion");
 
 DEFINE_double(min_angle, 0, "Minimal turning angle of motion");
-DEFINE_double(max_angle, 30, "Maximal turning angle of motion");
+constexpr double kMaxAngle = 30.0 * M_PI / 180.0;
+DEFINE_double(max_angle, kMaxAngle, "Maximal turning angle of motion");
 DEFINE_int32(num_angles, 10, "Number of turning angles to check");
 
-DEFINE_double(min_width, 20, "Minimal width of the scene");
-DEFINE_double(max_width, 40, "Maximal width of the scene");
+DEFINE_double(min_width, 15, "Minimal width of the scene");
+DEFINE_double(max_width, 80, "Maximal width of the scene");
 DEFINE_int32(num_widths, 10, "Number of widths of the scene");
 
 DEFINE_double(min_angle_std, 0,
               "Minimal bearing vector direction standard deviation");
-constexpr double kMaxAngleStd = 3.0 * M_PI / 180.0;
+// With focal length f=1200pix, one pixel error corresponds to roughly 0.04
+// degrees of angular deviation
+constexpr double kMaxAngleStd = 0.12 * M_PI / 180.0;
 DEFINE_double(max_angle_std, kMaxAngleStd,
               "Maximal bearing vector direction standard deviation");
 DEFINE_int32(num_angle_std, 10,
              "Number of bearing vector direction standard deviations");
 
+DEFINE_double(fix_motion_length, 10,
+              "Fixed motion length for stability experiments");
+DEFINE_double(fix_angle, 20, "Fixed turning angle for stability experiments");
+
 DEFINE_int32(num_attempts, 10, "Number of solver runs per a set of parameters");
+
+DEFINE_bool(run_motion_error, true,
+            "Run the test w.r.t. motion length & angle");
+DEFINE_bool(run_stability, true,
+            "Run the test w.r.t. scene scale and direction errors");
 
 using namespace grpose;
 
@@ -112,9 +124,11 @@ std::vector<int> SampleCorrespondences(
   return indices;
 }
 
-StdVectorA<SE3> EstimateFrame1FromFrame2(
-    std::mt19937 &mt, const synthetic::CarLikeScene &scene,
-    const OpengvSolver::Algorithm &algorithm, double angle_std = 0.0) {
+bool EstimateFrame1FromFrame2(std::mt19937 &mt,
+                              const synthetic::CarLikeScene &scene,
+                              const OpengvSolver::Algorithm &algorithm,
+                              StdVectorA<SE3> &frame1_from_frame2,
+                              double angle_std = 0.0) {
   std::shared_ptr correspondences =
       std::make_shared<BearingVectorCorrespondences>(
           scene.GetBearingVectorCorrespondences(FLAGS_num_corresps,
@@ -127,10 +141,7 @@ StdVectorA<SE3> EstimateFrame1FromFrame2(
   const int number_needed = solver->MinimalNeededCorrespondences();
   std::vector<int> indices = SampleCorrespondences(
       *correspondences, number_needed, FLAGS_num_cross, FLAGS_frac_first, mt);
-
-  StdVectorA<SE3> frame1_from_frame2;
-  solver->Solve(indices, frame1_from_frame2);
-  return frame1_from_frame2;
+  return solver->Solve(indices, frame1_from_frame2);
 }
 
 void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
@@ -148,6 +159,10 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
   out_stream << "method_name,scene_width,scene_length,angle_std,"
                 "experiment_num,ATE,RTE,ARE"
              << std::endl;
+
+  scene.SetLength(FLAGS_fix_motion_length);
+  scene.SetTurnAngle(FLAGS_fix_angle);
+
   for (const std::string &method_name : {"6pt", "8pt", "17pt"}) {
     const OpengvSolver::Algorithm algorithm = NameToAlgorithm(method_name);
     for (int il = 0; il < number_widths; ++il) {
@@ -166,17 +181,22 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
         const SE3 true_frame1_from_frame2 =
             scene.GetWorldFromBody(0).inverse() * scene.GetWorldFromBody(1);
         for (int ie = 0; ie < number_attempts; ++ie) {
-          StdVectorA<SE3> frame1_from_frame2 =
-              EstimateFrame1FromFrame2(mt, scene, algorithm, angle_std);
-          CHECK_EQ(frame1_from_frame2.size(), 1)
-              << "Statistics collection does not support many solutions yet";
-
-          const double ate = AbsoluteTranslationError(true_frame1_from_frame2,
-                                                      frame1_from_frame2[0]);
-          const double rte = AngularTranslationError(true_frame1_from_frame2,
-                                                     frame1_from_frame2[0]);
-          const double are = AbsoluteRotationError(true_frame1_from_frame2,
-                                                   frame1_from_frame2[0]);
+          StdVectorA<SE3> frame1_from_frame2;
+          bool is_ok = EstimateFrame1FromFrame2(mt, scene, algorithm,
+                                                frame1_from_frame2, angle_std);
+          double ate, rte, are;
+          if (is_ok) {
+            CHECK_EQ(frame1_from_frame2.size(), 1)
+                << "Statistics collection does not support many solutions yet";
+            ate = AbsoluteTranslationError(true_frame1_from_frame2,
+                                           frame1_from_frame2[0]);
+            rte = AngularTranslationError(true_frame1_from_frame2,
+                                          frame1_from_frame2[0]);
+            are = AbsoluteRotationError(true_frame1_from_frame2,
+                                        frame1_from_frame2[0]);
+          } else {
+            ate = rte = are = std::numeric_limits<double>::infinity();
+          }
           fmt::print(out_stream, "{:s},{:g},{:g},{:g},{:d},{:g},{:g},{:g}\n",
                      method_name, scene_width, scene_length, angle_std, ie, ate,
                      rte, are);
@@ -218,17 +238,23 @@ void CalculateErrorTables(synthetic::CarLikeScene scene,
         const SE3 true_frame1_from_frame2 =
             scene.GetWorldFromBody(0).inverse() * scene.GetWorldFromBody(1);
         for (int ie = 0; ie < number_attempts; ++ie) {
-          StdVectorA<SE3> frame1_from_frame2 =
-              EstimateFrame1FromFrame2(mt, scene, algorithm);
-          CHECK_EQ(frame1_from_frame2.size(), 1)
-              << "Statistics collection does not support many solutions yet";
+          StdVectorA<SE3> frame1_from_frame2;
+          bool is_ok = EstimateFrame1FromFrame2(mt, scene, algorithm,
+                                                frame1_from_frame2);
+          double ate, rte, are;
+          if (is_ok) {
+            CHECK_EQ(frame1_from_frame2.size(), 1)
+                << "Statistics collection does not support many solutions yet";
 
-          const double ate = AbsoluteTranslationError(true_frame1_from_frame2,
-                                                      frame1_from_frame2[0]);
-          const double rte = AngularTranslationError(true_frame1_from_frame2,
-                                                     frame1_from_frame2[0]);
-          const double are = AbsoluteRotationError(true_frame1_from_frame2,
-                                                   frame1_from_frame2[0]);
+            ate = AbsoluteTranslationError(true_frame1_from_frame2,
+                                           frame1_from_frame2[0]);
+            rte = AngularTranslationError(true_frame1_from_frame2,
+                                          frame1_from_frame2[0]);
+            are = AbsoluteRotationError(true_frame1_from_frame2,
+                                        frame1_from_frame2[0]);
+          } else {
+            ate = rte = are = std::numeric_limits<double>::infinity();
+          }
           fmt::print(out_stream, "{:s},{:g},{:g},{:d},{:g},{:g},{:g}\n",
                      method_name, motion_length, angle, ie, ate, rte, are);
         }
@@ -249,15 +275,17 @@ int main(int argc, char *argv[]) {
   std::cout << "output dir: " << output_directory.string() << std::endl;
 
   synthetic::CarLikeScene car_like_scene;
-  CalculateErrorTables(car_like_scene, FLAGS_min_motion_length,
-                       FLAGS_max_motion_length, FLAGS_num_motion_lengths,
-                       FLAGS_min_angle, FLAGS_max_angle, FLAGS_num_angles,
-                       FLAGS_num_attempts,
-                       output_directory / "error_motion.csv");
-  CalculateStabilityTables(
-      car_like_scene, FLAGS_min_width, FLAGS_max_width, FLAGS_num_widths,
-      FLAGS_min_angle_std, FLAGS_max_angle_std, FLAGS_num_angle_std,
-      FLAGS_num_attempts, output_directory / "error_stability.csv");
+  if (FLAGS_run_motion_error)
+    CalculateErrorTables(car_like_scene, FLAGS_min_motion_length,
+                         FLAGS_max_motion_length, FLAGS_num_motion_lengths,
+                         FLAGS_min_angle, FLAGS_max_angle, FLAGS_num_angles,
+                         FLAGS_num_attempts,
+                         output_directory / "error_motion.csv");
+  if (FLAGS_run_stability)
+    CalculateStabilityTables(
+        car_like_scene, FLAGS_min_width, FLAGS_max_width, FLAGS_num_widths,
+        FLAGS_min_angle_std, FLAGS_max_angle_std, FLAGS_num_angle_std,
+        FLAGS_num_attempts, output_directory / "error_stability.csv");
 
   return 0;
 }
