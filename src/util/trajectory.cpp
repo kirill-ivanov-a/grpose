@@ -1,4 +1,4 @@
-#include "trajectory.h"
+#include "util/trajectory.h"
 
 #include <glog/logging.h>
 

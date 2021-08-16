@@ -8,8 +8,8 @@
 #include "grpose/bearing_vector_correspondences.h"
 #include "grpose/opengv_adapter.h"
 #include "grpose/opengv_solver.h"
-#include "metrics.h"
 #include "synthetic/car_like_scene.h"
+#include "util/metrics.h"
 #include "util/util.h"
 
 DEFINE_int32(num_corresps, 200, "Number of correspondences to generate");

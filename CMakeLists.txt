@@ -49,9 +49,8 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "Build Sophus's examples")
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/Sophus)
 
 set(grpose_HEADER_FILES
-        ${PROJECT_SOURCE_DIR}/include/metrics.h
-        ${PROJECT_SOURCE_DIR}/include/trajectory.h
-
+        ${PROJECT_SOURCE_DIR}/include/util/metrics.h
+        ${PROJECT_SOURCE_DIR}/include/util/trajectory.h
         ${PROJECT_SOURCE_DIR}/include/util/util.h
         ${PROJECT_SOURCE_DIR}/include/util/types.h
         ${PROJECT_SOURCE_DIR}/include/util/type_traits.h
@@ -84,9 +83,9 @@ set(grpose_HEADER_FILES
         )
 
 set(grpose_SOURCE_FILES
-        ${PROJECT_SOURCE_DIR}/src/util.cpp
-        ${PROJECT_SOURCE_DIR}/src/metrics.cpp
-        ${PROJECT_SOURCE_DIR}/src/trajectory.cpp
+        ${PROJECT_SOURCE_DIR}/src/util/util.cpp
+        ${PROJECT_SOURCE_DIR}/src/util/metrics.cpp
+        ${PROJECT_SOURCE_DIR}/src/util/trajectory.cpp
 
         ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
         ${PROJECT_SOURCE_DIR}/src/camera/camera_bundle.cpp

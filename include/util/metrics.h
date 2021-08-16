@@ -1,12 +1,10 @@
-#ifndef GRPOSE_METRICS_
-#define GRPOSE_METRICS_
+#ifndef GRPOSE_UTIL_METRICS_
+#define GRPOSE_UTIL_METRICS_
 
 #include <chrono>
 #include <fstream>
 #include <sstream>
 #include <vector>
-
-#include <opencv2/opencv.hpp>
 
 #include "trajectory.h"
 #include "util/types.h"

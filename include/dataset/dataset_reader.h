@@ -5,7 +5,7 @@
 #include <optional>
 
 #include "camera/camera_bundle.h"
-#include "trajectory.h"
+#include "util/trajectory.h"
 #include "util/types.h"
 
 namespace grpose {
