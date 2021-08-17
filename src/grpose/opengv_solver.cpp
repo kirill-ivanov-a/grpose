@@ -22,7 +22,9 @@ OpengvSolver::OpengvInternalSolver::algorithm_t OpengvSolver::ToOpengvAlgorithm(
 int OpengvSolver::MinimalNeededCorrespondences() const {
   switch (algorithm_) {
     case OpengvSolver::Algorithm::kSixPoint:
-      return 6;
+      //      return 6;
+      return 6 + 3;  // Yeah, OpenGV's implementation of 6-point solver requires
+                     // 9 points :')
     case OpengvSolver::Algorithm::kSeventeenPoint:
       return 17;
     case OpengvSolver::Algorithm::kGeneralizedEigensolver:
@@ -49,8 +51,7 @@ bool OpengvSolver::Solve(const std::vector<int>& correspondence_indices,
   bool is_ok = opengv_solver_.computeModelCoefficients(
       correspondence_indices, frame1_from_frame2_matrix);
   if (!is_ok) return false;
-  if (frame1_from_frame2_matrix.hasNaN())
-    return false;
+  if (frame1_from_frame2_matrix.hasNaN()) return false;
 
   frame1_from_frame2.push_back(SE3(frame1_from_frame2_matrix.leftCols<3>(),
                                    frame1_from_frame2_matrix.rightCols<1>()));
