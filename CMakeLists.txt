@@ -55,6 +55,7 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/util/types.h
         ${PROJECT_SOURCE_DIR}/include/util/type_traits.h
         ${PROJECT_SOURCE_DIR}/include/util/sampling.h
+        ${PROJECT_SOURCE_DIR}/include/util/geometry.h
 
         ${PROJECT_SOURCE_DIR}/include/camera/camera.h
         ${PROJECT_SOURCE_DIR}/include/camera/camera_bundle.h
@@ -86,6 +87,7 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/util/util.cpp
         ${PROJECT_SOURCE_DIR}/src/util/metrics.cpp
         ${PROJECT_SOURCE_DIR}/src/util/trajectory.cpp
+        ${PROJECT_SOURCE_DIR}/src/util/geometry.cpp
 
         ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
         ${PROJECT_SOURCE_DIR}/src/camera/camera_bundle.cpp

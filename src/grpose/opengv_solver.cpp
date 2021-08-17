@@ -49,6 +49,8 @@ bool OpengvSolver::Solve(const std::vector<int>& correspondence_indices,
   bool is_ok = opengv_solver_.computeModelCoefficients(
       correspondence_indices, frame1_from_frame2_matrix);
   if (!is_ok) return false;
+  if (frame1_from_frame2_matrix.hasNaN())
+    return false;
 
   frame1_from_frame2.push_back(SE3(frame1_from_frame2_matrix.leftCols<3>(),
                                    frame1_from_frame2_matrix.rightCols<1>()));

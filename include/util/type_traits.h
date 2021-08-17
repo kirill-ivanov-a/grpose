@@ -46,20 +46,20 @@ inline bool IsVector3Dynamic(const Eigen::MatrixBase<EigenType> &object) {
 }  // namespace grpose
 
 #define GRPOSE_CHECK_IS_VECTOR2(object)                              \
-  {                                                                  \
+  do {                                                               \
     if constexpr (kIsStatic<decltype((object))>)                     \
       static_assert(kIsVector2Static<decltype((object))>,            \
                     "Expected Vector2-sized object!");               \
     else if (!IsVector2Dynamic((object)))                            \
       throw std::invalid_argument("Expected Vector2-sized object!"); \
-  }
+  } while (false)
 
 #define GRPOSE_CHECK_IS_VECTOR3(object)                              \
-  {                                                                  \
+  do {                                                               \
     if constexpr (kIsStatic<decltype((object))>)                     \
       static_assert(kIsVector3Static<decltype((object))>,            \
                     "Expected Vector3-sized object!");               \
     else if (!IsVector3Dynamic((object)))                            \
       throw std::invalid_argument("Expected Vector3-sized object!"); \
-  }
+  } while (false)
 #endif

@@ -22,6 +22,8 @@ class CarLikeScene : public Scene {
   inline void SetWidth(double width);
   inline double length() const;
   inline void SetLength(double length);
+  inline double height() const;
+  inline double depth() const;
   inline void SetMotionLength(double motion_length);
   inline void SetTurnAngle(double angle);
 
@@ -96,6 +98,10 @@ inline void CarLikeScene::SetLength(double length) {
         fmt::format("CarLikeScene::SetLength: negative length = {}", length));
   length_ = length;
 }
+
+inline double CarLikeScene::height() const { return height_; }
+
+inline double CarLikeScene::depth() const { return depth_; }
 
 inline void CarLikeScene::SetMotionLength(double motion_length) {
   motion_length_ = motion_length;

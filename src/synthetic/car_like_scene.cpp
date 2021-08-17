@@ -1,5 +1,7 @@
 #include "synthetic/car_like_scene.h"
 
+#include <iostream>
+
 namespace grpose::synthetic {
 
 SE3 CarLikeScene::WorldFromFirstFrame(double car_height) {
@@ -99,20 +101,27 @@ BearingVectorCorrespondences CarLikeScene::GetBearingVectorCorrespondences(
       const double x_mult = side_camera_index == kRightCameraIndex ? 1.0 : -1.0;
       const double y_mult =
           other_camera_index == kFrontCameraIndex ? 1.0 : -1.0;
-      const Vector3 point(x_mult * x_right(mt), y_mult * y_front(mt), z(mt));
-      const bool is_front_0 = static_cast<bool>(mt() & 1);
-      const int side_frame_index = is_front_0 ? 1 : 0;
-      const int other_frame_index = is_front_0 ? 0 : 1;
-      const SE3 side_from_world = (world_from_body_[side_frame_index] *
-                                   body_from_cameras_[side_camera_index])
-                                      .inverse();
-      const SE3 other_from_world = (world_from_body_[other_frame_index] *
-                                    body_from_cameras_[other_camera_index])
-                                       .inverse();
-      const Vector3 side_vector = (side_from_world * point).normalized();
-      const Vector3 other_vector = (other_from_world * point).normalized();
-      correspondences.AddCorrespondence(side_vector, other_vector,
-                                        side_camera_index, other_camera_index);
+      for (int i = 0; i < number_corner; ++i) {
+        const Vector3 point(x_mult * x_right(mt), y_mult * y_front(mt), z(mt));
+        const bool is_front_0 = static_cast<bool>(mt() & 1);
+        const int side_frame_index = is_front_0 ? 1 : 0;
+        const int other_frame_index = is_front_0 ? 0 : 1;
+        const SE3 side_from_world = (world_from_body_[side_frame_index] *
+                                     body_from_cameras_[side_camera_index])
+                                        .inverse();
+        const SE3 other_from_world = (world_from_body_[other_frame_index] *
+                                      body_from_cameras_[other_camera_index])
+                                         .inverse();
+        const Vector3 side_vector = (side_from_world * point).normalized();
+        const Vector3 other_vector = (other_from_world * point).normalized();
+        if (is_front_0) {
+          correspondences.AddCorrespondence(
+              other_vector, side_vector, other_camera_index, side_camera_index);
+        } else {
+          correspondences.AddCorrespondence(
+              side_vector, other_vector, side_camera_index, other_camera_index);
+        }
+      }
     }
 
   return correspondences;
