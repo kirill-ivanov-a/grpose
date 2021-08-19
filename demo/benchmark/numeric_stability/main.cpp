@@ -8,6 +8,7 @@
 #include "grpose/bearing_vector_correspondences.h"
 #include "grpose/opengv_adapter.h"
 #include "grpose/opengv_solver.h"
+#include "grpose/solver_central_plus_scale.h"
 #include "synthetic/car_like_scene.h"
 #include "util/metrics.h"
 #include "util/util.h"
@@ -124,9 +125,60 @@ std::vector<int> SampleCorrespondences(
   return indices;
 }
 
+void SampleNFromCamera(const std::vector<std::vector<int>> &indices_by_camera,
+                       int n, std::mt19937 &mt, std::vector<int> &indices,
+                       int &camera, int excluded_camera = -1) {
+  const int c = indices_by_camera.size();
+
+  std::vector<int> good_camera_indices;
+  std::vector<int> good_camera_sizes;
+  good_camera_indices.reserve(c);
+  good_camera_sizes.reserve(c);
+  for (int i = 0; i < indices_by_camera.size(); ++i)
+    if (indices_by_camera[i].size() >= n && i != excluded_camera) {
+      good_camera_indices.push_back(i);
+      good_camera_sizes.push_back(indices_by_camera[i].size());
+    }
+  CHECK(!good_camera_indices.empty());
+  std::discrete_distribution camera_d(good_camera_sizes.begin(),
+                                      good_camera_sizes.end());
+  camera = good_camera_indices[camera_d(mt)];
+
+  std::sample(indices_by_camera[camera].begin(),
+              indices_by_camera[camera].end(), std::back_inserter(indices), n,
+              mt);
+}
+
+std::vector<int> SampleNPlus1Correspondence(
+    const BearingVectorCorrespondences &correspondences, int n,
+    bool use_cross_camera, std::mt19937 &mt) {
+  const int total = correspondences.NumberOfCorrespondences();
+  const int c = correspondences.NumberOfCameras();
+  CHECK_GE(c, 2);
+  std::vector<std::vector<int>> indices_by_camera(c);
+  std::vector<int> cross_camera_indices;
+  RestructureIndices(correspondences, indices_by_camera, cross_camera_indices);
+
+  std::vector<int> indices;
+  int camera_n = 0;
+  SampleNFromCamera(indices_by_camera, n, mt, indices, camera_n);
+
+  int index_1;
+  if (use_cross_camera) {
+    std::uniform_int_distribution<int> index_1_d(
+        0, static_cast<int>(cross_camera_indices.size()) - 1);
+    indices.push_back(index_1_d(mt));
+  } else {
+    int camera_1 = 0;
+    SampleNFromCamera(indices_by_camera, 1, mt, indices, camera_1, camera_n);
+  }
+
+  return indices;
+}
+
 bool EstimateFrame1FromFrame2(std::mt19937 &mt,
                               const synthetic::CarLikeScene &scene,
-                              const OpengvSolver::Algorithm &algorithm,
+                              const std::string &method_name,
                               StdVectorA<SE3> &frame1_from_frame2,
                               double angle_std = 0.0) {
   std::shared_ptr correspondences =
@@ -136,11 +188,18 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
   correspondences->AddGaussianDirectionNoise(mt, angle_std);
   std::shared_ptr opengv_adapter = std::make_shared<OpengvAdapter>(
       correspondences, scene.GetBodyFromCameras());
-  std::unique_ptr<NonCentralRelativePoseSolver> solver(
-      new OpengvSolver(opengv_adapter, algorithm));
-  const int number_needed = solver->MinimalNeededCorrespondences();
-  std::vector<int> indices = SampleCorrespondences(
-      *correspondences, number_needed, FLAGS_num_cross, FLAGS_frac_first, mt);
+  std::unique_ptr<NonCentralRelativePoseSolver> solver;
+  std::vector<int> indices;
+  if (method_name == "c+s") {
+    solver.reset(new SolverCentralPlusScale(opengv_adapter));
+    indices = SampleNPlus1Correspondence(
+        *correspondences, solver->MinSampleSize() - 1, FLAGS_num_cross > 0, mt);
+  } else {
+    solver.reset(
+        new OpengvSolver(opengv_adapter, NameToAlgorithm(method_name)));
+    indices = SampleCorrespondences(*correspondences, solver->MinSampleSize(),
+                                    FLAGS_num_cross, FLAGS_frac_first, mt);
+  }
   return solver->Solve(indices, frame1_from_frame2);
 }
 
@@ -163,8 +222,8 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
   scene.SetLength(FLAGS_fix_motion_length);
   scene.SetTurnAngle(FLAGS_fix_angle);
 
-  for (const std::string &method_name : {"6pt", "8pt", "17pt"}) {
-    const OpengvSolver::Algorithm algorithm = NameToAlgorithm(method_name);
+  for (const std::string &method_name : {"6pt", "8pt", "17pt", "c+s"}) {
+    //  for (const std::string &method_name : {"c+s"}) {
     for (int il = 0; il < number_widths; ++il) {
       const double scene_width = min_width + il * width_step;
       const double scene_scale_change = scene_width / scene.width();
@@ -182,7 +241,7 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
             scene.GetWorldFromBody(0).inverse() * scene.GetWorldFromBody(1);
         for (int ie = 0; ie < number_attempts; ++ie) {
           StdVectorA<SE3> frame1_from_frame2;
-          bool is_ok = EstimateFrame1FromFrame2(mt, scene, algorithm,
+          bool is_ok = EstimateFrame1FromFrame2(mt, scene, method_name,
                                                 frame1_from_frame2, angle_std);
           double ate, rte, are;
           if (is_ok) {
@@ -223,8 +282,8 @@ void CalculateErrorTables(synthetic::CarLikeScene scene,
   out_stream
       << "method_name,motion_length,turning_angle,experiment_num,ATE,RTE,ARE"
       << std::endl;
-  for (const std::string &method_name : {"6pt", "8pt", "17pt"}) {
-    const OpengvSolver::Algorithm algorithm = NameToAlgorithm(method_name);
+  for (const std::string &method_name : {"6pt", "8pt", "17pt", "c+s"}) {
+    //  for (const std::string &method_name : {"c+s"}) {
     for (int il = 0; il < number_motion_lengths; ++il) {
       const double motion_length = min_motion_length + il * motion_length_step;
       scene.SetMotionLength(motion_length);
@@ -239,7 +298,7 @@ void CalculateErrorTables(synthetic::CarLikeScene scene,
             scene.GetWorldFromBody(0).inverse() * scene.GetWorldFromBody(1);
         for (int ie = 0; ie < number_attempts; ++ie) {
           StdVectorA<SE3> frame1_from_frame2;
-          bool is_ok = EstimateFrame1FromFrame2(mt, scene, algorithm,
+          bool is_ok = EstimateFrame1FromFrame2(mt, scene, method_name,
                                                 frame1_from_frame2);
           double ate, rte, are;
           if (is_ok) {

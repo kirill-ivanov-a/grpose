@@ -78,6 +78,7 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/grpose/bearing_vector_correspondences.h
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_solver.h
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_adapter.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/solver_central_plus_scale.h
 
         ${PROJECT_SOURCE_DIR}/include/synthetic/scene.h
         ${PROJECT_SOURCE_DIR}/include/synthetic/car_like_scene.h
@@ -106,6 +107,7 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/grpose/bearing_vector_correspondences.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_adapter.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/solver_central_plus_scale.cpp
 
         ${PROJECT_SOURCE_DIR}/src/synthetic/scene.cpp
         ${PROJECT_SOURCE_DIR}/src/synthetic/car_like_scene.cpp

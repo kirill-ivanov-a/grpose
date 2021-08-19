@@ -21,7 +21,7 @@ class OpengvSolver : public NonCentralRelativePoseSolver {
   OpengvSolver(const std::shared_ptr<OpengvAdapter> &opengv_adapter,
                Algorithm algorithm, bool deterministic = true);
 
-  int MinimalNeededCorrespondences() const override;
+  int MinSampleSize() const override;
   bool Solve(const std::vector<int> &correspondence_indices,
              StdVectorA<SE3> &frame1_from_frame2) const override;
 

@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('table')
 parser.add_argument('--stat', nargs='?', default='median', 
                     const='median', choices=['median', 'average'])
+parser.add_argument("--crop_left", type=int, nargs='?', default=0)
 args = parser.parse_args()
 
 data = pd.read_csv(args.table)
@@ -33,6 +34,7 @@ for method_i, method in enumerate(method_names):
     for metric_i, metric in enumerate(metric_names):
         errors = all_errors[metric].to_numpy()\
             .reshape((len(scene_widths),len(angle_stds)))
+        errors = errors[:,args.crop_left:]
         
         if metric in ['RTE', 'ARE']:
             errors = errors * 180.0 / np.pi
@@ -40,7 +42,7 @@ for method_i, method in enumerate(method_names):
         cur_ax = ax[method_i,metric_i]
         errors[errors < 1e-16] = 1e-16
         errors = np.log10(errors)
-        pcm = cur_ax.pcolormesh(angle_stds, scene_widths, errors)
+        pcm = cur_ax.pcolormesh(angle_stds[args.crop_left:], scene_widths, errors)
         fig.colorbar(pcm, ax=cur_ax)
         cur_ax.set_title(f'{method}, $\log_{{10}}({metric}, {metric_units[metric]})$')
         cur_ax.set_xlabel('Standard deviation of direction angle, deg')

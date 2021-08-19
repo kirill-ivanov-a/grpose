@@ -26,6 +26,8 @@ class OpengvAdapter {
 
   inline OpengvInternalAdapter &Get();
   inline const OpengvInternalAdapter &Get() const;
+  inline BearingVectorCorrespondences &GetCorrespondences();
+  inline const BearingVectorCorrespondences &GetCorrespondences() const;
 
  private:
   std::shared_ptr<BearingVectorCorrespondences> correspondences_;
@@ -40,6 +42,14 @@ OpengvAdapter::OpengvInternalAdapter &OpengvAdapter::Get() { return adapter_; }
 
 const OpengvAdapter::OpengvInternalAdapter &OpengvAdapter::Get() const {
   return adapter_;
+}
+
+BearingVectorCorrespondences &OpengvAdapter::GetCorrespondences() {
+  return *correspondences_;
+}
+
+const BearingVectorCorrespondences &OpengvAdapter::GetCorrespondences() const {
+  return *correspondences_;
 }
 
 }  // namespace grpose

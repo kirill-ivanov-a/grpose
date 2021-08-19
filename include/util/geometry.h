@@ -15,4 +15,6 @@ namespace grpose {
 void Triangulate(const SE3 &frame2_from_frame1, const Vector3 &ray1,
                  const Vector3 &ray2, Vector3 &point, double *error = nullptr);
 
+double Angle(const Vector3 &direction1, const Vector3 &direction2);
+
 }  // namespace grpose

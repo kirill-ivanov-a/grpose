@@ -26,6 +26,7 @@ del grouped['experiment_num']
 metric_units = {'ATE':'m', 'RTE':'deg', 'ARE':'deg'}
 
 fig, ax = plt.subplots(len(method_names), len(metric_names))
+ax = ax.reshape(len(method_names), len(metric_names))
 
 for method_i, method in enumerate(method_names):
     all_errors = grouped.loc[method]

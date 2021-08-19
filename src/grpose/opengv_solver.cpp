@@ -19,20 +19,8 @@ OpengvSolver::OpengvInternalSolver::algorithm_t OpengvSolver::ToOpengvAlgorithm(
   }
 }
 
-int OpengvSolver::MinimalNeededCorrespondences() const {
-  switch (algorithm_) {
-    case OpengvSolver::Algorithm::kSixPoint:
-      //      return 6;
-      return 6 + 3;  // Yeah, OpenGV's implementation of 6-point solver requires
-                     // 9 points :')
-    case OpengvSolver::Algorithm::kSeventeenPoint:
-      return 17;
-    case OpengvSolver::Algorithm::kGeneralizedEigensolver:
-      return 8;
-    default:
-      throw std::domain_error(
-          fmt::format("Unknown algorithm type {}", algorithm_));
-  }
+int OpengvSolver::MinSampleSize() const {
+  return opengv_solver_.getSampleSize();
 }
 
 OpengvSolver::OpengvSolver(const std::shared_ptr<OpengvAdapter>& opengv_adapter,

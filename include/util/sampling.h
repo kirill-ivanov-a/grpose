@@ -5,6 +5,7 @@
 
 #include <ceres/local_parameterization.h>
 
+#include "util/geometry.h"
 #include "util/types.h"
 
 namespace grpose {

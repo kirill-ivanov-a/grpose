@@ -16,4 +16,9 @@ void Triangulate(const SE3 &frame2_from_frame1, const Vector3 &ray1,
   if (error) *error = (point - p1).norm();
 }
 
+double Angle(const Vector3 &direction1, const Vector3 &direction2) {
+  const double cos_angle = direction1.normalized().dot(direction2.normalized());
+  return std::acos(std::clamp(cos_angle, -1.0, 1.0));
+}
+
 }  // namespace grpose
