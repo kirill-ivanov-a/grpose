@@ -5,12 +5,12 @@
 
 #include <opengv/sac_problems/relative_pose/NoncentralRelativePoseSacProblem.hpp>
 
-#include "grpose/non_central_relative_pose_solver.h"
+#include "grpose/non_central_relative_pose_minimal_solver.h"
 #include "grpose/opengv_adapter.h"
 
 namespace grpose {
 
-class OpengvSolver : public NonCentralRelativePoseSolver {
+class OpengvSolver : public NonCentralRelativePoseMinimalSolver {
  public:
   enum class Algorithm {
     kSixPoint,                // Stewenius 6pt algorithm

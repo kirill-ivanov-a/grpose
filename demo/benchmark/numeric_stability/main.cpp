@@ -188,7 +188,7 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
   correspondences->AddGaussianDirectionNoise(mt, angle_std);
   std::shared_ptr opengv_adapter = std::make_shared<OpengvAdapter>(
       correspondences, scene.GetBodyFromCameras());
-  std::unique_ptr<NonCentralRelativePoseSolver> solver;
+  std::unique_ptr<NonCentralRelativePoseMinimalSolver> solver;
   std::vector<int> indices;
   if (method_name == "c+s") {
     solver.reset(new SolverCentralPlusScale(opengv_adapter));
