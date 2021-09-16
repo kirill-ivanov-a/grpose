@@ -1,4 +1,5 @@
 #include "synthetic/car_like_scene.h"
+#include "synthetic/random_scene.h"
 
 #include <memory>
 
@@ -8,11 +9,16 @@
 
 using namespace grpose;
 
-// TODO if more scenes added, separate into specific scene vs general scene
+class SceneTest
+    : public testing::TestWithParam<std::shared_ptr<synthetic::Scene>> {};
+
 class CarLikeSceneTest
     : public testing::TestWithParam<synthetic::CarLikeScene> {};
 
-// returns points in world corordinate system
+class RandomSceneTest : public testing::TestWithParam<synthetic::RandomScene> {
+};
+
+// returns points in world coordinate system
 void Triangulate(const synthetic::Scene &scene,
                  const BearingVectorCorrespondences &correspondences,
                  std::vector<Vector3> &points, std::vector<double> &errors) {
@@ -44,7 +50,7 @@ void Triangulate(const synthetic::Scene &scene,
   }
 }
 
-TEST_P(CarLikeSceneTest, Correspondences) {
+TEST_P(SceneTest, Correspondences) {
   constexpr std::array numbers_of_correspondences = {0,  1,   2,    10,
                                                      17, 103, 11019};
   //  constexpr std::array numbers_of_correspondences = {4};
@@ -52,7 +58,7 @@ TEST_P(CarLikeSceneTest, Correspondences) {
   //  constexpr std::array cross_camera_fractions = {1.0};
   constexpr double kMaxRelativePointError = 1e-10;
 
-  const synthetic::CarLikeScene &scene = GetParam();
+  const synthetic::Scene &scene = *GetParam();
 
   for (int n : numbers_of_correspondences)
     for (double cc : cross_camera_fractions) {
@@ -86,8 +92,27 @@ TEST_P(CarLikeSceneTest, Correspondences) {
                            correspondences.camera_index(0, i),
                            correspondences.camera_index(1, i), errors[i],
                            points[i].transpose());
+    }
+}
 
-      // next follow implementation-specific tests
+TEST_P(CarLikeSceneTest, PointsInRange) {
+  constexpr std::array numbers_of_correspondences = {0,  1,   2,    10,
+                                                     17, 103, 11019};
+  //  constexpr std::array numbers_of_correspondences = {4};
+  constexpr std::array cross_camera_fractions = {0.0, 0.1, 1.0};
+  //  constexpr std::array cross_camera_fractions = {1.0};
+  constexpr double kMaxRelativePointError = 1e-10;
+
+  const synthetic::CarLikeScene &scene = GetParam();
+
+  for (int n : numbers_of_correspondences)
+    for (double cc : cross_camera_fractions) {
+      BearingVectorCorrespondences correspondences =
+          scene.GetBearingVectorCorrespondences(n, cc);
+      std::vector<Vector3> points;
+      std::vector<double> errors;
+      Triangulate(scene, correspondences, points, errors);
+
       const double height = scene.height();
       const double width = scene.width();
       const double length = scene.length();
@@ -135,7 +160,7 @@ TEST_P(CarLikeSceneTest, Setters) {
       << rel_motion.rotationMatrix() << std::endl;
 }
 
-synthetic::CarLikeScene GetModifiedScene() {
+synthetic::CarLikeScene GetModifiedCarLikeScene() {
   synthetic::CarLikeScene scene;
   scene.SetWidth(40.0);
   scene.SetLength(80.0);
@@ -144,9 +169,16 @@ synthetic::CarLikeScene GetModifiedScene() {
   return scene;
 }
 
-INSTANTIATE_TEST_SUITE_P(SceneSuite, CarLikeSceneTest,
+INSTANTIATE_TEST_SUITE_P(
+    GeneralSceneSuite, SceneTest,
+    testing::Values(
+        std::make_shared<synthetic::CarLikeScene>(),
+        std::make_shared<synthetic::CarLikeScene>(GetModifiedCarLikeScene()),
+        std::make_shared<synthetic::RandomScene>()));
+
+INSTANTIATE_TEST_SUITE_P(CarLikeSceneSuite, CarLikeSceneTest,
                          testing::Values(synthetic::CarLikeScene(),
-                                         GetModifiedScene()));
+                                         GetModifiedCarLikeScene()));
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

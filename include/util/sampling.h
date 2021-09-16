@@ -14,6 +14,11 @@ template <typename RandomBitsGenerator>
 Vector3 AddGaussianDirectionNoise(RandomBitsGenerator &generator,
                                   const Vector3 &direction, double angle_std);
 
+template <typename RandomBitsGenerator>
+Vector3 SampleSphereUniform(RandomBitsGenerator &generator,
+                            const Vector3 &center = Vector3::Zero(),
+                            double radius = 1);
+
 // Implementation
 
 template <typename RandomBitsGenerator>
@@ -36,6 +41,20 @@ Vector3 AddGaussianDirectionNoise(RandomBitsGenerator &generator,
   parameterization.Plus(direction.data(), delta, noisy_direction.data());
   return noisy_direction;
 }
+
+template <typename RandomBitsGenerator>
+Vector3 SampleSphereUniform(RandomBitsGenerator &generator,
+                            const Vector3 &center, double radius) {
+  // Here we use Archmedes' hat-box theorem
+  std::uniform_real_distribution<double> z_distr(-1.0, 1.0);
+  std::uniform_real_distribution<double> phi_distr(0.0, 2 * M_PI);
+  const double z = z_distr(generator), phi = phi_distr(generator);
+  const double r = std::sqrt(1.0 - z * z);
+  const double x = r * std::cos(phi), y = r * std::sin(phi);
+  const Vector3 unit_sample(x, y, z);
+  return unit_sample * radius + center;
+}
+
 
 }  // namespace grpose
 
