@@ -10,3 +10,6 @@
 [submodule "ext/robotcar-dataset-sdk"]
 	path = ext/robotcar-dataset-sdk
 	url = https://github.com/ori-mrg/robotcar-dataset-sdk
+[submodule "ext/PoseLib"]
+	path = ext/PoseLib
+	url = https://github.com/vlarsson/PoseLib
