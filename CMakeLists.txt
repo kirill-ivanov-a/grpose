@@ -82,6 +82,7 @@ set(grpose_HEADER_FILES
 
         ${PROJECT_SOURCE_DIR}/include/synthetic/scene.h
         ${PROJECT_SOURCE_DIR}/include/synthetic/car_like_scene.h
+        ${PROJECT_SOURCE_DIR}/include/synthetic/random_scene.h
         )
 
 set(grpose_SOURCE_FILES
@@ -111,6 +112,7 @@ set(grpose_SOURCE_FILES
 
         ${PROJECT_SOURCE_DIR}/src/synthetic/scene.cpp
         ${PROJECT_SOURCE_DIR}/src/synthetic/car_like_scene.cpp
+        ${PROJECT_SOURCE_DIR}/src/synthetic/random_scene.cpp
         )
 
 add_library(grpose
