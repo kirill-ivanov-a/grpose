@@ -36,10 +36,11 @@ bool SolverCentralPlusScale::Solve(
       adapter_->GetCorrespondences();
 
   std::map<std::pair<int, int>, std::vector<int>> camera_pairs;
-  for (int i : correspondence_indices)
+  for (int i : correspondence_indices) {
     camera_pairs[{correspondences.camera_index(0, i),
                   correspondences.camera_index(1, i)}]
         .push_back(i);
+  }
   CHECK_EQ(camera_pairs.size(), 2);
   int size_per_pair[2] = {
       static_cast<int>(camera_pairs.begin()->second.size()),

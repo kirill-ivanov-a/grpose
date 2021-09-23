@@ -4,10 +4,12 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <boost/algorithm/string.hpp>
 
 #include "grpose/bearing_vector_correspondences.h"
 #include "grpose/opengv_adapter.h"
 #include "grpose/opengv_solver.h"
+#include "grpose/solver_6pt_poselib.h"
 #include "grpose/solver_central_plus_scale.h"
 #include "synthetic/car_like_scene.h"
 #include "util/metrics.h"
@@ -51,12 +53,22 @@ DEFINE_double(fix_angle, 20, "Fixed turning angle for stability experiments");
 
 DEFINE_int32(num_attempts, 10, "Number of solver runs per a set of parameters");
 
+DEFINE_string(method_names, "6pt,8pt,17pt,c+s,6pt_poselib",
+              "Names of the methods to be tested, separated by a comma. By "
+              "default, all available methods are tested");
+
 DEFINE_bool(run_motion_error, true,
             "Run the test w.r.t. motion length & angle");
 DEFINE_bool(run_stability, true,
             "Run the test w.r.t. scene scale and direction errors");
 
 using namespace grpose;
+
+std::vector<std::string> GetMethodNames(const std::string &names) {
+  std::vector<std::string> names_split;
+  boost::split(names_split, names, boost::is_any_of(","));
+  return names_split;
+}
 
 OpengvSolver::Algorithm NameToAlgorithm(const std::string &method_name) {
   if (method_name == "6pt")
@@ -114,7 +126,6 @@ std::vector<int> SampleCorrespondences(
   for (int ic = 1; ic < c; ++ic) {
     const int current_needed =
         ic <= remainder_other ? number_other + 1 : number_other;
-    // TODO proper assert
     CHECK_LE(current_needed, indices_by_camera[ic].size());
     std::sample(indices_by_camera[ic].begin(), indices_by_camera[ic].end(),
                 std::back_inserter(indices), current_needed, mt);
@@ -167,7 +178,7 @@ std::vector<int> SampleNPlus1Correspondence(
   if (use_cross_camera) {
     std::uniform_int_distribution<int> index_1_d(
         0, static_cast<int>(cross_camera_indices.size()) - 1);
-    indices.push_back(index_1_d(mt));
+    indices.push_back(cross_camera_indices[index_1_d(mt)]);
   } else {
     int camera_1 = 0;
     SampleNFromCamera(indices_by_camera, 1, mt, indices, camera_1, camera_n);
@@ -194,6 +205,11 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
     solver.reset(new SolverCentralPlusScale(opengv_adapter));
     indices = SampleNPlus1Correspondence(
         *correspondences, solver->MinSampleSize() - 1, FLAGS_num_cross > 0, mt);
+  } else if (method_name == "6pt_poselib") {
+    solver.reset(
+        new Solver6ptPoselib(correspondences, scene.GetBodyFromCameras()));
+    indices = SampleCorrespondences(*correspondences, solver->MinSampleSize(),
+                                    FLAGS_num_cross, FLAGS_frac_first, mt);
   } else {
     solver.reset(
         new OpengvSolver(opengv_adapter, NameToAlgorithm(method_name)));
@@ -201,6 +217,20 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
                                     FLAGS_num_cross, FLAGS_frac_first, mt);
   }
   return solver->Solve(indices, frame1_from_frame2);
+}
+
+SE3 BestRteMotion(const StdVectorA<SE3> &motions, const SE3 &true_motion) {
+  CHECK(!motions.empty());
+  SE3 best_motion;
+  double min_rte = std::numeric_limits<double>::infinity();
+  for (const SE3 &motion : motions) {
+    const double rte = AngularTranslationError(true_motion, motion);
+    if (rte < min_rte) {
+      min_rte = rte;
+      best_motion = motion;
+    }
+  }
+  return best_motion;
 }
 
 void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
@@ -222,8 +252,7 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
   scene.SetLength(FLAGS_fix_motion_length);
   scene.SetTurnAngle(FLAGS_fix_angle);
 
-  for (const std::string &method_name : {"6pt", "8pt", "17pt", "c+s"}) {
-    //  for (const std::string &method_name : {"c+s"}) {
+  for (const std::string &method_name : GetMethodNames(FLAGS_method_names)) {
     for (int il = 0; il < number_widths; ++il) {
       const double scene_width = min_width + il * width_step;
       const double scene_scale_change = scene_width / scene.width();
@@ -245,14 +274,14 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
                                                 frame1_from_frame2, angle_std);
           double ate, rte, are;
           if (is_ok) {
-            CHECK_EQ(frame1_from_frame2.size(), 1)
-                << "Statistics collection does not support many solutions yet";
+            const SE3 best_frame1_from_frame2 =
+                BestRteMotion(frame1_from_frame2, true_frame1_from_frame2);
             ate = AbsoluteTranslationError(true_frame1_from_frame2,
-                                           frame1_from_frame2[0]);
+                                           best_frame1_from_frame2);
             rte = AngularTranslationError(true_frame1_from_frame2,
-                                          frame1_from_frame2[0]);
+                                          best_frame1_from_frame2);
             are = AbsoluteRotationError(true_frame1_from_frame2,
-                                        frame1_from_frame2[0]);
+                                        best_frame1_from_frame2);
           } else {
             ate = rte = are = std::numeric_limits<double>::infinity();
           }
@@ -282,8 +311,7 @@ void CalculateErrorTables(synthetic::CarLikeScene scene,
   out_stream
       << "method_name,motion_length,turning_angle,experiment_num,ATE,RTE,ARE"
       << std::endl;
-  for (const std::string &method_name : {"6pt", "8pt", "17pt", "c+s"}) {
-    //  for (const std::string &method_name : {"c+s"}) {
+  for (const std::string &method_name : GetMethodNames(FLAGS_method_names)) {
     for (int il = 0; il < number_motion_lengths; ++il) {
       const double motion_length = min_motion_length + il * motion_length_step;
       scene.SetMotionLength(motion_length);
@@ -302,15 +330,15 @@ void CalculateErrorTables(synthetic::CarLikeScene scene,
                                                 frame1_from_frame2);
           double ate, rte, are;
           if (is_ok) {
-            CHECK_EQ(frame1_from_frame2.size(), 1)
-                << "Statistics collection does not support many solutions yet";
+            const SE3 best_frame1_from_frame2 =
+                BestRteMotion(frame1_from_frame2, true_frame1_from_frame2);
 
             ate = AbsoluteTranslationError(true_frame1_from_frame2,
-                                           frame1_from_frame2[0]);
+                                           best_frame1_from_frame2);
             rte = AngularTranslationError(true_frame1_from_frame2,
-                                          frame1_from_frame2[0]);
+                                          best_frame1_from_frame2);
             are = AbsoluteRotationError(true_frame1_from_frame2,
-                                        frame1_from_frame2[0]);
+                                        best_frame1_from_frame2);
           } else {
             ate = rte = are = std::numeric_limits<double>::infinity();
           }

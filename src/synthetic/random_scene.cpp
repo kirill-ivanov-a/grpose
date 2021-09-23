@@ -36,7 +36,8 @@ BearingVectorCorrespondences RandomScene::GetBearingVectorCorrespondences(
   const int number_same = number_of_correspondences - number_cross;
 
   std::mt19937 mt(random_seed);
-  std::uniform_int_distribution<int> camera_index_distr(0, number_of_cameras_ - 1);
+  std::uniform_int_distribution<int> camera_index_distr(0,
+                                                        number_of_cameras_ - 1);
   std::uniform_real_distribution<double> point_coordinate_distr(
       -max_absolute_point_corrdinate_, max_absolute_point_corrdinate_);
 

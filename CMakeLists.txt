@@ -48,6 +48,8 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/ext/opengv)
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build Sophus's examples")
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/Sophus)
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/ext/PoseLib)
+
 set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/util/metrics.h
         ${PROJECT_SOURCE_DIR}/include/util/trajectory.h
@@ -79,6 +81,7 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_solver.h
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_adapter.h
         ${PROJECT_SOURCE_DIR}/include/grpose/solver_central_plus_scale.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/solver_6pt_poselib.h
 
         ${PROJECT_SOURCE_DIR}/include/synthetic/scene.h
         ${PROJECT_SOURCE_DIR}/include/synthetic/car_like_scene.h
@@ -109,6 +112,7 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_adapter.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/solver_central_plus_scale.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/solver_6pt_poselib.cpp
 
         ${PROJECT_SOURCE_DIR}/src/synthetic/scene.cpp
         ${PROJECT_SOURCE_DIR}/src/synthetic/car_like_scene.cpp
@@ -135,6 +139,7 @@ target_link_libraries(grpose
         PUBLIC
         opengv
         sophus
+        PoseLib
         fmt::fmt
         gflags
         ${OpenCV_LIBS}

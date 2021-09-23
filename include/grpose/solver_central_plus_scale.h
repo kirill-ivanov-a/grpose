@@ -1,3 +1,6 @@
+#ifndef GRPOSE_GRPOSE_SOLVER_CENTRAL_PLUS_SCALE_
+#define GRPOSE_GRPOSE_SOLVER_CENTRAL_PLUS_SCALE_
+
 #include <opengv/sac_problems/relative_pose/CentralRelativePoseSacProblem.hpp>
 
 #include "grpose/non_central_relative_pose_minimal_solver.h"
@@ -28,3 +31,5 @@ class SolverCentralPlusScale : public NonCentralRelativePoseMinimalSolver {
 };
 
 }  // namespace grpose
+
+#endif

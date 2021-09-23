@@ -55,7 +55,6 @@ Vector3 SampleSphereUniform(RandomBitsGenerator &generator,
   return unit_sample * radius + center;
 }
 
-
 }  // namespace grpose
 
 #endif
