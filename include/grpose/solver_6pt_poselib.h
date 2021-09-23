@@ -13,8 +13,9 @@ class Solver6ptPoselib : public NonCentralRelativePoseMinimalSolver {
       const StdVectorA<SE3> &body_from_camera);
 
   int MinSampleSize() const override;
-  bool Solve(const std::vector<int> &correspondence_indices,
-             StdVectorA<SE3> &frame1_from_frame2) const override;
+  bool SolveTimed(const std::vector<int> &correspondence_indices,
+                  StdVectorA<SE3> &frame1_from_frame2,
+                  double &time_in_seconds) const override;
 
  private:
   std::shared_ptr<BearingVectorCorrespondences> correspondences_;

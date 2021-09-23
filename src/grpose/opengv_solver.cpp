@@ -35,16 +35,25 @@ OpengvSolver::OpengvSolver(const std::shared_ptr<OpengvAdapter>& opengv_adapter,
       opengv_solver_(opengv_adapter_->Get(), ToOpengvAlgorithm(algorithm_),
                      false, !deterministic) {}
 
-bool OpengvSolver::Solve(const std::vector<int>& correspondence_indices,
-                         StdVectorA<SE3>& frame1_from_frame2) const {
+bool OpengvSolver::SolveTimed(const std::vector<int>& correspondence_indices,
+                              StdVectorA<SE3>& frame1_from_frame2,
+                              double& time_in_seconds) const {
   frame1_from_frame2.clear();
 
   if (algorithm_ == Algorithm::kRawSixPoint)
-    return SolveRaw6pt(correspondence_indices, frame1_from_frame2);
+    return SolveRaw6pt(correspondence_indices, frame1_from_frame2,
+                       time_in_seconds);
 
   opengv::transformation_t frame1_from_frame2_matrix;  // 3x4 matrix
+
+  auto start_time = std::chrono::high_resolution_clock::now();
   bool is_ok = opengv_solver_.computeModelCoefficients(
       correspondence_indices, frame1_from_frame2_matrix);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  time_in_seconds = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               end_time - start_time)
+                               .count();
+
   if (!is_ok) return false;
   if (frame1_from_frame2_matrix.hasNaN()) return false;
 
@@ -54,12 +63,19 @@ bool OpengvSolver::Solve(const std::vector<int>& correspondence_indices,
 }
 
 bool OpengvSolver::SolveRaw6pt(const std::vector<int>& correspondence_indices,
-                               StdVectorA<SE3>& frame1_from_frame2) const {
+                               StdVectorA<SE3>& frame1_from_frame2,
+                               double& time_in_seconds) const {
   CHECK_EQ(correspondence_indices.size(), 6);
 
+  auto start_time = std::chrono::high_resolution_clock::now();
   const opengv::rotations_t frame1_from_frame2_rotations =
       opengv::relative_pose::sixpt(opengv_adapter_->Get(),
                                    correspondence_indices);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  time_in_seconds = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               end_time - start_time)
+                               .count();
+
   for (const opengv::rotation_t& rotation : frame1_from_frame2_rotations)
     if (!rotation.hasNaN())
       frame1_from_frame2.emplace_back(rotation, Vector3::Zero());

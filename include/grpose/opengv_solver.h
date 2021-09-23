@@ -25,8 +25,9 @@ class OpengvSolver : public NonCentralRelativePoseMinimalSolver {
                Algorithm algorithm, bool deterministic = true);
 
   int MinSampleSize() const override;
-  bool Solve(const std::vector<int> &correspondence_indices,
-             StdVectorA<SE3> &frame1_from_frame2) const override;
+  bool SolveTimed(const std::vector<int> &correspondence_indices,
+                  StdVectorA<SE3> &frame1_from_frame2,
+                  double &time_in_seconds) const override;
 
  private:
   using OpengvInternalSolver =
@@ -36,7 +37,8 @@ class OpengvSolver : public NonCentralRelativePoseMinimalSolver {
       Algorithm algorithm);
 
   bool SolveRaw6pt(const std::vector<int> &correspondence_indices,
-                   StdVectorA<SE3> &frame1_from_frame2) const;
+                   StdVectorA<SE3> &frame1_from_frame2,
+                   double &time_in_seconds) const;
 
   Algorithm algorithm_;
   std::shared_ptr<OpengvAdapter> opengv_adapter_;

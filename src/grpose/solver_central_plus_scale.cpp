@@ -24,9 +24,11 @@ int SolverCentralPlusScale::MinSampleSize() const {
   return opengv_central_solver_.getSampleSize() + 1;
 }
 
-bool SolverCentralPlusScale::Solve(
+bool SolverCentralPlusScale::SolveTimed(
     const std::vector<int> &correspondence_indices,
-    StdVectorA<SE3> &frame1_from_frame2) const {
+    StdVectorA<SE3> &frame1_from_frame2, double &time_in_seconds) const {
+  auto start_time = std::chrono::high_resolution_clock::now();
+
   // TODO normal assert
   CHECK_GE(correspondence_indices.size(), MinSampleSize());
 
@@ -119,6 +121,12 @@ bool SolverCentralPlusScale::Solve(
   const SE3 camera_c1_from_camera_c2(R, alpha * t);
   frame1_from_frame2.push_back(body_from_camera_c1 * camera_c1_from_camera_c2 *
                                body_from_camera_c2.inverse());
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  time_in_seconds = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               end_time - start_time)
+                               .count();
+
   return true;
 }
 

@@ -20,8 +20,9 @@ class SolverCentralPlusScale : public NonCentralRelativePoseMinimalSolver {
       bool deterministic = true, double degenerate_epsilon = 1e-10);
 
   int MinSampleSize() const override;
-  bool Solve(const std::vector<int> &correspondence_indices,
-             StdVectorA<SE3> &frame1_from_frame2) const override;
+  bool SolveTimed(const std::vector<int> &correspondence_indices,
+                  StdVectorA<SE3> &frame1_from_frame2,
+                  double &time_in_seconds) const override;
 
  private:
   CentralSolverAlgorithm algorithm_;

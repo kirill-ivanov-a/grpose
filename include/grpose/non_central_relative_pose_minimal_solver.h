@@ -10,8 +10,16 @@ class NonCentralRelativePoseMinimalSolver {
   virtual ~NonCentralRelativePoseMinimalSolver();
 
   virtual int MinSampleSize() const = 0;
+  virtual bool SolveTimed(const std::vector<int> &correspondence_indices,
+                          StdVectorA<SE3> &frame1_from_frame2,
+                          double &time_in_seconds) const = 0;
+
   virtual bool Solve(const std::vector<int> &correspondence_indices,
-                     StdVectorA<SE3> &frame1_from_frame2) const = 0;
+                     StdVectorA<SE3> &frame1_from_frame2) const {
+    double time_in_seconds;
+    return SolveTimed(correspondence_indices, frame1_from_frame2,
+                      time_in_seconds);
+  }
 };
 
 }  // namespace grpose

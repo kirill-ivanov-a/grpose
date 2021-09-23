@@ -1,6 +1,6 @@
 #include "grpose/solver_6pt_poselib.h"
 
-#include <iostream>
+#include <chrono>
 
 #include <PoseLib/gen_relpose_6pt.h>
 
@@ -13,8 +13,9 @@ Solver6ptPoselib::Solver6ptPoselib(
 
 int Solver6ptPoselib::MinSampleSize() const { return 6; }
 
-bool Solver6ptPoselib::Solve(const std::vector<int>& correspondence_indices,
-                             StdVectorA<SE3>& frame1_from_frame2) const {
+bool Solver6ptPoselib::SolveTimed(
+    const std::vector<int>& correspondence_indices,
+    StdVectorA<SE3>& frame1_from_frame2, double& time_in_seconds) const {
   const int kSampleSize = MinSampleSize();  // 6
   // TODO normal assert
   CHECK_EQ(correspondence_indices.size(), kSampleSize);
@@ -35,9 +36,16 @@ bool Solver6ptPoselib::Solve(const std::vector<int>& correspondence_indices,
                                    correspondences_->bearing_vector(fi, i));
     }
   }
+
+  auto start_time = std::chrono::high_resolution_clock::now();
   const int number_solutions = pose_lib::gen_relpose_6pt(
       ray_centers[0], ray_directions[0], ray_centers[1], ray_directions[1],
       &frame2_from_frame1_poselib);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  time_in_seconds = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               end_time - start_time)
+                               .count();
+
   CHECK_EQ(frame2_from_frame1_poselib.size(), number_solutions);
 
   frame1_from_frame2.clear();

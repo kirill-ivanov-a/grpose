@@ -65,6 +65,9 @@ DEFINE_string(selection_metric, "rte",
               "The metric to select the best solution among minimal solver "
               "outputs. Available options are \"rte\", \"ate\" and \"are\"");
 
+DEFINE_bool(measure_time, false,
+            "If set, some _imprecise_ measurements of solver runtime are made");
+
 using namespace grpose;
 
 std::vector<std::string> GetMethodNames(const std::string &names) {
@@ -196,7 +199,8 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
                               const synthetic::CarLikeScene &scene,
                               const std::string &method_name,
                               StdVectorA<SE3> &frame1_from_frame2,
-                              double angle_std = 0.0) {
+                              double angle_std = 0.0,
+                              double *time_in_seconds = nullptr) {
   std::shared_ptr correspondences =
       std::make_shared<BearingVectorCorrespondences>(
           scene.GetBearingVectorCorrespondences(FLAGS_num_corresps,
@@ -221,7 +225,11 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
     indices = SampleCorrespondences(*correspondences, solver->MinSampleSize(),
                                     FLAGS_num_cross, FLAGS_frac_first, mt);
   }
-  return solver->Solve(indices, frame1_from_frame2);
+
+  if (time_in_seconds)
+    return solver->SolveTimed(indices, frame1_from_frame2, *time_in_seconds);
+  else
+    return solver->Solve(indices, frame1_from_frame2);
 }
 
 double MetricByName(const SE3 &m1, const SE3 &m2,
@@ -264,7 +272,7 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
 
   std::ofstream out_stream(output_filename);
   out_stream << "method_name,scene_width,scene_length,angle_std,"
-                "experiment_num,ATE,RTE,ARE"
+                "experiment_num,ATE,RTE,ARE,time"
              << std::endl;
 
   scene.SetLength(FLAGS_fix_motion_length);
@@ -288,8 +296,10 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
             scene.GetWorldFromBody(0).inverse() * scene.GetWorldFromBody(1);
         for (int ie = 0; ie < number_attempts; ++ie) {
           StdVectorA<SE3> frame1_from_frame2;
-          bool is_ok = EstimateFrame1FromFrame2(mt, scene, method_name,
-                                                frame1_from_frame2, angle_std);
+          double time_in_seconds = 0;
+          double *time_ptr = (FLAGS_measure_time ? &time_in_seconds : nullptr);
+          bool is_ok = EstimateFrame1FromFrame2(
+              mt, scene, method_name, frame1_from_frame2, angle_std, time_ptr);
           double ate, rte, are;
           if (is_ok) {
             const SE3 best_frame1_from_frame2 =
@@ -304,9 +314,10 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
           } else {
             ate = rte = are = std::numeric_limits<double>::infinity();
           }
-          fmt::print(out_stream, "{:s},{:g},{:g},{:g},{:d},{:g},{:g},{:g}\n",
+          fmt::print(out_stream,
+                     "{:s},{:g},{:g},{:g},{:d},{:g},{:g},{:g},{:g}\n",
                      method_name, scene_width, scene_length, angle_std, ie, ate,
-                     rte, are);
+                     rte, are, time_in_seconds);
           out_stream.flush();
         }
       }
