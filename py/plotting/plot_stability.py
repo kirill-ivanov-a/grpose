@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -8,14 +9,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument('table')
 parser.add_argument('--stat', nargs='?', default='median', 
                     const='median', choices=['median', 'average'])
+parser.add_argument('--metric_names', nargs='+', default=['ATE', 'RTE', 'ARE'])
 parser.add_argument("--crop_left", type=int, nargs='?', default=0)
 parser.add_argument("--cbar_top_q", type=float, nargs='?', default=0.95)
 args = parser.parse_args()
 
+for name in args.metric_names:
+    if name not in ['ATE', 'RTE', 'ARE']:
+        print(f'Unknown metric name {name}')
+        sys.exit(1)
+
 data = pd.read_csv(args.table)
 
 method_names = np.unique(data['method_name'])
-metric_names = ['ATE', 'RTE', 'ARE']
+metric_names = args.metric_names
 scene_widths = np.sort(np.unique(data['scene_width']))
 angle_stds = np.sort(np.unique(data['angle_std']))
 angle_stds = angle_stds * 180.0 / np.pi
@@ -30,6 +37,7 @@ metric_units = {'ATE':'m', 'RTE':'deg', 'ARE':'deg'}
 per_metric_plots = [[] for i in range(len(metric_names))]
 
 fig, ax = plt.subplots(len(method_names), len(metric_names))
+ax = ax.reshape((len(method_names), len(metric_names)))
 plots = np.full((len(method_names), len(metric_names)), None, dtype=object)
 error_tables = np.full((len(method_names), len(metric_names)), None, dtype=object)
 errors_per_metric = [[] for i in range(len(metric_names))]

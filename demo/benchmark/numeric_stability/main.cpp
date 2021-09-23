@@ -53,7 +53,7 @@ DEFINE_double(fix_angle, 20, "Fixed turning angle for stability experiments");
 
 DEFINE_int32(num_attempts, 10, "Number of solver runs per a set of parameters");
 
-DEFINE_string(method_names, "6pt,8pt,17pt,c+s,6pt_poselib",
+DEFINE_string(method_names, "6pt,8pt,17pt,c+s,6pt_poselib,6pt_opengv_raw",
               "Names of the methods to be tested, separated by a comma. By "
               "default, all available methods are tested");
 
@@ -61,6 +61,9 @@ DEFINE_bool(run_motion_error, true,
             "Run the test w.r.t. motion length & angle");
 DEFINE_bool(run_stability, true,
             "Run the test w.r.t. scene scale and direction errors");
+DEFINE_string(selection_metric, "rte",
+              "The metric to select the best solution among minimal solver "
+              "outputs. Available options are \"rte\", \"ate\" and \"are\"");
 
 using namespace grpose;
 
@@ -73,6 +76,8 @@ std::vector<std::string> GetMethodNames(const std::string &names) {
 OpengvSolver::Algorithm NameToAlgorithm(const std::string &method_name) {
   if (method_name == "6pt")
     return OpengvSolver::Algorithm::kSixPoint;
+  else if (method_name == "6pt_opengv_raw")
+    return OpengvSolver::Algorithm::kRawSixPoint;
   else if (method_name == "8pt")
     return OpengvSolver::Algorithm::kGeneralizedEigensolver;
   else if (method_name == "17pt")
@@ -219,14 +224,27 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
   return solver->Solve(indices, frame1_from_frame2);
 }
 
-SE3 BestRteMotion(const StdVectorA<SE3> &motions, const SE3 &true_motion) {
+double MetricByName(const SE3 &m1, const SE3 &m2,
+                    const std::string &metric_name) {
+  if (metric_name == "ate")
+    return AbsoluteTranslationError(m1, m2);
+  else if (metric_name == "rte")
+    return AngularTranslationError(m1, m2);
+  else if (metric_name == "are")
+    return AbsoluteRotationError(m1, m2);
+  else
+    throw std::domain_error("Unknown metric name " + metric_name);
+}
+
+SE3 SelectBestMotion(const StdVectorA<SE3> &motions, const SE3 &true_motion,
+                     const std::string &selection_metric) {
   CHECK(!motions.empty());
   SE3 best_motion;
-  double min_rte = std::numeric_limits<double>::infinity();
+  double min_metric = std::numeric_limits<double>::infinity();
   for (const SE3 &motion : motions) {
-    const double rte = AngularTranslationError(true_motion, motion);
-    if (rte < min_rte) {
-      min_rte = rte;
+    const double metric = MetricByName(true_motion, motion, selection_metric);
+    if (metric < min_metric) {
+      min_metric = metric;
       best_motion = motion;
     }
   }
@@ -275,7 +293,8 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
           double ate, rte, are;
           if (is_ok) {
             const SE3 best_frame1_from_frame2 =
-                BestRteMotion(frame1_from_frame2, true_frame1_from_frame2);
+                SelectBestMotion(frame1_from_frame2, true_frame1_from_frame2,
+                                 FLAGS_selection_metric);
             ate = AbsoluteTranslationError(true_frame1_from_frame2,
                                            best_frame1_from_frame2);
             rte = AngularTranslationError(true_frame1_from_frame2,
@@ -331,7 +350,8 @@ void CalculateErrorTables(synthetic::CarLikeScene scene,
           double ate, rte, are;
           if (is_ok) {
             const SE3 best_frame1_from_frame2 =
-                BestRteMotion(frame1_from_frame2, true_frame1_from_frame2);
+                SelectBestMotion(frame1_from_frame2, true_frame1_from_frame2,
+                                 FLAGS_selection_metric);
 
             ate = AbsoluteTranslationError(true_frame1_from_frame2,
                                            best_frame1_from_frame2);
