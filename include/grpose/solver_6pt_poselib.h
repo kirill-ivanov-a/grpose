@@ -2,11 +2,11 @@
 #define GRPOSE_GRPOSE_SOLVER_6PT_POSELIB_
 
 #include "grpose/bearing_vector_correspondences.h"
-#include "grpose/non_central_relative_pose_minimal_solver.h"
+#include "grpose/minimal_solver.h"
 
 namespace grpose {
 
-class Solver6ptPoselib : public NonCentralRelativePoseMinimalSolver {
+class Solver6ptPoselib : public MinimalSolver {
  public:
   Solver6ptPoselib(
       const std::shared_ptr<BearingVectorCorrespondences> &correspondences,

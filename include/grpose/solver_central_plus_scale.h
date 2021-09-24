@@ -3,12 +3,12 @@
 
 #include <opengv/sac_problems/relative_pose/CentralRelativePoseSacProblem.hpp>
 
-#include "grpose/non_central_relative_pose_minimal_solver.h"
+#include "grpose/minimal_solver.h"
 #include "grpose/opengv_adapter.h"
 
 namespace grpose {
 
-class SolverCentralPlusScale : public NonCentralRelativePoseMinimalSolver {
+class SolverCentralPlusScale : public MinimalSolver {
  public:
   using OpengvCentralSolver =
       opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem;
