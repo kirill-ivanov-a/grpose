@@ -1,5 +1,5 @@
-#ifndef GRPOSE_GRPOSE_OPENGV_SOLVER_
-#define GRPOSE_GRPOSE_OPENGV_SOLVER_
+#ifndef GRPOSE_GRPOSE_OPENGV_MINIMAL_SOLVER_
+#define GRPOSE_GRPOSE_OPENGV_MINIMAL_SOLVER_
 
 #include <memory>
 
@@ -10,7 +10,7 @@
 
 namespace grpose {
 
-class OpengvSolver : public MinimalSolver {
+class OpengvMinimalSolver : public MinimalSolver {
  public:
   enum class Algorithm {
     kSixPoint,  // Stewenius 6pt algorithm with OpenGV's translation estimation
@@ -21,8 +21,8 @@ class OpengvSolver : public MinimalSolver {
     kSeventeenPoint           // Li 17pt algorithm
   };
 
-  OpengvSolver(const std::shared_ptr<OpengvAdapter> &opengv_adapter,
-               Algorithm algorithm, bool deterministic = true);
+  OpengvMinimalSolver(const std::shared_ptr<OpengvAdapter> &opengv_adapter,
+                      Algorithm algorithm, bool deterministic = true);
 
   int MinSampleSize() const override;
   bool SolveTimed(const std::vector<int> &correspondence_indices,

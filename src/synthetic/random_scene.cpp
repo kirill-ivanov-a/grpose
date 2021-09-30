@@ -84,6 +84,41 @@ BearingVectorCorrespondences RandomScene::GetBearingVectorCorrespondences(
   return correspondences;
 }
 
+BearingVectorCorrespondences RandomScene::GetOutlierCorrespondences(
+    int number_of_correspondences, double cross_camera_fraction,
+    unsigned long random_seed) const {
+  BearingVectorCorrespondences correspondences;
+
+  const int number_cross =
+      static_cast<int>(cross_camera_fraction * number_of_correspondences);
+  const int number_same = number_of_correspondences - number_cross;
+
+  std::mt19937 mt(random_seed);
+  std::uniform_int_distribution camera_index_distr(0, number_of_cameras_ - 1);
+  for (int i = 0; i < number_same; ++i) {
+    const int camera_index = camera_index_distr(mt);
+    Vector3 directions[2] = {SampleHemisphereUniform(mt),
+                             SampleHemisphereUniform(mt)};
+    correspondences.AddCorrespondence(directions[0], directions[1],
+                                      camera_index, camera_index);
+  }
+
+  for (int i = 0; i < number_cross; ++i) {
+    int camera_indices[2];
+    Vector3 directions[2];
+    for (int fi = 0; fi < 2; ++fi) {
+      camera_indices[fi] = camera_index_distr(mt);
+      directions[fi] = SampleHemisphereUniform(mt);
+    }
+    correspondences.AddCorrespondence(directions[0], directions[1],
+                                      camera_indices[0], camera_indices[1]);
+  }
+
+  return correspondences;
+}
+
+int RandomScene::NumberOfCameras() const { return number_of_cameras_; }
+
 SE3 RandomScene::GetWorldFromBody(int frame_index) const {
   // TODO
   CHECK_GE(frame_index, 0);

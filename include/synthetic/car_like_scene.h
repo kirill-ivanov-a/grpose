@@ -15,6 +15,11 @@ class CarLikeScene : public Scene {
       int number_of_correspondences, double cross_camera_fraction = 0.0,
       unsigned long random_seed = 42) const override;
 
+  BearingVectorCorrespondences GetOutlierCorrespondences(
+      int number_of_correspondences, double cross_camera_fraction = 0.0,
+      unsigned long random_seed = 42) const override;
+
+  int NumberOfCameras() const override;
   SE3 GetWorldFromBody(int frame_index) const override;
   StdVectorA<SE3> GetBodyFromCameras() const override;
 
@@ -24,7 +29,9 @@ class CarLikeScene : public Scene {
   inline void SetLength(double length);
   inline double height() const;
   inline double depth() const;
+  inline double motion_length() const;
   inline void SetMotionLength(double motion_length);
+  inline double turn_angle() const;
   inline void SetTurnAngle(double angle);
 
  private:
@@ -45,6 +52,7 @@ class CarLikeScene : public Scene {
   static constexpr int kRightCameraIndex = 1;
   static constexpr int kLeftCameraIndex = 2;
   static constexpr int kRearCameraIndex = 3;
+  static constexpr int kNumberOfCameras = 4;
 
   // Camera configuration in MultiCam, scaled to a realistic car size
   // clang-format off
@@ -103,11 +111,15 @@ inline double CarLikeScene::height() const { return height_; }
 
 inline double CarLikeScene::depth() const { return depth_; }
 
+double CarLikeScene::motion_length() const { return motion_length_; }
+
 inline void CarLikeScene::SetMotionLength(double motion_length) {
   motion_length_ = motion_length;
   world_from_body_[1] =
       WorldFromSecondFrame(motion_length_, turn_angle_, car_height_);
 }
+
+double CarLikeScene::turn_angle() const { return turn_angle_; }
 
 inline void CarLikeScene::SetTurnAngle(double angle) {
   turn_angle_ = angle;

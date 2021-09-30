@@ -1,1 +1,2 @@
-add_subdirectory(numeric_stability)
+add_subdirectory(minimal_solver_stability)
+add_subdirectory(synthetic_ransac_benchmark)

@@ -30,6 +30,15 @@ class BearingVectorCorrespondences {
   void AddGaussianDirectionNoise(RandomBitsGenerator &generator,
                                  double angle_std);
 
+  /**
+   * Mixes \p other randomly into this.
+   * @return a vector v of bool. If on the i-th position there is an old
+   * correspondence, v[i] is true, otherwise it is false.
+   */
+  template <typename RandomBitsGenerator>
+  std::vector<bool> MixIn(RandomBitsGenerator &generator,
+                          const BearingVectorCorrespondences &other);
+
  private:
   StdVectorA<Vector3> bearing_vectors_[2];
   std::vector<int> camera_indices_[2];
@@ -110,6 +119,39 @@ void BearingVectorCorrespondences::AddGaussianDirectionNoise(
   for (int fi = 0; fi < 2; ++fi)
     for (Vector3 &vector : bearing_vectors_[fi])
       vector = grpose::AddGaussianDirectionNoise(generator, vector, angle_std);
+}
+
+template <typename RandomBitsGenerator>
+std::vector<bool> BearingVectorCorrespondences::MixIn(
+    RandomBitsGenerator &generator, const BearingVectorCorrespondences &other) {
+  std::vector<bool> is_old(
+      NumberOfCorrespondences() + other.NumberOfCorrespondences(), false);
+  for (int i = 0; i < NumberOfCorrespondences(); ++i) is_old[i] = true;
+  std::shuffle(is_old.begin(), is_old.end(), generator);
+
+  BearingVectorCorrespondences new_correspondences;
+  int this_index = 0, other_index = 0;
+  for (int v : is_old) {
+    if (v) {
+      new_correspondences.AddCorrespondence(
+          bearing_vector(0, this_index), bearing_vector(1, this_index),
+          camera_index(0, this_index), camera_index(1, this_index));
+      this_index++;
+    } else {
+      new_correspondences.AddCorrespondence(
+          other.bearing_vector(0, other_index),
+          other.bearing_vector(1, other_index),
+          other.camera_index(0, other_index),
+          other.camera_index(1, other_index));
+      other_index++;
+    }
+  }
+  CHECK_EQ(this_index, NumberOfCorrespondences());
+  CHECK_EQ(other_index, other.NumberOfCorrespondences());
+
+  *this = std::move(new_correspondences);
+
+  return is_old;
 }
 
 }  // namespace grpose

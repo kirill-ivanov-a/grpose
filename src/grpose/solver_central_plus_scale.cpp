@@ -11,7 +11,8 @@ SolverCentralPlusScale::SolverCentralPlusScale(
     double degenerate_epsilon)
     : algorithm_(algorithm),
       adapter_(adapter),
-      opengv_central_solver_(adapter_->Get(), algorithm_, !deterministic),
+      opengv_central_solver_(adapter_->GetAdapter(), algorithm_,
+                             !deterministic),
       degenerate_epsilon_(degenerate_epsilon) {}
 
 int SolverCentralPlusScale::MinSampleSize() const {
@@ -79,17 +80,17 @@ bool SolverCentralPlusScale::SolveTimed(
   if (camera_c1_from_camera_c2_matrix.hasNaN()) return false;
 
   const SE3 body_from_camera_c1(
-      adapter_->Get().getCamRotation1(correspondences_central[0]),
-      adapter_->Get().getCamOffset1(correspondences_central[0]));
+      adapter_->GetAdapter().getCamRotation1(correspondences_central[0]),
+      adapter_->GetAdapter().getCamOffset1(correspondences_central[0]));
   const SE3 body_from_camera_c2(
-      adapter_->Get().getCamRotation2(correspondences_central[0]),
-      adapter_->Get().getCamOffset2(correspondences_central[0]));
+      adapter_->GetAdapter().getCamRotation2(correspondences_central[0]),
+      adapter_->GetAdapter().getCamOffset2(correspondences_central[0]));
   const SE3 body_from_camera_11(
-      adapter_->Get().getCamRotation1(correspondence_1),
-      adapter_->Get().getCamOffset1(correspondence_1));
+      adapter_->GetAdapter().getCamRotation1(correspondence_1),
+      adapter_->GetAdapter().getCamOffset1(correspondence_1));
   const SE3 body_from_camera_12(
-      adapter_->Get().getCamRotation2(correspondence_1),
-      adapter_->Get().getCamOffset2(correspondence_1));
+      adapter_->GetAdapter().getCamRotation2(correspondence_1),
+      adapter_->GetAdapter().getCamOffset2(correspondence_1));
 
   const SE3 camera_11_from_camera_c1 =
       body_from_camera_11.inverse() * body_from_camera_c1;

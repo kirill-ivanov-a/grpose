@@ -13,6 +13,11 @@ class Scene {
       int number_of_correspondences, double cross_camera_fraction = 0.0,
       unsigned long random_seed = 42) const = 0;
 
+  virtual BearingVectorCorrespondences GetOutlierCorrespondences(
+      int number_of_correspondences, double cross_camera_fraction = 0.0,
+      unsigned long random_seed = 42) const = 0;
+
+  virtual int NumberOfCameras() const = 0;
   virtual SE3 GetWorldFromBody(int frame_index) const = 0;
   virtual StdVectorA<SE3> GetBodyFromCameras() const = 0;
 };

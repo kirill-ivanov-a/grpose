@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <glog/logging.h>
+#include <boost/algorithm/string.hpp>
 
 #include "util/types.h"
 
@@ -91,6 +92,12 @@ std::vector<cv::Vec3b> GetColors(std::vector<double> values, double min_value,
   std::vector<cv::Vec3b> colors(values.size());
   for (int i = 0; i < values.size(); ++i) colors[i] = colors_mat(i, 0);
   return colors;
+}
+
+std::vector<std::string> SplitByComma(const std::string &comma_list) {
+  std::vector<std::string> list;
+  boost::split(list, comma_list, boost::is_any_of(","));
+  return list;
 }
 
 std::string CurrentTimeBrief() {

@@ -19,6 +19,13 @@ Vector3 SampleSphereUniform(RandomBitsGenerator &generator,
                             const Vector3 &center = Vector3::Zero(),
                             double radius = 1);
 
+template <typename RandomBitsGenerator>
+Vector3 SampleHemisphereUniform(RandomBitsGenerator &generator,
+                                const Vector3 &direction = Vector3(0.0, 0.0,
+                                                                   1.0),
+                                const Vector3 &center = Vector3::Zero(),
+                                double radius = 1);
+
 // Implementation
 
 template <typename RandomBitsGenerator>
@@ -42,17 +49,47 @@ Vector3 AddGaussianDirectionNoise(RandomBitsGenerator &generator,
   return noisy_direction;
 }
 
+namespace {
+
 template <typename RandomBitsGenerator>
-Vector3 SampleSphereUniform(RandomBitsGenerator &generator,
-                            const Vector3 &center, double radius) {
+Vector3 SampleUnitSphereSectionUniform(RandomBitsGenerator &generator,
+                                       double z_min, double z_max) {
+  CHECK_LE(z_min, z_max);
+
   // Here we use Archmedes' hat-box theorem
-  std::uniform_real_distribution<double> z_distr(-1.0, 1.0);
+  std::uniform_real_distribution<double> z_distr(z_min, z_max);
   std::uniform_real_distribution<double> phi_distr(0.0, 2 * M_PI);
   const double z = z_distr(generator), phi = phi_distr(generator);
   const double r = std::sqrt(1.0 - z * z);
   const double x = r * std::cos(phi), y = r * std::sin(phi);
-  const Vector3 unit_sample(x, y, z);
+  return Vector3(x, y, z);
+}
+
+}  // namespace
+
+template <typename RandomBitsGenerator>
+Vector3 SampleSphereUniform(RandomBitsGenerator &generator,
+                            const Vector3 &center, double radius) {
+  const Vector3 unit_sample =
+      SampleUnitSphereSectionUniform(generator, -1.0, 1.0);
   return unit_sample * radius + center;
+}
+
+template <typename RandomBitsGenerator>
+Vector3 SampleHemisphereUniform(RandomBitsGenerator &generator,
+                                const Vector3 &direction, const Vector3 &center,
+                                double radius) {
+  const Vector3 unit_sample =
+      SampleUnitSphereSectionUniform(generator, 0.0, 1.0);
+
+  // construct an SO(3) transformation R s.t. R*(0 0 1)^T = direction
+  const Vector3 vx = AnyOrthogonalUnitVector(direction);
+  const Vector3 vy = direction.cross(vx);
+  Matrix33 R;
+  R << vx, vy, direction;
+  CHECK_NEAR(R.determinant(), 1.0, 1e-10);
+
+  return radius * (R * unit_sample) + center;
 }
 
 }  // namespace grpose

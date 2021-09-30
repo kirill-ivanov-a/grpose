@@ -203,7 +203,7 @@ NonCentralRelativePoseSolution NonCentralRelativePoseSolverOld::solve(
   ransac.max_iterations_ = settings_.ransac_max_iter;
   ransac.probability_ = settings_.ransac_probability;
 
-  StdVectorA<Eigen::Vector3d> translation_estimates;
+  StdVectorA<Vector3> translation_estimates;
   StdVectorA<SO3> rotation_estimates;
 
   for (int i = 0; i < ransac_runs; i++) {

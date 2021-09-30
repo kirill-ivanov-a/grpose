@@ -4,11 +4,10 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <boost/algorithm/string.hpp>
 
 #include "grpose/bearing_vector_correspondences.h"
 #include "grpose/opengv_adapter.h"
-#include "grpose/opengv_solver.h"
+#include "grpose/opengv_minimal_solver.h"
 #include "grpose/solver_6pt_poselib.h"
 #include "grpose/solver_central_plus_scale.h"
 #include "synthetic/car_like_scene.h"
@@ -70,21 +69,18 @@ DEFINE_bool(measure_time, false,
 
 using namespace grpose;
 
-std::vector<std::string> GetMethodNames(const std::string &names) {
-  std::vector<std::string> names_split;
-  boost::split(names_split, names, boost::is_any_of(","));
-  return names_split;
-}
+namespace {
 
-OpengvSolver::Algorithm NameToAlgorithm(const std::string &method_name) {
+OpengvMinimalSolver::Algorithm NameToOpengvAlgorithm(
+    const std::string &method_name) {
   if (method_name == "6pt")
-    return OpengvSolver::Algorithm::kSixPoint;
+    return OpengvMinimalSolver::Algorithm::kSixPoint;
   else if (method_name == "6pt_opengv_raw")
-    return OpengvSolver::Algorithm::kRawSixPoint;
+    return OpengvMinimalSolver::Algorithm::kRawSixPoint;
   else if (method_name == "8pt")
-    return OpengvSolver::Algorithm::kGeneralizedEigensolver;
+    return OpengvMinimalSolver::Algorithm::kGeneralizedEigensolver;
   else if (method_name == "17pt")
-    return OpengvSolver::Algorithm::kSeventeenPoint;
+    return OpengvMinimalSolver::Algorithm::kSeventeenPoint;
   else
     throw std::domain_error(fmt::format("Unknown method \"{}\"", method_name));
 }
@@ -220,8 +216,8 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
     indices = SampleCorrespondences(*correspondences, solver->MinSampleSize(),
                                     FLAGS_num_cross, FLAGS_frac_first, mt);
   } else {
-    solver.reset(
-        new OpengvSolver(opengv_adapter, NameToAlgorithm(method_name)));
+    solver.reset(new OpengvMinimalSolver(opengv_adapter,
+                                         NameToOpengvAlgorithm(method_name)));
     indices = SampleCorrespondences(*correspondences, solver->MinSampleSize(),
                                     FLAGS_num_cross, FLAGS_frac_first, mt);
   }
@@ -278,7 +274,7 @@ void CalculateStabilityTables(synthetic::CarLikeScene scene, double min_width,
   scene.SetLength(FLAGS_fix_motion_length);
   scene.SetTurnAngle(FLAGS_fix_angle);
 
-  for (const std::string &method_name : GetMethodNames(FLAGS_method_names)) {
+  for (const std::string &method_name : SplitByComma(FLAGS_method_names)) {
     for (int il = 0; il < number_widths; ++il) {
       const double scene_width = min_width + il * width_step;
       const double scene_scale_change = scene_width / scene.width();
@@ -341,7 +337,7 @@ void CalculateErrorTables(synthetic::CarLikeScene scene,
   out_stream
       << "method_name,motion_length,turning_angle,experiment_num,ATE,RTE,ARE"
       << std::endl;
-  for (const std::string &method_name : GetMethodNames(FLAGS_method_names)) {
+  for (const std::string &method_name : SplitByComma(FLAGS_method_names)) {
     for (int il = 0; il < number_motion_lengths; ++il) {
       const double motion_length = min_motion_length + il * motion_length_step;
       scene.SetMotionLength(motion_length);
@@ -381,14 +377,16 @@ void CalculateErrorTables(synthetic::CarLikeScene scene,
   }
 }
 
+}  // namespace
+
 int main(int argc, char *argv[]) {
-  std::string usage = R"abacaba(Usage:   ./numeric_stability)abacaba";
+  std::string usage = R"abacaba(Usage:   ./minimal_solver_stability)abacaba";
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   gflags::SetUsageMessage(usage);
   google::InitGoogleLogging(argv[0]);
 
   fs::path output_directory =
-      fs::path("output") / ("numeric_stability_" + CurrentTimeBrief());
+      fs::path("output") / ("minimal_solver_stability_" + CurrentTimeBrief());
   fs::create_directories(output_directory);
   std::cout << "output dir: " << output_directory.string() << std::endl;
 

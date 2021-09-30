@@ -1,18 +1,18 @@
-#include "grpose/opengv_solver.h"
+#include "grpose/opengv_minimal_solver.h"
 
 #include <opengv/relative_pose/methods.hpp>
 
 namespace grpose {
 
-OpengvSolver::OpengvInternalSolver::algorithm_t OpengvSolver::ToOpengvAlgorithm(
-    Algorithm algorithm) {
+OpengvMinimalSolver::OpengvInternalSolver::algorithm_t
+OpengvMinimalSolver::ToOpengvAlgorithm(Algorithm algorithm) {
   switch (algorithm) {
-    case OpengvSolver::Algorithm::kSixPoint:
-    case OpengvSolver::Algorithm::kRawSixPoint:
+    case OpengvMinimalSolver::Algorithm::kSixPoint:
+    case OpengvMinimalSolver::Algorithm::kRawSixPoint:
       return OpengvInternalSolver::SIXPT;
-    case OpengvSolver::Algorithm::kSeventeenPoint:
+    case OpengvMinimalSolver::Algorithm::kSeventeenPoint:
       return OpengvInternalSolver::SEVENTEENPT;
-    case OpengvSolver::Algorithm::kGeneralizedEigensolver:
+    case OpengvMinimalSolver::Algorithm::kGeneralizedEigensolver:
       return OpengvInternalSolver::GE;
     default:
       throw std::domain_error(
@@ -20,24 +20,24 @@ OpengvSolver::OpengvInternalSolver::algorithm_t OpengvSolver::ToOpengvAlgorithm(
   }
 }
 
-int OpengvSolver::MinSampleSize() const {
+int OpengvMinimalSolver::MinSampleSize() const {
   if (algorithm_ == Algorithm::kRawSixPoint)
     return 6;
   else
     return opengv_solver_.getSampleSize();
 }
 
-OpengvSolver::OpengvSolver(const std::shared_ptr<OpengvAdapter>& opengv_adapter,
-                           OpengvSolver::Algorithm algorithm,
-                           bool deterministic)
+OpengvMinimalSolver::OpengvMinimalSolver(
+    const std::shared_ptr<OpengvAdapter>& opengv_adapter,
+    OpengvMinimalSolver::Algorithm algorithm, bool deterministic)
     : algorithm_(algorithm),
       opengv_adapter_(opengv_adapter),
-      opengv_solver_(opengv_adapter_->Get(), ToOpengvAlgorithm(algorithm_),
-                     false, !deterministic) {}
+      opengv_solver_(opengv_adapter_->GetAdapter(),
+                     ToOpengvAlgorithm(algorithm_), false, !deterministic) {}
 
-bool OpengvSolver::SolveTimed(const std::vector<int>& correspondence_indices,
-                              StdVectorA<SE3>& frame1_from_frame2,
-                              double& time_in_seconds) const {
+bool OpengvMinimalSolver::SolveTimed(
+    const std::vector<int>& correspondence_indices,
+    StdVectorA<SE3>& frame1_from_frame2, double& time_in_seconds) const {
   frame1_from_frame2.clear();
 
   if (algorithm_ == Algorithm::kRawSixPoint)
@@ -62,14 +62,14 @@ bool OpengvSolver::SolveTimed(const std::vector<int>& correspondence_indices,
   return true;
 }
 
-bool OpengvSolver::SolveRaw6pt(const std::vector<int>& correspondence_indices,
-                               StdVectorA<SE3>& frame1_from_frame2,
-                               double& time_in_seconds) const {
+bool OpengvMinimalSolver::SolveRaw6pt(
+    const std::vector<int>& correspondence_indices,
+    StdVectorA<SE3>& frame1_from_frame2, double& time_in_seconds) const {
   CHECK_EQ(correspondence_indices.size(), 6);
 
   auto start_time = std::chrono::high_resolution_clock::now();
   const opengv::rotations_t frame1_from_frame2_rotations =
-      opengv::relative_pose::sixpt(opengv_adapter_->Get(),
+      opengv::relative_pose::sixpt(opengv_adapter_->GetAdapter(),
                                    correspondence_indices);
   auto end_time = std::chrono::high_resolution_clock::now();
   time_in_seconds = 1e-9 * std::chrono::duration_cast<std::chrono::nanoseconds>(

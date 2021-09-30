@@ -88,6 +88,8 @@ std::vector<cv::Vec3b> GetColors(std::vector<double> values, double min_value,
                                  double max_value,
                                  const cv::ColormapTypes &colormap);
 
+std::vector<std::string> SplitByComma(const std::string &comma_list);
+
 /**
  * @return Current date and time in a format suitable for creating files
  * with a name that includes it.

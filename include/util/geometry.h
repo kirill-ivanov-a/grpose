@@ -20,6 +20,8 @@ void Triangulate(const SE3 &frame2_from_frame1, const Vector3 &ray1,
 
 double Angle(const Vector3 &direction1, const Vector3 &direction2);
 
+Vector3 AnyOrthogonalUnitVector(const Vector3 &direction);
+
 }  // namespace grpose
 
 #endif

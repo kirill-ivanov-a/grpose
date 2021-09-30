@@ -18,7 +18,43 @@ opengv::rotations_t ToRotations(const StdVectorA<SE3> &transformations) {
   return rotations;
 }
 
+std::array<std::vector<std::shared_ptr<opengv::bearingVectors_t>>, 2>
+ToMultiBearingVectors(const BearingVectorCorrespondences &correspondences) {
+  std::array<std::vector<std::shared_ptr<opengv::bearingVectors_t>>, 2>
+      multi_bearing_vectors;
+  for (int fi = 0; fi < 2; ++fi) {
+    multi_bearing_vectors[fi].reserve(correspondences.NumberOfCameras());
+    for (int ci = 0; ci < correspondences.NumberOfCameras(); ++ci)
+      multi_bearing_vectors[fi].emplace_back(new opengv::bearingVectors_t());
+  }
+
+  for (int i = 0; i < correspondences.NumberOfCorrespondences(); ++i) {
+    const int ci[2] = {correspondences.camera_index(0, i),
+                       correspondences.camera_index(1, i)};
+    // we discard cross-camera correspondences; OpenGV's "multi" formulation
+    // can't handle them
+    if (ci[0] == ci[1]) {
+      for (int fi = 0; fi < 2; ++fi) {
+        multi_bearing_vectors[fi][ci[fi]]->push_back(
+            correspondences.bearing_vector(fi, i));
+      }
+    }
+  }
+
+  return multi_bearing_vectors;
+}
+
 }  // namespace
+
+OpengvAdapter::OpengvInternalMultiAdapter OpengvAdapter::ConstructMultiAdapter(
+    const BearingVectorCorrespondences &correspondences,
+    const opengv::translations_t &body_from_camera_translations,
+    const opengv::rotations_t &body_from_camera_rotations) {
+  auto [bearing_vectors0, bearing_vectors1] =
+      ToMultiBearingVectors(correspondences);
+  return {bearing_vectors0, bearing_vectors1, body_from_camera_translations,
+          body_from_camera_rotations};
+}
 
 OpengvAdapter::OpengvAdapter(
     const std::shared_ptr<BearingVectorCorrespondences> &correspondences,
@@ -30,6 +66,9 @@ OpengvAdapter::OpengvAdapter(
                correspondences_->bearing_vectors(1),
                correspondences_->camera_indices(0),
                correspondences_->camera_indices(1),
-               body_from_camera_translations_, body_from_camera_rotations_) {}
+               body_from_camera_translations_, body_from_camera_rotations_),
+      multi_adapter_(ConstructMultiAdapter(*correspondences,
+                                           body_from_camera_translations_,
+                                           body_from_camera_rotations_)) {}
 
 }  // namespace grpose

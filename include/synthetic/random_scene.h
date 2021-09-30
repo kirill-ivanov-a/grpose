@@ -20,7 +20,11 @@ class RandomScene : public Scene {
   BearingVectorCorrespondences GetBearingVectorCorrespondences(
       int number_of_correspondences, double cross_camera_fraction,
       unsigned long random_seed) const override;
+  BearingVectorCorrespondences GetOutlierCorrespondences(
+      int number_of_correspondences, double cross_camera_fraction = 0.0,
+      unsigned long random_seed = 42) const override;
 
+  int NumberOfCameras() const override;
   SE3 GetWorldFromBody(int frame_index) const override;
   StdVectorA<SE3> GetBodyFromCameras() const override;
 

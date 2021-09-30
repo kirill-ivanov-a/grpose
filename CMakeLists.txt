@@ -76,10 +76,12 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/init_opengv/multicam_init_settings.h
         ${PROJECT_SOURCE_DIR}/include/init_opengv/write_poses_to_file.h
 
-        ${PROJECT_SOURCE_DIR}/include/grpose/minimal_solver.h
         ${PROJECT_SOURCE_DIR}/include/grpose/bearing_vector_correspondences.h
-        ${PROJECT_SOURCE_DIR}/include/grpose/opengv_solver.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/minimal_solver.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/solver_bvc.h
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_adapter.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/opengv_minimal_solver.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/opengv_solver_bvc.h
         ${PROJECT_SOURCE_DIR}/include/grpose/solver_central_plus_scale.h
         ${PROJECT_SOURCE_DIR}/include/grpose/solver_6pt_poselib.h
 
@@ -107,10 +109,12 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/init_opengv/multicam_init_settings.cpp
         ${PROJECT_SOURCE_DIR}/src/init_opengv/write_poses_to_file.cpp
 
-        ${PROJECT_SOURCE_DIR}/src/grpose/minimal_solver.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/bearing_vector_correspondences.cpp
-        ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/minimal_solver.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/solver_bvc.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_adapter.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/opengv_minimal_solver.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver_bvc.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/solver_central_plus_scale.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/solver_6pt_poselib.cpp
 
