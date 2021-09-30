@@ -29,7 +29,7 @@ DEFINE_double(angle_std, kDefaultAngleStd,
 
 DEFINE_double(fix_motion_length, 10,
               "Fixed motion length for stability experiments");
-DEFINE_string(fix_angles, "0,20",
+DEFINE_string(fix_angles, "20,0",
               "A set of turning angles for stability experiments, separated by "
               "commas. Angles are in degrees.");
 
@@ -85,7 +85,7 @@ void RunBenchmark(synthetic::CarLikeScene scene,
         const double outlier_frac =
             FLAGS_min_outlier_frac + i_frac * outlier_frac_step;
         const int number_outliers = FLAGS_num_corresps * outlier_frac;
-        const int number_inliers = FLAGS_num_corresps - number_inliers;
+        const int number_inliers = FLAGS_num_corresps - number_outliers;
         auto algorithm = NameToOpengvAlgorithm(method_name);
         BearingVectorCorrespondences correspondences =
             scene.GetBearingVectorCorrespondences(number_inliers,
