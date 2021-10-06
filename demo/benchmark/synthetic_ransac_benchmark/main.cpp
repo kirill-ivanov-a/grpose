@@ -1,4 +1,3 @@
-#include <fstream>
 #include <iostream>
 #include <random>
 
@@ -21,6 +20,15 @@ DEFINE_double(min_outlier_frac, 0.0, "Minimal fraction of outliers");
 DEFINE_double(max_outlier_frac, 0.6, "Maximal fraction of outliers");
 DEFINE_int32(num_outlier_frac, 7, "Number of fractions of outliers");
 
+DEFINE_int32(ransac_max_iter, 20000, "Max iterations of RANSAC");
+DEFINE_double(ransac_thres_factor, 3.0,
+              "Error threshold for RANSAC will be calculated as f * s^2 where "
+              "s is the angle standard deviation of the generated bearing "
+              "vectors and f is the value of this flag");
+
+DEFINE_int32(num_attempts, 10,
+             "Number of experiment runs per a set of parameters");
+
 // With focal length f=1200pix, one pixel error corresponds to roughly 0.04
 // degrees of angular deviation
 constexpr double kDefaultAngleStd = 0.06 * M_PI / 180.0;
@@ -29,7 +37,7 @@ DEFINE_double(angle_std, kDefaultAngleStd,
 
 DEFINE_double(fix_motion_length, 10,
               "Fixed motion length for stability experiments");
-DEFINE_string(fix_angles, "20,0",
+DEFINE_string(fix_angles, "20",
               "A set of turning angles for stability experiments, separated by "
               "commas. Angles are in degrees.");
 
@@ -64,10 +72,10 @@ OpengvSolverBvcSettings::Algorithm NameToOpengvAlgorithm(
 void RunBenchmark(synthetic::CarLikeScene scene,
                   const fs::path &output_filename) {
   std::ofstream out_stream(output_filename);
-  out_stream
-      << "ransac_impl,min_solver,sample_size,outlier_frac,motion_length,"
-         "turning_angle,success,qw,qx,qy,qz,tx,ty,tz,ate,are,rte,num_iter"
-      << std::endl;
+  out_stream << "ransac_impl,min_solver,sample_size,outlier_frac,motion_length,"
+                "turning_angle,success,qw,qx,qy,qz,tx,ty,tz,ate,are,rte,num_"
+                "iter,experiment_num"
+             << std::endl;
 
   scene.SetMotionLength(FLAGS_fix_motion_length);
 
@@ -84,49 +92,60 @@ void RunBenchmark(synthetic::CarLikeScene scene,
       for (int i_frac = 0; i_frac < FLAGS_num_outlier_frac; ++i_frac) {
         const double outlier_frac =
             FLAGS_min_outlier_frac + i_frac * outlier_frac_step;
-        const int number_outliers = FLAGS_num_corresps * outlier_frac;
-        const int number_inliers = FLAGS_num_corresps - number_outliers;
-        auto algorithm = NameToOpengvAlgorithm(method_name);
-        BearingVectorCorrespondences correspondences =
-            scene.GetBearingVectorCorrespondences(number_inliers,
-                                                  FLAGS_frac_cross, mt());
-        std::vector<bool> is_inlier = correspondences.MixIn(
-            mt, scene.GetOutlierCorrespondences(
-                    number_outliers, FLAGS_outlier_frac_cross, mt()));
+        for (int it = 0; it < FLAGS_num_attempts; ++it) {
+          const int number_outliers = FLAGS_num_corresps * outlier_frac;
+          const int number_inliers = FLAGS_num_corresps - number_outliers;
+          const auto algorithm = NameToOpengvAlgorithm(method_name);
+          BearingVectorCorrespondences correspondences =
+              scene.GetBearingVectorCorrespondences(number_inliers,
+                                                    FLAGS_frac_cross, mt());
+          correspondences.AddGaussianDirectionNoise(mt, FLAGS_angle_std);
+          std::vector<bool> is_inlier = correspondences.MixIn(
+              mt, scene.GetOutlierCorrespondences(
+                      number_outliers, FLAGS_outlier_frac_cross, mt()));
 
-        OpengvSolverBvcSettings settings;
-        settings.algorithm = algorithm;
-        OpengvSolverBvc solver(scene.GetBodyFromCameras(), settings);
-        SE3 estimate_frame1_from_frame2;
-        bool is_ok = solver.Solve(correspondences, estimate_frame1_from_frame2);
-        const int number_iterations = solver.LastNumberOfIterations();
-        const Quaternion q = estimate_frame1_from_frame2.unit_quaternion();
-        const Vector3 t = estimate_frame1_from_frame2.translation();
-        const SE3 true_frame1_from_frame2 =
-            scene.GetWorldFromBody(0).inverse() * scene.GetWorldFromBody(1);
-        const double ate = AbsoluteTranslationError(
-            true_frame1_from_frame2, estimate_frame1_from_frame2);
-        const double rte = AngularTranslationError(true_frame1_from_frame2,
+          OpengvSolverBvcSettings settings;
+          settings.algorithm = algorithm;
+          settings.max_iterations = FLAGS_ransac_max_iter;
+          // RANSAC in opengv uses cosine distance to check if the
+          // correspondence is an inlier. This formula is based on approximation
+          // cos x \approx 1 - x^2/2
+          settings.threshold =
+              FLAGS_ransac_thres_factor * FLAGS_angle_std * FLAGS_angle_std;
+          OpengvSolverBvc solver(scene.GetBodyFromCameras(), settings);
+          SE3 estimate_frame1_from_frame2;
+          bool is_ok =
+              solver.Solve(correspondences, estimate_frame1_from_frame2);
+          const int number_iterations = solver.LastNumberOfIterations();
+          const Quaternion q = estimate_frame1_from_frame2.unit_quaternion();
+          const Vector3 t = estimate_frame1_from_frame2.translation();
+          const SE3 true_frame1_from_frame2 =
+              scene.GetWorldFromBody(0).inverse() * scene.GetWorldFromBody(1);
+          const double ate = AbsoluteTranslationError(
+              true_frame1_from_frame2, estimate_frame1_from_frame2);
+          const double rte = AngularTranslationError(
+              true_frame1_from_frame2, estimate_frame1_from_frame2);
+          const double are = AbsoluteRotationError(true_frame1_from_frame2,
                                                    estimate_frame1_from_frame2);
-        const double are = AbsoluteRotationError(true_frame1_from_frame2,
-                                                 estimate_frame1_from_frame2);
-        //        "ransac_impl,min_solver,sample_size,outlier_frac,motion_length,"
-        //        "turning_angle,success,qw,qx,qy,qz,tx,ty,tz,ate,are,rte,num_iter"
-        out_stream << fmt::format(
-            "ransac_opengv,{:s},{:d},{:g},{:g},{:g},{:d},"
-            "{:g},{:g},{:g},{:g},{:g},{:g},{:g},{:g},{:g},{:g},{:d}",
-            method_name, solver.MinSampleSize(), outlier_frac,
-            scene.motion_length(), scene.turn_angle(), static_cast<int>(is_ok),
-            q.w(), q.x(), q.y(), q.z(), t[0], t[1], t[2], ate, are, rte,
-            number_iterations);
-        out_stream << std::endl;
+          //        "ransac_impl,min_solver,sample_size,outlier_frac,motion_length,"
+          //        "turning_angle,success,qw,qx,qy,qz,tx,ty,tz,ate,are,rte,num_iter"
+          out_stream << fmt::format(
+              "ransac_opengv,{:s},{:d},{:g},{:g},{:g},{:d},"
+              "{:g},{:g},{:g},{:g},{:g},{:g},{:g},{:g},{:g},{:g},{:d},{:d}",
+              method_name, solver.MinSampleSize(), outlier_frac,
+              scene.motion_length(), scene.turn_angle(),
+              static_cast<int>(is_ok), q.w(), q.x(), q.y(), q.z(), t[0], t[1],
+              t[2], ate, are, rte, number_iterations, it);
+          out_stream << std::endl;
 
-        std::cout << fmt::format(
-                         "Ran {} with {:.0}% outliers, angle={}. It took {} "
-                         "iterations",
-                         method_name, 100.0 * outlier_frac, angle,
-                         number_iterations)
-                  << std::endl;
+          std::cout << fmt::format(
+                           "Ran {} with {:.0}% outliers, angle={}. It took {} "
+                           "iterations, metrics: {:.2}, {:.2}, {:.2}",
+                           method_name, 100.0 * outlier_frac, angle,
+                           number_iterations, ate, 180.0 / M_PI * rte,
+                           180.0 / M_PI * are)
+                    << std::endl;
+        }
       }
     }
   }

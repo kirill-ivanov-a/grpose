@@ -13,7 +13,7 @@ struct OpengvSolverBvcSettings {
 
   Algorithm algorithm = Algorithm::GE;
   int max_iterations = 10000;
-  double threshold = 1.0;
+  double threshold = 0.0001;
   double probability = 0.99;
   int ransac_verbosity = 0;
 };
