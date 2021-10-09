@@ -1,5 +1,5 @@
-#ifndef GRPOSE_GRPOSE_SOLVER_CENTRAL_PLUS_SCALE_
-#define GRPOSE_GRPOSE_SOLVER_CENTRAL_PLUS_SCALE_
+#ifndef GRPOSE_GRPOSE_MINIMAL_SOLVER_CENTRAL_PLUS_SCALE_
+#define GRPOSE_GRPOSE_MINIMAL_SOLVER_CENTRAL_PLUS_SCALE_
 
 #include <opengv/sac_problems/relative_pose/CentralRelativePoseSacProblem.hpp>
 
@@ -8,13 +8,13 @@
 
 namespace grpose {
 
-class SolverCentralPlusScale : public MinimalSolver {
+class MinimalSolverCentralPlusScale : public MinimalSolver {
  public:
   using OpengvCentralSolver =
       opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem;
   using CentralSolverAlgorithm = OpengvCentralSolver::algorithm_t;
 
-  SolverCentralPlusScale(
+  MinimalSolverCentralPlusScale(
       const std::shared_ptr<OpengvAdapter> &adapter,
       CentralSolverAlgorithm algorithm = CentralSolverAlgorithm::STEWENIUS,
       bool deterministic = true, double degenerate_epsilon = 1e-10);

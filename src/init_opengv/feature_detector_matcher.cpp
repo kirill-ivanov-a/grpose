@@ -71,10 +71,9 @@ FeatureDetectorMatcher::FeatureDetectorMatcher(
   descriptor_matcher_ = cv::DescriptorMatcher::create(matcher_type);
 }
 
-BearingVectorCorrespondencesOld FeatureDetectorMatcher::getBearingVectors(
+BearingVectorCorrespondencesOld FeatureDetectorMatcher::GetBearingVectors(
     const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
     const std::vector<DatasetReader::FrameEntry> &second_frame_bundle) {
-  // Initializing bearing vectors to be returned
   BearingVectorCorrespondencesOld bvcs(first_frame_bundle.size());
 
   for (int i = 0; i < first_frame_bundle.size(); i++) {
@@ -187,6 +186,7 @@ std::vector<cv::KeyPoint> FeatureDetectorMatcher::NonMaximumSuppression(
   std::vector<cv::KeyPoint> nms_keypoints;
 
   // naive implementation with two for loops
+  // TODO sliding window approach
   for (auto kp : keypoints) {
     bool is_max = true;
     for (const auto &n_kp : keypoints) {
@@ -286,70 +286,6 @@ void CheckCorrespondences(
     cv::hconcat(debug_images_frame[c], debug_images_frame_next[c], debug_image);
     cv::imshow("Check bearing correspondences", debug_image);
     cv::waitKey(0);
-  }
-}
-
-/* Deprecated functions */
-
-void FeatureDetectorMatcher::DescriptorMatching(
-    const cv::Mat &first_frame, const cv::Mat &second_frame,
-    const cv::Mat &mask, cv::Ptr<cv::Feature2D> detector,
-    cv::Ptr<cv::Feature2D> descriptor_extractor,
-    std::vector<cv::KeyPoint> first_keypoints,
-    std::vector<cv::KeyPoint> &second_keypoints,
-    std::vector<cv::DMatch> &matches) {
-  const double nms_region_size = 7.0;
-
-  // Detect keypoints of the next frame
-  detector->detect(second_frame, second_keypoints, mask);
-  second_keypoints = NonMaximumSuppression(second_keypoints, nms_region_size);
-
-  // Compute descriptors for both frames and use to find matches between frames
-  cv::Mat desc, desc_next;  // d x N
-  descriptor_extractor->compute(first_frame, first_keypoints, desc);
-  descriptor_extractor->compute(second_frame, second_keypoints, desc_next);
-
-  matches = CrossCheckMatches(RatioTestMatch(desc, desc_next),
-                              RatioTestMatch(desc_next, desc));
-}
-
-void FeatureDetectorMatcher::KltMatching(
-    const cv::Mat &first_frame, const cv::Mat &second_frame,
-    const std::vector<cv::KeyPoint> &first_keypoints,
-    std::vector<cv::KeyPoint> &second_keypoints,
-    std::vector<cv::DMatch> &matches) {
-  std::vector<cv::Point2f> prev_pts, second_pts;
-  for (const auto &kp : first_keypoints) {
-    prev_pts.push_back(kp.pt);
-  }
-
-  const double klt_win_size = 30.0;
-  const int klt_max_iter = 30;
-  const double klt_eps = 0.001;
-  const int klt_max_level = 4;
-
-  cv::TermCriteria termcrit(cv::TermCriteria::COUNT + cv::TermCriteria::EPS,
-                            klt_max_iter, klt_eps);
-  std::vector<u_char> status;
-  std::vector<float> error;
-  cv::calcOpticalFlowPyrLK(
-      first_frame, second_frame, prev_pts, second_pts, status, error,
-      cv::Size2i(klt_win_size, klt_win_size), klt_max_level, termcrit);
-
-  for (int i = 0; i < prev_pts.size(); i++) {
-    if (status[i]) {
-      cv::KeyPoint kp = first_keypoints[i];
-      kp.pt = second_pts[i];
-      second_keypoints.push_back(kp);
-
-      cv::DMatch m;
-      m.queryIdx = i;
-      m.trainIdx = second_keypoints.size() - 1;
-      matches.push_back(m);
-
-    } else {
-      std::cout << "Optical Flow status was not good" << std::endl;
-    }
   }
 }
 

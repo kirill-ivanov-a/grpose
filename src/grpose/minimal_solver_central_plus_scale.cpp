@@ -1,11 +1,11 @@
-#include "grpose/solver_central_plus_scale.h"
+#include "grpose/minimal_solver_central_plus_scale.h"
 
 #include <map>
 #include <vector>
 
 namespace grpose {
 
-SolverCentralPlusScale::SolverCentralPlusScale(
+MinimalSolverCentralPlusScale::MinimalSolverCentralPlusScale(
     const std::shared_ptr<OpengvAdapter> &adapter,
     CentralSolverAlgorithm algorithm, bool deterministic,
     double degenerate_epsilon)
@@ -15,7 +15,7 @@ SolverCentralPlusScale::SolverCentralPlusScale(
                              !deterministic),
       degenerate_epsilon_(degenerate_epsilon) {}
 
-int SolverCentralPlusScale::MinSampleSize() const {
+int MinimalSolverCentralPlusScale::MinSampleSize() const {
   // TODO OpenGV's CentralRelativePoseSacProblem requires more correspondences
   // then the method it implements, since in the implementation authors do
   // disambiguation with additional correspondences. This is a questionable
@@ -25,7 +25,7 @@ int SolverCentralPlusScale::MinSampleSize() const {
   return opengv_central_solver_.getSampleSize() + 1;
 }
 
-bool SolverCentralPlusScale::SolveTimed(
+bool MinimalSolverCentralPlusScale::SolveTimed(
     const std::vector<int> &correspondence_indices,
     StdVectorA<SE3> &frame1_from_frame2, double &time_in_seconds) const {
   auto start_time = std::chrono::high_resolution_clock::now();

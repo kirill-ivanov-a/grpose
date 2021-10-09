@@ -36,7 +36,7 @@ class FeatureDetectorMatcher {
   FeatureDetectorMatcher(const CameraBundle &camera_bundle,
                          const FeatureDetectorMatcherSettings &settings);
 
-  BearingVectorCorrespondencesOld getBearingVectors(
+  BearingVectorCorrespondencesOld GetBearingVectors(
       const std::vector<DatasetReader::FrameEntry> &first_frame_bundle,
       const std::vector<DatasetReader::FrameEntry> &second_frame_bundle);
 

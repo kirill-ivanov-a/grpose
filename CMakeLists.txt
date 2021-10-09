@@ -76,14 +76,24 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/init_opengv/multicam_init_settings.h
         ${PROJECT_SOURCE_DIR}/include/init_opengv/write_poses_to_file.h
 
+        ${PROJECT_SOURCE_DIR}/include/features/feature_detector_and_matcher.h
+
         ${PROJECT_SOURCE_DIR}/include/grpose/bearing_vector_correspondences.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/point2d_correspondences.h
         ${PROJECT_SOURCE_DIR}/include/grpose/minimal_solver.h
         ${PROJECT_SOURCE_DIR}/include/grpose/solver_bvc.h
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_adapter.h
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_minimal_solver.h
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_solver_bvc.h
-        ${PROJECT_SOURCE_DIR}/include/grpose/solver_central_plus_scale.h
-        ${PROJECT_SOURCE_DIR}/include/grpose/solver_6pt_poselib.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/minimal_solver_central_plus_scale.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/poselib_solver_6pt.h
+
+        ${PROJECT_SOURCE_DIR}/include/central/central_bearing_vector_correspondences.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_point2d_correspondences.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_solver_bvc.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_solver_from_points2d.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_solver_using_features.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_opengv_solver_bvc.h
 
         ${PROJECT_SOURCE_DIR}/include/synthetic/scene.h
         ${PROJECT_SOURCE_DIR}/include/synthetic/car_like_scene.h
@@ -109,14 +119,25 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/init_opengv/multicam_init_settings.cpp
         ${PROJECT_SOURCE_DIR}/src/init_opengv/write_poses_to_file.cpp
 
+        ${PROJECT_SOURCE_DIR}/src/features/feature_detector_and_matcher.cpp
+
         ${PROJECT_SOURCE_DIR}/src/grpose/bearing_vector_correspondences.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/point2d_correspondences.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/minimal_solver.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/solver_bvc.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_adapter.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_minimal_solver.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver_bvc.cpp
-        ${PROJECT_SOURCE_DIR}/src/grpose/solver_central_plus_scale.cpp
-        ${PROJECT_SOURCE_DIR}/src/grpose/solver_6pt_poselib.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/minimal_solver_central_plus_scale.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/poselib_solver_6pt.cpp
+
+        ${PROJECT_SOURCE_DIR}/src/central/central_bearing_vector_correspondences.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_point2d_correspondences.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_solver_bvc.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_solver_from_points2d.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_solver_using_features.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_opengv_solver_bvc.cpp
+
 
         ${PROJECT_SOURCE_DIR}/src/synthetic/scene.cpp
         ${PROJECT_SOURCE_DIR}/src/synthetic/car_like_scene.cpp

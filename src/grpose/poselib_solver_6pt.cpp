@@ -1,4 +1,4 @@
-#include "grpose/solver_6pt_poselib.h"
+#include "grpose/poselib_solver_6pt.h"
 
 #include <chrono>
 
@@ -6,14 +6,14 @@
 
 namespace grpose {
 
-Solver6ptPoselib::Solver6ptPoselib(
+PoselibSolver6pt::PoselibSolver6pt(
     const std::shared_ptr<BearingVectorCorrespondences>& correspondences,
     const StdVectorA<SE3>& body_from_camera)
     : correspondences_(correspondences), body_from_camera_(body_from_camera) {}
 
-int Solver6ptPoselib::MinSampleSize() const { return 6; }
+int PoselibSolver6pt::MinSampleSize() const { return 6; }
 
-bool Solver6ptPoselib::SolveTimed(
+bool PoselibSolver6pt::SolveTimed(
     const std::vector<int>& correspondence_indices,
     StdVectorA<SE3>& frame1_from_frame2, double& time_in_seconds) const {
   const int kSampleSize = MinSampleSize();  // 6

@@ -115,6 +115,8 @@ inline std::string TimeOfDay(Timestamp timestamp) {
   return TimeOfDay(ToChronoTimePoint(timestamp));
 }
 
+void SaveArgv(const fs::path &filename, int argc, char *argv[]);
+
 }  // namespace grpose
 
 #endif

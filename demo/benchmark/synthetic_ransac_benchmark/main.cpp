@@ -53,7 +53,7 @@ namespace {
 std::vector<double> GetDoubles(const std::string &names) {
   std::vector<std::string> split = SplitByComma(names);
   std::vector<double> result;
-  for (const auto s : split) result.push_back(std::stod(s));
+  for (const auto &s : split) result.push_back(std::stod(s));
   return result;
 }
 

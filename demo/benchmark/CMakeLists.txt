@@ -1,2 +1,3 @@
 add_subdirectory(minimal_solver_stability)
 add_subdirectory(synthetic_ransac_benchmark)
+add_subdirectory(central_refinement_benchmark)

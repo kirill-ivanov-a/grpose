@@ -81,8 +81,8 @@ BearingVectorCorrespondences CarLikeScene::GetBearingVectorCorrespondences(
       for (int frame_index : {0, 1})
         bearing_vector[frame_index] =
             (side_from_world[frame_index] * point).normalized();
-      correspondences.AddCorrespondence(bearing_vector[0], bearing_vector[1],
-                                        side_camera_index, side_camera_index);
+      correspondences.Add(bearing_vector[0], bearing_vector[1],
+                          side_camera_index, side_camera_index);
     }
 
     // Front or rear camera correspondences
@@ -92,8 +92,8 @@ BearingVectorCorrespondences CarLikeScene::GetBearingVectorCorrespondences(
       for (int frame_index : {0, 1})
         bearing_vector[frame_index] =
             (other_from_world[frame_index] * point).normalized();
-      correspondences.AddCorrespondence(bearing_vector[0], bearing_vector[1],
-                                        other_camera_index, other_camera_index);
+      correspondences.Add(bearing_vector[0], bearing_vector[1],
+                          other_camera_index, other_camera_index);
     }
   }
 
@@ -117,11 +117,11 @@ BearingVectorCorrespondences CarLikeScene::GetBearingVectorCorrespondences(
         const Vector3 side_vector = (side_from_world * point).normalized();
         const Vector3 other_vector = (other_from_world * point).normalized();
         if (is_front_0) {
-          correspondences.AddCorrespondence(
-              other_vector, side_vector, other_camera_index, side_camera_index);
+          correspondences.Add(other_vector, side_vector, other_camera_index,
+                              side_camera_index);
         } else {
-          correspondences.AddCorrespondence(
-              side_vector, other_vector, side_camera_index, other_camera_index);
+          correspondences.Add(side_vector, other_vector, side_camera_index,
+                              other_camera_index);
         }
       }
     }
@@ -144,8 +144,8 @@ BearingVectorCorrespondences CarLikeScene::GetOutlierCorrespondences(
     const int camera_index = camera_index_distr(mt);
     Vector3 directions[2] = {SampleHemisphereUniform(mt),
                              SampleHemisphereUniform(mt)};
-    correspondences.AddCorrespondence(directions[0], directions[1],
-                                      camera_index, camera_index);
+    correspondences.Add(directions[0], directions[1], camera_index,
+                        camera_index);
   }
 
   for (int i = 0; i < number_cross; ++i) {
@@ -155,8 +155,8 @@ BearingVectorCorrespondences CarLikeScene::GetOutlierCorrespondences(
       camera_indices[fi] = camera_index_distr(mt);
       directions[fi] = SampleHemisphereUniform(mt);
     }
-    correspondences.AddCorrespondence(directions[0], directions[1],
-                                      camera_indices[0], camera_indices[1]);
+    correspondences.Add(directions[0], directions[1], camera_indices[0],
+                        camera_indices[1]);
   }
 
   return correspondences;

@@ -10,15 +10,12 @@ namespace grpose {
 
 class BearingVectorCorrespondences {
  public:
-  using OpengvAdapter = opengv::relative_pose::NoncentralRelativeAdapter;
-
   BearingVectorCorrespondences() = default;
 
-  void AddCorrespondence(const Vector3 &bearing_vector1,
-                         const Vector3 &bearing_vector2, int camera_index1,
-                         int camera_index2);
+  void Add(const Vector3 &bearing_vector1, const Vector3 &bearing_vector2,
+           int camera_index1, int camera_index2);
 
-  inline int NumberOfCorrespondences() const;
+  inline int Size() const;
   inline int NumberOfCameras() const;
   inline const Vector3 &bearing_vector(int frame_index,
                                        int correspondence_index) const;
@@ -47,7 +44,7 @@ class BearingVectorCorrespondences {
 
 // Implementation
 
-inline int BearingVectorCorrespondences::NumberOfCorrespondences() const {
+inline int BearingVectorCorrespondences::Size() const {
   return static_cast<int>(bearing_vectors_[0].size());
 }
 
@@ -124,30 +121,28 @@ void BearingVectorCorrespondences::AddGaussianDirectionNoise(
 template <typename RandomBitsGenerator>
 std::vector<bool> BearingVectorCorrespondences::MixIn(
     RandomBitsGenerator &generator, const BearingVectorCorrespondences &other) {
-  std::vector<bool> is_old(
-      NumberOfCorrespondences() + other.NumberOfCorrespondences(), false);
-  for (int i = 0; i < NumberOfCorrespondences(); ++i) is_old[i] = true;
+  std::vector<bool> is_old(Size() + other.Size(), false);
+  for (int i = 0; i < Size(); ++i) is_old[i] = true;
   std::shuffle(is_old.begin(), is_old.end(), generator);
 
   BearingVectorCorrespondences new_correspondences;
   int this_index = 0, other_index = 0;
   for (int v : is_old) {
     if (v) {
-      new_correspondences.AddCorrespondence(
+      new_correspondences.Add(
           bearing_vector(0, this_index), bearing_vector(1, this_index),
           camera_index(0, this_index), camera_index(1, this_index));
       this_index++;
     } else {
-      new_correspondences.AddCorrespondence(
-          other.bearing_vector(0, other_index),
-          other.bearing_vector(1, other_index),
-          other.camera_index(0, other_index),
-          other.camera_index(1, other_index));
+      new_correspondences.Add(other.bearing_vector(0, other_index),
+                              other.bearing_vector(1, other_index),
+                              other.camera_index(0, other_index),
+                              other.camera_index(1, other_index));
       other_index++;
     }
   }
-  CHECK_EQ(this_index, NumberOfCorrespondences());
-  CHECK_EQ(other_index, other.NumberOfCorrespondences());
+  CHECK_EQ(this_index, Size());
+  CHECK_EQ(other_index, other.Size());
 
   *this = std::move(new_correspondences);
 

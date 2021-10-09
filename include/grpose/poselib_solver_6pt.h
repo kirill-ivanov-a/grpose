@@ -1,14 +1,14 @@
-#ifndef GRPOSE_GRPOSE_SOLVER_6PT_POSELIB_
-#define GRPOSE_GRPOSE_SOLVER_6PT_POSELIB_
+#ifndef GRPOSE_GRPOSE_POSELIB_SOLVER_6PT_
+#define GRPOSE_GRPOSE_POSELIB_SOLVER_6PT_
 
 #include "grpose/bearing_vector_correspondences.h"
 #include "grpose/minimal_solver.h"
 
 namespace grpose {
 
-class Solver6ptPoselib : public MinimalSolver {
+class PoselibSolver6pt : public MinimalSolver {
  public:
-  Solver6ptPoselib(
+  PoselibSolver6pt(
       const std::shared_ptr<BearingVectorCorrespondences> &correspondences,
       const StdVectorA<SE3> &body_from_camera);
 

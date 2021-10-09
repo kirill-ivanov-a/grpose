@@ -28,7 +28,7 @@ ToMultiBearingVectors(const BearingVectorCorrespondences &correspondences) {
       multi_bearing_vectors[fi].emplace_back(new opengv::bearingVectors_t());
   }
 
-  for (int i = 0; i < correspondences.NumberOfCorrespondences(); ++i) {
+  for (int i = 0; i < correspondences.Size(); ++i) {
     const int ci[2] = {correspondences.camera_index(0, i),
                        correspondences.camera_index(1, i)};
     // we discard cross-camera correspondences; OpenGV's "multi" formulation

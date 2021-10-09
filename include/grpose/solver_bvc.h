@@ -13,6 +13,7 @@ class SolverBvc {
  public:
   virtual ~SolverBvc();
 
+  // TODO switch to SolveInfo and make this const
   virtual bool Solve(const BearingVectorCorrespondences &correspondences,
                      SE3 &frame1_from_frame2) = 0;
 };

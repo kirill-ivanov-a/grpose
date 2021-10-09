@@ -6,10 +6,10 @@
 #include <glog/logging.h>
 
 #include "grpose/bearing_vector_correspondences.h"
+#include "grpose/minimal_solver_central_plus_scale.h"
 #include "grpose/opengv_adapter.h"
 #include "grpose/opengv_minimal_solver.h"
-#include "grpose/solver_6pt_poselib.h"
-#include "grpose/solver_central_plus_scale.h"
+#include "grpose/poselib_solver_6pt.h"
 #include "synthetic/car_like_scene.h"
 #include "util/metrics.h"
 #include "util/util.h"
@@ -88,7 +88,7 @@ OpengvMinimalSolver::Algorithm NameToOpengvAlgorithm(
 void RestructureIndices(const BearingVectorCorrespondences &correspondences,
                         std::vector<std::vector<int>> &indices_by_camera,
                         std::vector<int> &cross_camera_indices) {
-  const int n = correspondences.NumberOfCorrespondences();
+  const int n = correspondences.Size();
   const int c = correspondences.NumberOfCameras();
   indices_by_camera.resize(c);
   cross_camera_indices.clear();
@@ -105,7 +105,7 @@ void RestructureIndices(const BearingVectorCorrespondences &correspondences,
 std::vector<int> SampleCorrespondences(
     const BearingVectorCorrespondences &correspondences, int number_needed,
     int number_cross_camera, double fraction_first_camera, std::mt19937 &mt) {
-  const int n = correspondences.NumberOfCorrespondences();
+  const int n = correspondences.Size();
   const int c = correspondences.NumberOfCameras();
   std::vector<std::vector<int>> indices_by_camera(c);
   std::vector<int> cross_camera_indices;
@@ -167,7 +167,7 @@ void SampleNFromCamera(const std::vector<std::vector<int>> &indices_by_camera,
 std::vector<int> SampleNPlus1Correspondence(
     const BearingVectorCorrespondences &correspondences, int n,
     bool use_cross_camera, std::mt19937 &mt) {
-  const int total = correspondences.NumberOfCorrespondences();
+  const int total = correspondences.Size();
   const int c = correspondences.NumberOfCameras();
   CHECK_GE(c, 2);
   std::vector<std::vector<int>> indices_by_camera(c);
@@ -207,12 +207,12 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
   std::unique_ptr<MinimalSolver> solver;
   std::vector<int> indices;
   if (method_name == "c+s") {
-    solver.reset(new SolverCentralPlusScale(opengv_adapter));
+    solver.reset(new MinimalSolverCentralPlusScale(opengv_adapter));
     indices = SampleNPlus1Correspondence(
         *correspondences, solver->MinSampleSize() - 1, FLAGS_num_cross > 0, mt);
   } else if (method_name == "6pt_poselib") {
     solver.reset(
-        new Solver6ptPoselib(correspondences, scene.GetBodyFromCameras()));
+        new PoselibSolver6pt(correspondences, scene.GetBodyFromCameras()));
     indices = SampleCorrespondences(*correspondences, solver->MinSampleSize(),
                                     FLAGS_num_cross, FLAGS_frac_first, mt);
   } else {

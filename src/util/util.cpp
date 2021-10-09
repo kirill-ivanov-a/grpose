@@ -170,4 +170,10 @@ std::string TimeOfDay(ChronoTimePoint time_point) {
          std::to_string(static_cast<double>(s + mcs * 1e-6));
 }
 
+void SaveArgv(const fs::path &filename, int argc, char *argv[]) {
+  std::ofstream stream(filename);
+  for (int i = 0; i < argc; ++i) stream << argv[i] << ' ';
+  stream << std::endl;
+}
+
 }  // namespace grpose

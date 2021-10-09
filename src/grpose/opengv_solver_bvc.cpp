@@ -24,7 +24,7 @@ bool OpengvSolverBvc::Solve(const BearingVectorCorrespondences& correspondences,
   OpengvAdapter opengv_adapter(correspondences_ptr, body_from_cameras_);
   std::shared_ptr minimal_problem =
       std::make_shared<OpengvInternalMinimalSolver>(
-          opengv_adapter.GetMultiAdapter(), settings_.algorithm);
+          opengv_adapter.GetMultiAdapter(), settings_.algorithm, false, true);
 
   // TODO: mb try out the non-balanced ransac as well
   opengv::sac::MultiRansac<OpengvInternalMinimalSolver> ransac(

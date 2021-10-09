@@ -53,8 +53,8 @@ BearingVectorCorrespondences RandomScene::GetBearingVectorCorrespondences(
               .inverse();
       bearing_vectors[frame_index] = (camera_from_world * point).normalized();
     }
-    correspondences.AddCorrespondence(bearing_vectors[0], bearing_vectors[1],
-                                      camera_index, camera_index);
+    correspondences.Add(bearing_vectors[0], bearing_vectors[1], camera_index,
+                        camera_index);
   }
 
   std::vector<int> all_camera_indices(number_of_cameras_);
@@ -74,9 +74,8 @@ BearingVectorCorrespondences RandomScene::GetBearingVectorCorrespondences(
               .inverse();
       bearing_vectors[frame_index] = (camera_from_world * point).normalized();
     }
-    correspondences.AddCorrespondence(bearing_vectors[0], bearing_vectors[1],
-                                      sampled_camera_indices[0],
-                                      sampled_camera_indices[1]);
+    correspondences.Add(bearing_vectors[0], bearing_vectors[1],
+                        sampled_camera_indices[0], sampled_camera_indices[1]);
 
     sampled_camera_indices.clear();
   }
@@ -99,8 +98,8 @@ BearingVectorCorrespondences RandomScene::GetOutlierCorrespondences(
     const int camera_index = camera_index_distr(mt);
     Vector3 directions[2] = {SampleHemisphereUniform(mt),
                              SampleHemisphereUniform(mt)};
-    correspondences.AddCorrespondence(directions[0], directions[1],
-                                      camera_index, camera_index);
+    correspondences.Add(directions[0], directions[1], camera_index,
+                        camera_index);
   }
 
   for (int i = 0; i < number_cross; ++i) {
@@ -110,8 +109,8 @@ BearingVectorCorrespondences RandomScene::GetOutlierCorrespondences(
       camera_indices[fi] = camera_index_distr(mt);
       directions[fi] = SampleHemisphereUniform(mt);
     }
-    correspondences.AddCorrespondence(directions[0], directions[1],
-                                      camera_indices[0], camera_indices[1]);
+    correspondences.Add(directions[0], directions[1], camera_indices[0],
+                        camera_indices[1]);
   }
 
   return correspondences;

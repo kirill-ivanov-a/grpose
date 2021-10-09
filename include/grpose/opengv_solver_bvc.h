@@ -11,6 +11,7 @@ struct OpengvSolverBvcSettings {
   using Algorithm = opengv::sac_problems::relative_pose::
       MultiNoncentralRelativePoseSacProblem::Algorithm;
 
+  // Same default params as in opengv
   Algorithm algorithm = Algorithm::GE;
   int max_iterations = 10000;
   double threshold = 0.0001;
@@ -27,8 +28,6 @@ struct OpengvSolverBvcSettings {
  */
 class OpengvSolverBvc : public SolverBvc {
  public:
-  // Same default params as in opengv
-  // TODO some unified struct for ransac params?
   OpengvSolverBvc(const StdVectorA<SE3> &body_from_cameras,
                   const OpengvSolverBvcSettings &settings);
 

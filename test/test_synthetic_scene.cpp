@@ -24,14 +24,14 @@ void Triangulate(const synthetic::Scene &scene,
                  std::vector<Vector3> &points, std::vector<double> &errors) {
   points.clear();
   errors.clear();
-  points.reserve(correspondences.NumberOfCorrespondences());
-  errors.reserve(correspondences.NumberOfCorrespondences());
+  points.reserve(correspondences.Size());
+  errors.reserve(correspondences.Size());
 
   const SE3 frame1_from_frame0 =
       scene.GetWorldFromBody(1).inverse() * scene.GetWorldFromBody(0);
   const StdVectorA<SE3> body_from_cameras = scene.GetBodyFromCameras();
 
-  for (int ci = 0; ci < correspondences.NumberOfCorrespondences(); ++ci) {
+  for (int ci = 0; ci < correspondences.Size(); ++ci) {
     const Vector3 &v0 = correspondences.bearing_vector(0, ci);
     const Vector3 &v1 = correspondences.bearing_vector(1, ci);
     const int c0 = correspondences.camera_index(0, ci);
@@ -66,7 +66,7 @@ TEST_P(SceneTest, Correspondences) {
           scene.GetBearingVectorCorrespondences(n, cc);
 
       int number_same = 0, number_cross = 0;
-      for (int i = 0; i < correspondences.NumberOfCorrespondences(); ++i) {
+      for (int i = 0; i < correspondences.Size(); ++i) {
         if (correspondences.camera_index(0, i) ==
             correspondences.camera_index(1, i)) {
           number_same++;
@@ -84,7 +84,7 @@ TEST_P(SceneTest, Correspondences) {
       std::vector<double> errors;
       Triangulate(scene, correspondences, points, errors);
       ASSERT_EQ(points.size(), errors.size());
-      ASSERT_EQ(points.size(), correspondences.NumberOfCorrespondences());
+      ASSERT_EQ(points.size(), correspondences.Size());
 
       for (int i = 0; i < points.size(); ++i)
         ASSERT_LT(errors[i] / points[i].norm(), kMaxRelativePointError)
