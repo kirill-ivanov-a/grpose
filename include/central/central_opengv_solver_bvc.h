@@ -25,6 +25,8 @@ class CentralOpengvSolverBvc : public CentralSolverBvc {
   bool Solve(const CentralBearingVectorCorrespondences &correspondences,
              SE3 &frame1_from_frame2, SolveInfo *solve_info) const override;
 
+  std::vector<double> GetErrors(const SE3 &frame1_from_frame2) const;
+
  private:
   CentralOpengvSolverBvcSettings settings_;
 };

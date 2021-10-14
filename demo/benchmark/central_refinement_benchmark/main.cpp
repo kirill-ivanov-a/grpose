@@ -11,15 +11,22 @@
 #include "util/util.h"
 
 DEFINE_int32(ransac_max_iter, 20000, "Max iterations of RANSAC");
-constexpr double kRansacThres = 3.0 * 0.04 * 0.04;
-DEFINE_double(ransac_thres, kRansacThres,
+
+// With focal length f=1200pix, one pixel error corresponds to roughly 0.04
+// degrees of angular deviation
+DEFINE_double(ransac_angle_thres, 0.3,
               "OpenGV's RANSAC threshold. It corresponds roughly to "
               "2*(1-cos(angle)) where angle is the angle of deviation of the "
               "bearing vector from its supposed direction.");
 
+DEFINE_bool(draw_matches, false,
+            "If set, matches used for each run are drawn.");
+
 DEFINE_string(feature_types, "sift",
               "Feature types that are used. Possible values: sift,orb . Used "
               "values separated by commas.");
+DEFINE_bool(use_nms, true, "Use non-maximal suppression of keypoints?");
+DEFINE_bool(use_cross_check, true, "Use cross-check of matches?");
 DEFINE_string(
     frame_steps, "10,30,60",
     "Relative pose is run between frames #f and #(f + s) where values for "
@@ -67,7 +74,7 @@ void RunBenchmark(const fs::path &autovision_root,
   out_stream
       << "camera_index,first_frame_index,frame_step,success,gt_qw,gt_qx,gt_qy,"
          "gt_qz,gt_tx,gt_ty,gt_tz,qw,qx,qy,qz,tx,ty,tz,are,rte,num_"
-         "ransac_iter,experiment_num"
+         "ransac_iter,num_inliers,num_corresps,experiment_num"
       << std::endl;
 
   std::vector<std::string> feature_types = SplitByComma(FLAGS_feature_types);
@@ -83,10 +90,13 @@ void RunBenchmark(const fs::path &autovision_root,
 
       FeatureDetectorAndMatcherSettings matcher_settings;
       matcher_settings.feature_type = FeatureTypeFromName(feature_name);
-      //      matcher_settings.debug_draw_matches = true;
+      matcher_settings.debug_draw_matches = FLAGS_draw_matches;
+      matcher_settings.use_non_maximal_suppression = FLAGS_use_nms;
+      matcher_settings.cross_check_matches = FLAGS_use_cross_check;
       const FeatureDetectorAndMatcher matcher(matcher_settings);
       CentralOpengvSolverBvcSettings solver_settings;
-      solver_settings.threshold = FLAGS_ransac_thres;
+      const double kThresInRadians = M_PI / 180.0 * FLAGS_ransac_angle_thres;
+      solver_settings.threshold = kThresInRadians * kThresInRadians;
       solver_settings.max_iterations = fLI::FLAGS_ransac_max_iter;
       const std::shared_ptr<CentralSolverBvc> ransac_solver_opengv =
           std::make_shared<CentralOpengvSolverBvc>(solver_settings);
@@ -125,22 +135,26 @@ void RunBenchmark(const fs::path &autovision_root,
               const double are = AbsoluteRotationError(true_frame1_from_frame2,
                                                        frame1_from_frame2);
 
-              //                "camera_index,first_frame_index,frame_step,success,gt_qw,gt_qx,gt_qy,"
-              //                   "gt_qz,gt_tx,gt_ty,gt_tz,qw,qx,qy,qz,tx,ty,tz,are,rte,num_"
-              //                   "ransac_iter,experiment_num"
+              // camera_index,first_frame_index,frame_step,success,gt_qw,gt_qx,gt_qy,
+              // gt_qz,gt_tx,gt_ty,gt_tz,qw,qx,qy,qz,tx,ty,tz,are,rte,
+              // num_ransac_iter,num_inliers,num_corresps,experiment_num
               out_stream << fmt::format(
-                  "{:d},{:d},{:d},{:d},{:s},{:s},{:g},{:g},{:d},{:d}",
+                  "{:d},{:d},{:d},{:d},{:s},{:s},{:g},{:g},{:d},{:d},{:d},{:d}",
                   camera_index, frame_index1, frame_step, is_ok,
                   ToCsv(true_frame1_from_frame2), ToCsv(frame1_from_frame2),
                   are, rte, solve_info.solve_bvc_info.number_of_iterations,
+                  solve_info.solve_bvc_info.number_of_inliers,
+                  solve_info.solve_bvc_info.number_of_correspondences,
                   experiment_num);
+              out_stream << std::endl;
 
               fmt::print(
-                  "Ran frame #{}/{} on camera #{}; |t|={}, rte={:.3} deg, "
-                  "are={:.3} deg",
+                  "Ran frame #{}/{} on camera #{}; |t|={:.2}, rte={:.3} deg, "
+                  "are={:.3} deg niter={}",
                   frame_index1, dataset_reader->NumberOfFrames(), camera_index,
                   true_frame1_from_frame2.translation().norm(),
-                  rte * 180.0 / M_PI, are * 180.0 / M_PI);
+                  rte * 180.0 / M_PI, are * 180.0 / M_PI,
+                  solve_info.solve_bvc_info.number_of_iterations);
               std::cout << std::endl;
             }
           }

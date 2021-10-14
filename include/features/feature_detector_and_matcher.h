@@ -20,15 +20,15 @@ struct SiftSettings {
 };
 
 struct OrbSettings {
-  int number_of_features = 1000;
+  int number_of_features = 2000;
   float scale_factor = 1.2f;
   int number_of_levels = 8;
-  int edge_threshold = 51;
+  int edge_threshold = 31;
   int first_level = 0;
   int wta_k = 2;
   decltype(cv::ORB::HARRIS_SCORE) score_type = cv::ORB::HARRIS_SCORE;
-  int patch_size = 51;
-  int fast_threshold = 10;
+  int patch_size = 31;
+  int fast_threshold = 20;
 
   // First-to-second-best ratio test is currently not applied for ORB matches
   double min_second_best_ratio = 1.0;
@@ -44,6 +44,7 @@ struct FeatureDetectorAndMatcherSettings {
   // nms == non-maximum suppression
   float nms_window_size = 5.0;
   bool cross_check_matches = true;
+  bool use_non_maximal_suppression = true;
   bool debug_draw_matches = false;
 
   float min_second_best_ratio() const;

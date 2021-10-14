@@ -8,6 +8,8 @@ namespace grpose {
 class CentralSolverBvc {
  public:
   struct SolveInfo {
+    int number_of_correspondences;
+    int number_of_inliers;
     int number_of_iterations;
   };
 

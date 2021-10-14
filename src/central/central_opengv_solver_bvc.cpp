@@ -16,6 +16,9 @@ bool CentralOpengvSolverBvc::Solve(
       opengv::sac_problems::relative_pose::CentralRelativePoseSacProblem;
   using OpengvInternalAdapter = opengv::relative_pose::CentralRelativeAdapter;
 
+  if (solve_info)
+    solve_info->number_of_correspondences = correspondences.Size();
+
   OpengvInternalAdapter adapter(correspondences.bearing_vectors(0),
                                 correspondences.bearing_vectors(1));
   auto solver = std::make_shared<OpengvInternalMinimalSolver>(
@@ -25,7 +28,10 @@ bool CentralOpengvSolverBvc::Solve(
   ransac.sac_model_ = solver;
 
   bool is_ok = ransac.computeModel(settings_.ransac_verbosity);
-  if (solve_info) solve_info->number_of_iterations = ransac.iterations_;
+  if (solve_info) {
+    solve_info->number_of_iterations = ransac.iterations_;
+    solve_info->number_of_inliers = ransac.inliers_.size();
+  }
   if (!is_ok) return false;
 
   frame1_from_frame2 = SE3(ransac.model_coefficients_.leftCols<3>(),

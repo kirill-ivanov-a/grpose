@@ -19,7 +19,9 @@ void DrawMatches(const cv::Mat &image1,
                  const std::vector<cv::DMatch> &matches) {
   cv::Mat debug_image;
   cv::drawMatches(image1, keypoints1, image2, keypoints2, matches, debug_image);
-  cv::imshow("Matched keypoints", debug_image);
+  cv::Mat resized;
+  cv::resize(debug_image, resized, cv::Size(), 0.5, 0.5);
+  cv::imshow("Matched keypoints", resized);
   cv::waitKey(0);
 }
 
@@ -77,8 +79,9 @@ CentralPoint2dCorrespondences FeatureDetectorAndMatcher::GetCorrespondences(
         masks[frame_index] ? *(masks[frame_index]) : cv::noArray());
     // For ORB: Remove overlapping detections
     // FOR SIFT: Clean an area of dense detections
-    keypoints[frame_index] = NonMaximumSuppression(keypoints[frame_index],
-                                                   settings_.nms_window_size);
+    if (settings_.use_non_maximal_suppression)
+      keypoints[frame_index] = NonMaximumSuppression(keypoints[frame_index],
+                                                     settings_.nms_window_size);
     feature_detector_->compute(frames_gray[frame_index], keypoints[frame_index],
                                descriptors[frame_index]);
   }
