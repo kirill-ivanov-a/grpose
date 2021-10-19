@@ -29,12 +29,25 @@
 #
 # Author: Johannes L. Schoenberger (jsch-at-demuc-dot-de)
 
-set(FOLDER_NAME "feature")
+if (DEFINED GIT_COMMIT_ID OR DEFINED GIT_COMMIT_DATE)
+    message(STATUS "Using custom-defined GIT_COMMIT_ID (${GIT_COMMIT_ID}) "
+            "and GIT_COMMIT_DATE (${GIT_COMMIT_DATE})")
+elseif(Git_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+    execute_process(COMMAND
+        "${GIT_EXECUTABLE}" rev-parse --short HEAD
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_COMMIT_ID
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-COLMAP_ADD_SOURCES(
-    types.h types.cc
-    utils.h utils.cc
-)
+    execute_process(COMMAND
+        "${GIT_EXECUTABLE}" log -1 --format=%ad --date=short
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_COMMIT_DATE
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+else()
+    set(GIT_COMMIT_ID "Unknown")
+    set(GIT_COMMIT_DATE "Unknown")
+endif()
 
-COLMAP_ADD_TEST(feature_utils_test utils_test.cc)
-COLMAP_ADD_TEST(types_test types_test.cc)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/util/version.h.in"
+               "${CMAKE_CURRENT_SOURCE_DIR}/src/util/version.h")

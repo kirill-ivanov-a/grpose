@@ -41,7 +41,6 @@
 #include "SQLite/sqlite3.h"
 #include "base/camera.h"
 #include "base/image.h"
-#include "estimators/two_view_geometry.h"
 #include "feature/types.h"
 #include "util/types.h"
 
@@ -154,11 +153,11 @@ class Database {
                              const image_t image_id2) const;
   std::vector<std::pair<image_pair_t, FeatureMatches>> ReadAllMatches() const;
 
-  TwoViewGeometry ReadTwoViewGeometry(const image_t image_id1,
-                                      const image_t image_id2) const;
-  void ReadTwoViewGeometries(
-      std::vector<image_pair_t>* image_pair_ids,
-      std::vector<TwoViewGeometry>* two_view_geometries) const;
+//  TwoViewGeometry ReadTwoViewGeometry(const image_t image_id1,
+//                                      const image_t image_id2) const;
+//  void ReadTwoViewGeometries(
+//      std::vector<image_pair_t>* image_pair_ids,
+//      std::vector<TwoViewGeometry>* two_view_geometries) const;
 
   // Read all image pairs that have an entry in the `NumVerifiedImagePairs`
   // table with at least one inlier match and their number of inlier matches.
@@ -184,8 +183,8 @@ class Database {
                         const FeatureDescriptors& descriptors) const;
   void WriteMatches(const image_t image_id1, const image_t image_id2,
                     const FeatureMatches& matches) const;
-  void WriteTwoViewGeometry(const image_t image_id1, const image_t image_id2,
-                            const TwoViewGeometry& two_view_geometry) const;
+//  void WriteTwoViewGeometry(const image_t image_id1, const image_t image_id2,
+//                            const TwoViewGeometry& two_view_geometry) const;
 
   // Update an existing camera in the database. The user is responsible for
   // making sure that the entry already exists.

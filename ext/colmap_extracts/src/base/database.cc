@@ -495,86 +495,86 @@ std::vector<std::pair<image_pair_t, FeatureMatches>> Database::ReadAllMatches()
   return all_matches;
 }
 
-TwoViewGeometry Database::ReadTwoViewGeometry(const image_t image_id1,
-                                              const image_t image_id2) const {
-  const image_pair_t pair_id = ImagePairToPairId(image_id1, image_id2);
-  SQLITE3_CALL(
-      sqlite3_bind_int64(sql_stmt_read_two_view_geometry_, 1, pair_id));
+//TwoViewGeometry Database::ReadTwoViewGeometry(const image_t image_id1,
+//                                              const image_t image_id2) const {
+//  const image_pair_t pair_id = ImagePairToPairId(image_id1, image_id2);
+//  SQLITE3_CALL(
+//      sqlite3_bind_int64(sql_stmt_read_two_view_geometry_, 1, pair_id));
+//
+//  const int rc = SQLITE3_CALL(sqlite3_step(sql_stmt_read_two_view_geometry_));
+//
+//  TwoViewGeometry two_view_geometry;
+//
+//  FeatureMatchesBlob blob = ReadDynamicMatrixBlob<FeatureMatchesBlob>(
+//      sql_stmt_read_two_view_geometry_, rc, 0);
+//
+//  two_view_geometry.config = static_cast<int>(
+//      sqlite3_column_int64(sql_stmt_read_two_view_geometry_, 3));
+//
+//  two_view_geometry.F = ReadStaticMatrixBlob<Eigen::Matrix3d>(
+//      sql_stmt_read_two_view_geometry_, rc, 4);
+//  two_view_geometry.E = ReadStaticMatrixBlob<Eigen::Matrix3d>(
+//      sql_stmt_read_two_view_geometry_, rc, 5);
+//  two_view_geometry.H = ReadStaticMatrixBlob<Eigen::Matrix3d>(
+//      sql_stmt_read_two_view_geometry_, rc, 6);
+//  two_view_geometry.qvec = ReadStaticMatrixBlob<Eigen::Vector4d>(
+//      sql_stmt_read_two_view_geometry_, rc, 7);
+//  two_view_geometry.tvec = ReadStaticMatrixBlob<Eigen::Vector3d>(
+//      sql_stmt_read_two_view_geometry_, rc, 8);
+//
+//  SQLITE3_CALL(sqlite3_reset(sql_stmt_read_two_view_geometry_));
+//
+//  two_view_geometry.inlier_matches = FeatureMatchesFromBlob(blob);
+//  two_view_geometry.F.transposeInPlace();
+//  two_view_geometry.E.transposeInPlace();
+//  two_view_geometry.H.transposeInPlace();
+//
+//  if (SwapImagePair(image_id1, image_id2)) {
+//    two_view_geometry.Invert();
+//  }
+//
+//  return two_view_geometry;
+//}
 
-  const int rc = SQLITE3_CALL(sqlite3_step(sql_stmt_read_two_view_geometry_));
-
-  TwoViewGeometry two_view_geometry;
-
-  FeatureMatchesBlob blob = ReadDynamicMatrixBlob<FeatureMatchesBlob>(
-      sql_stmt_read_two_view_geometry_, rc, 0);
-
-  two_view_geometry.config = static_cast<int>(
-      sqlite3_column_int64(sql_stmt_read_two_view_geometry_, 3));
-
-  two_view_geometry.F = ReadStaticMatrixBlob<Eigen::Matrix3d>(
-      sql_stmt_read_two_view_geometry_, rc, 4);
-  two_view_geometry.E = ReadStaticMatrixBlob<Eigen::Matrix3d>(
-      sql_stmt_read_two_view_geometry_, rc, 5);
-  two_view_geometry.H = ReadStaticMatrixBlob<Eigen::Matrix3d>(
-      sql_stmt_read_two_view_geometry_, rc, 6);
-  two_view_geometry.qvec = ReadStaticMatrixBlob<Eigen::Vector4d>(
-      sql_stmt_read_two_view_geometry_, rc, 7);
-  two_view_geometry.tvec = ReadStaticMatrixBlob<Eigen::Vector3d>(
-      sql_stmt_read_two_view_geometry_, rc, 8);
-
-  SQLITE3_CALL(sqlite3_reset(sql_stmt_read_two_view_geometry_));
-
-  two_view_geometry.inlier_matches = FeatureMatchesFromBlob(blob);
-  two_view_geometry.F.transposeInPlace();
-  two_view_geometry.E.transposeInPlace();
-  two_view_geometry.H.transposeInPlace();
-
-  if (SwapImagePair(image_id1, image_id2)) {
-    two_view_geometry.Invert();
-  }
-
-  return two_view_geometry;
-}
-
-void Database::ReadTwoViewGeometries(
-    std::vector<image_pair_t>* image_pair_ids,
-    std::vector<TwoViewGeometry>* two_view_geometries) const {
-  int rc;
-  while ((rc = SQLITE3_CALL(sqlite3_step(
-              sql_stmt_read_two_view_geometries_))) == SQLITE_ROW) {
-    const image_pair_t pair_id = static_cast<image_pair_t>(
-        sqlite3_column_int64(sql_stmt_read_two_view_geometries_, 0));
-    image_pair_ids->push_back(pair_id);
-
-    TwoViewGeometry two_view_geometry;
-
-    const FeatureMatchesBlob blob = ReadDynamicMatrixBlob<FeatureMatchesBlob>(
-        sql_stmt_read_two_view_geometries_, rc, 1);
-    two_view_geometry.inlier_matches = FeatureMatchesFromBlob(blob);
-
-    two_view_geometry.config = static_cast<int>(
-        sqlite3_column_int64(sql_stmt_read_two_view_geometries_, 4));
-
-    two_view_geometry.F = ReadStaticMatrixBlob<Eigen::Matrix3d>(
-        sql_stmt_read_two_view_geometries_, rc, 5);
-    two_view_geometry.E = ReadStaticMatrixBlob<Eigen::Matrix3d>(
-        sql_stmt_read_two_view_geometries_, rc, 6);
-    two_view_geometry.H = ReadStaticMatrixBlob<Eigen::Matrix3d>(
-        sql_stmt_read_two_view_geometries_, rc, 7);
-    two_view_geometry.qvec = ReadStaticMatrixBlob<Eigen::Vector4d>(
-        sql_stmt_read_two_view_geometries_, rc, 8);
-    two_view_geometry.tvec = ReadStaticMatrixBlob<Eigen::Vector3d>(
-        sql_stmt_read_two_view_geometries_, rc, 9);
-
-    two_view_geometry.F.transposeInPlace();
-    two_view_geometry.E.transposeInPlace();
-    two_view_geometry.H.transposeInPlace();
-
-    two_view_geometries->push_back(two_view_geometry);
-  }
-
-  SQLITE3_CALL(sqlite3_reset(sql_stmt_read_two_view_geometries_));
-}
+//void Database::ReadTwoViewGeometries(
+//    std::vector<image_pair_t>* image_pair_ids,
+//    std::vector<TwoViewGeometry>* two_view_geometries) const {
+//  int rc;
+//  while ((rc = SQLITE3_CALL(sqlite3_step(
+//              sql_stmt_read_two_view_geometries_))) == SQLITE_ROW) {
+//    const image_pair_t pair_id = static_cast<image_pair_t>(
+//        sqlite3_column_int64(sql_stmt_read_two_view_geometries_, 0));
+//    image_pair_ids->push_back(pair_id);
+//
+//    TwoViewGeometry two_view_geometry;
+//
+//    const FeatureMatchesBlob blob = ReadDynamicMatrixBlob<FeatureMatchesBlob>(
+//        sql_stmt_read_two_view_geometries_, rc, 1);
+//    two_view_geometry.inlier_matches = FeatureMatchesFromBlob(blob);
+//
+//    two_view_geometry.config = static_cast<int>(
+//        sqlite3_column_int64(sql_stmt_read_two_view_geometries_, 4));
+//
+//    two_view_geometry.F = ReadStaticMatrixBlob<Eigen::Matrix3d>(
+//        sql_stmt_read_two_view_geometries_, rc, 5);
+//    two_view_geometry.E = ReadStaticMatrixBlob<Eigen::Matrix3d>(
+//        sql_stmt_read_two_view_geometries_, rc, 6);
+//    two_view_geometry.H = ReadStaticMatrixBlob<Eigen::Matrix3d>(
+//        sql_stmt_read_two_view_geometries_, rc, 7);
+//    two_view_geometry.qvec = ReadStaticMatrixBlob<Eigen::Vector4d>(
+//        sql_stmt_read_two_view_geometries_, rc, 8);
+//    two_view_geometry.tvec = ReadStaticMatrixBlob<Eigen::Vector3d>(
+//        sql_stmt_read_two_view_geometries_, rc, 9);
+//
+//    two_view_geometry.F.transposeInPlace();
+//    two_view_geometry.E.transposeInPlace();
+//    two_view_geometry.H.transposeInPlace();
+//
+//    two_view_geometries->push_back(two_view_geometry);
+//  }
+//
+//  SQLITE3_CALL(sqlite3_reset(sql_stmt_read_two_view_geometries_));
+//}
 
 void Database::ReadTwoViewGeometryNumInliers(
     std::vector<std::pair<image_t, image_t>>* image_pairs,
@@ -700,62 +700,62 @@ void Database::WriteMatches(const image_t image_id1, const image_t image_id2,
   SQLITE3_CALL(sqlite3_reset(sql_stmt_write_matches_));
 }
 
-void Database::WriteTwoViewGeometry(
-    const image_t image_id1, const image_t image_id2,
-    const TwoViewGeometry& two_view_geometry) const {
-  const image_pair_t pair_id = ImagePairToPairId(image_id1, image_id2);
-  SQLITE3_CALL(
-      sqlite3_bind_int64(sql_stmt_write_two_view_geometry_, 1, pair_id));
-
-  const TwoViewGeometry* two_view_geometry_ptr = &two_view_geometry;
-
-  // Invert the two-view geometry if the image pair has to be swapped.
-  std::unique_ptr<TwoViewGeometry> swapped_two_view_geometry;
-  if (SwapImagePair(image_id1, image_id2)) {
-    swapped_two_view_geometry.reset(new TwoViewGeometry());
-    *swapped_two_view_geometry = two_view_geometry;
-    swapped_two_view_geometry->Invert();
-    two_view_geometry_ptr = swapped_two_view_geometry.get();
-  }
-
-  const FeatureMatchesBlob inlier_matches =
-      FeatureMatchesToBlob(two_view_geometry_ptr->inlier_matches);
-  WriteDynamicMatrixBlob(sql_stmt_write_two_view_geometry_, inlier_matches, 2);
-
-  SQLITE3_CALL(sqlite3_bind_int64(sql_stmt_write_two_view_geometry_, 5,
-                                  two_view_geometry_ptr->config));
-
-  // Transpose the matrices to obtain row-major data layout.
-  // Important: Do not move these objects inside the if-statement, because
-  // the objects must live until `sqlite3_step` is called on the statement.
-  const Eigen::Matrix3d Ft = two_view_geometry_ptr->F.transpose();
-  const Eigen::Matrix3d Et = two_view_geometry_ptr->E.transpose();
-  const Eigen::Matrix3d Ht = two_view_geometry_ptr->H.transpose();
-  const Eigen::Vector4d& qvec = two_view_geometry_ptr->qvec;
-  const Eigen::Vector3d& tvec = two_view_geometry_ptr->tvec;
-
-  if (two_view_geometry_ptr->inlier_matches.size() > 0) {
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, Ft, 6);
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, Et, 7);
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, Ht, 8);
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, qvec, 9);
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, tvec, 10);
-  } else {
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
-                          Eigen::MatrixXd(0, 0), 6);
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
-                          Eigen::MatrixXd(0, 0), 7);
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
-                          Eigen::MatrixXd(0, 0), 8);
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
-                          Eigen::MatrixXd(0, 0), 9);
-    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
-                          Eigen::MatrixXd(0, 0), 10);
-  }
-
-  SQLITE3_CALL(sqlite3_step(sql_stmt_write_two_view_geometry_));
-  SQLITE3_CALL(sqlite3_reset(sql_stmt_write_two_view_geometry_));
-}
+//void Database::WriteTwoViewGeometry(
+//    const image_t image_id1, const image_t image_id2,
+//    const TwoViewGeometry& two_view_geometry) const {
+//  const image_pair_t pair_id = ImagePairToPairId(image_id1, image_id2);
+//  SQLITE3_CALL(
+//      sqlite3_bind_int64(sql_stmt_write_two_view_geometry_, 1, pair_id));
+//
+//  const TwoViewGeometry* two_view_geometry_ptr = &two_view_geometry;
+//
+//  // Invert the two-view geometry if the image pair has to be swapped.
+//  std::unique_ptr<TwoViewGeometry> swapped_two_view_geometry;
+//  if (SwapImagePair(image_id1, image_id2)) {
+//    swapped_two_view_geometry.reset(new TwoViewGeometry());
+//    *swapped_two_view_geometry = two_view_geometry;
+//    swapped_two_view_geometry->Invert();
+//    two_view_geometry_ptr = swapped_two_view_geometry.get();
+//  }
+//
+//  const FeatureMatchesBlob inlier_matches =
+//      FeatureMatchesToBlob(two_view_geometry_ptr->inlier_matches);
+//  WriteDynamicMatrixBlob(sql_stmt_write_two_view_geometry_, inlier_matches, 2);
+//
+//  SQLITE3_CALL(sqlite3_bind_int64(sql_stmt_write_two_view_geometry_, 5,
+//                                  two_view_geometry_ptr->config));
+//
+//  // Transpose the matrices to obtain row-major data layout.
+//  // Important: Do not move these objects inside the if-statement, because
+//  // the objects must live until `sqlite3_step` is called on the statement.
+//  const Eigen::Matrix3d Ft = two_view_geometry_ptr->F.transpose();
+//  const Eigen::Matrix3d Et = two_view_geometry_ptr->E.transpose();
+//  const Eigen::Matrix3d Ht = two_view_geometry_ptr->H.transpose();
+//  const Eigen::Vector4d& qvec = two_view_geometry_ptr->qvec;
+//  const Eigen::Vector3d& tvec = two_view_geometry_ptr->tvec;
+//
+//  if (two_view_geometry_ptr->inlier_matches.size() > 0) {
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, Ft, 6);
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, Et, 7);
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, Ht, 8);
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, qvec, 9);
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_, tvec, 10);
+//  } else {
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
+//                          Eigen::MatrixXd(0, 0), 6);
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
+//                          Eigen::MatrixXd(0, 0), 7);
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
+//                          Eigen::MatrixXd(0, 0), 8);
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
+//                          Eigen::MatrixXd(0, 0), 9);
+//    WriteStaticMatrixBlob(sql_stmt_write_two_view_geometry_,
+//                          Eigen::MatrixXd(0, 0), 10);
+//  }
+//
+//  SQLITE3_CALL(sqlite3_step(sql_stmt_write_two_view_geometry_));
+//  SQLITE3_CALL(sqlite3_reset(sql_stmt_write_two_view_geometry_));
+//}
 
 void Database::UpdateCamera(const Camera& camera) const {
   SQLITE3_CALL(
@@ -935,39 +935,39 @@ void Database::Merge(const Database& database1, const Database& database2,
 
   // Merge the two-view geometries.
 
-  {
-    std::vector<image_pair_t> image_pair_ids;
-    std::vector<TwoViewGeometry> two_view_geometries;
-    database1.ReadTwoViewGeometries(&image_pair_ids, &two_view_geometries);
+//  {
+//    std::vector<image_pair_t> image_pair_ids;
+//    std::vector<TwoViewGeometry> two_view_geometries;
+//    database1.ReadTwoViewGeometries(&image_pair_ids, &two_view_geometries);
+//
+//    for (size_t i = 0; i < two_view_geometries.size(); ++i) {
+//      image_t image_id1, image_id2;
+//      Database::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
+//
+//      const image_t new_image_id1 = new_image_ids1.at(image_id1);
+//      const image_t new_image_id2 = new_image_ids1.at(image_id2);
+//
+//      merged_database->WriteTwoViewGeometry(new_image_id1, new_image_id2,
+//                                            two_view_geometries[i]);
+//    }
+//  }
 
-    for (size_t i = 0; i < two_view_geometries.size(); ++i) {
-      image_t image_id1, image_id2;
-      Database::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
-
-      const image_t new_image_id1 = new_image_ids1.at(image_id1);
-      const image_t new_image_id2 = new_image_ids1.at(image_id2);
-
-      merged_database->WriteTwoViewGeometry(new_image_id1, new_image_id2,
-                                            two_view_geometries[i]);
-    }
-  }
-
-  {
-    std::vector<image_pair_t> image_pair_ids;
-    std::vector<TwoViewGeometry> two_view_geometries;
-    database2.ReadTwoViewGeometries(&image_pair_ids, &two_view_geometries);
-
-    for (size_t i = 0; i < two_view_geometries.size(); ++i) {
-      image_t image_id1, image_id2;
-      Database::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
-
-      const image_t new_image_id1 = new_image_ids2.at(image_id1);
-      const image_t new_image_id2 = new_image_ids2.at(image_id2);
-
-      merged_database->WriteTwoViewGeometry(new_image_id1, new_image_id2,
-                                            two_view_geometries[i]);
-    }
-  }
+//  {
+//    std::vector<image_pair_t> image_pair_ids;
+//    std::vector<TwoViewGeometry> two_view_geometries;
+//    database2.ReadTwoViewGeometries(&image_pair_ids, &two_view_geometries);
+//
+//    for (size_t i = 0; i < two_view_geometries.size(); ++i) {
+//      image_t image_id1, image_id2;
+//      Database::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
+//
+//      const image_t new_image_id1 = new_image_ids2.at(image_id1);
+//      const image_t new_image_id2 = new_image_ids2.at(image_id2);
+//
+//      merged_database->WriteTwoViewGeometry(new_image_id1, new_image_id2,
+//                                            two_view_geometries[i]);
+//    }
+//  }
 }
 
 void Database::BeginTransaction() const {

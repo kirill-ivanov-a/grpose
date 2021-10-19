@@ -1,6 +1,4 @@
 # Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
-# All rights reserved.
-#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
@@ -29,12 +27,35 @@
 #
 # Author: Johannes L. Schoenberger (jsch-at-demuc-dot-de)
 
-set(FOLDER_NAME "feature")
+set(FOLDER_NAME "base")
 
 COLMAP_ADD_SOURCES(
-    types.h types.cc
-    utils.h utils.cc
+    camera.h camera.cc
+    camera_models.h camera_models.cc
+    # camera_rig.h camera_rig.cc
+    # correspondence_graph.h correspondence_graph.cc
+    database.h database.cc
+    # database_cache.h database_cache.cc
+    # essential_matrix.h essential_matrix.cc
+    # gps.h gps.cc
+    # graph_cut.h graph_cut.cc
+    # homography_matrix.h homography_matrix.cc
+    image.h image.cc
+    # image_reader.h image_reader.cc
+    # line.h line.cc
+    point2d.h point2d.cc
+    # point3d.h point3d.cc
+    # polynomial.h polynomial.cc
+    # pose.h pose.cc
+    projection.h projection.cc
+    # reconstruction.h reconstruction.cc
+    # reconstruction_manager.h reconstruction_manager.cc
+    # scene_clustering.h scene_clustering.cc
+    # similarity_transform.h similarity_transform.cc
+    # track.h track.cc
+    # triangulation.h triangulation.cc
+    # undistortion.h undistortion.cc
+    visibility_pyramid.h visibility_pyramid.cc
+    # warp.h warp.cc
 )
 
-COLMAP_ADD_TEST(feature_utils_test utils_test.cc)
-COLMAP_ADD_TEST(types_test types_test.cc)

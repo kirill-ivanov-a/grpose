@@ -29,12 +29,10 @@
 #
 # Author: Johannes L. Schoenberger (jsch-at-demuc-dot-de)
 
-set(FOLDER_NAME "feature")
+set(PACKAGE_VERSION "@COLMAP_VERSION@")
 
-COLMAP_ADD_SOURCES(
-    types.h types.cc
-    utils.h utils.cc
-)
-
-COLMAP_ADD_TEST(feature_utils_test utils_test.cc)
-COLMAP_ADD_TEST(types_test types_test.cc)
+if("${PACKAGE_VERSION}" VERSION_EQUAL "${PACKAGE_FIND_VERSION}")
+    set(PACKAGE_VERSION_COMPATIBLE TRUE)
+else()
+    set(PACKAGE_VERSION_COMPATIBLE FALSE)
+endif()

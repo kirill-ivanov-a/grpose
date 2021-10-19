@@ -50,6 +50,8 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/ext/Sophus)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/PoseLib)
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/ext/colmap_extracts)
+
 set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/util/metrics.h
         ${PROJECT_SOURCE_DIR}/include/util/trajectory.h
@@ -167,6 +169,7 @@ target_link_libraries(grpose
         PoseLib
         fmt::fmt
         gflags
+        colmap
         ${OpenCV_LIBS}
         ${GLOG_LIBRARIES}
         ${CERES_LIBRARIES}
