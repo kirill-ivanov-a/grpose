@@ -117,6 +117,9 @@ inline std::string TimeOfDay(Timestamp timestamp) {
 
 void SaveArgv(const fs::path &filename, int argc, char *argv[]);
 
+bool GetRelativePath(const fs::path &directory, const fs::path &absolute_path,
+                     fs::path &relative_path);
+
 }  // namespace grpose
 
 #endif

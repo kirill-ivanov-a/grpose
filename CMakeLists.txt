@@ -79,6 +79,7 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/init_opengv/write_poses_to_file.h
 
         ${PROJECT_SOURCE_DIR}/include/features/feature_detector_and_matcher.h
+        ${PROJECT_SOURCE_DIR}/include/features/colmap_database.h
 
         ${PROJECT_SOURCE_DIR}/include/grpose/bearing_vector_correspondences.h
         ${PROJECT_SOURCE_DIR}/include/grpose/point2d_correspondences.h
@@ -122,6 +123,7 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/init_opengv/write_poses_to_file.cpp
 
         ${PROJECT_SOURCE_DIR}/src/features/feature_detector_and_matcher.cpp
+        ${PROJECT_SOURCE_DIR}/src/features/colmap_database.cpp
 
         ${PROJECT_SOURCE_DIR}/src/grpose/bearing_vector_correspondences.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/point2d_correspondences.cpp
@@ -157,6 +159,9 @@ target_include_directories(grpose
         ${EIGEN3_INCLUDE_DIR}
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/ext/Sophus
+
+        ${PROJECT_SOURCE_DIR}/ext/colmap_extracts
+        ${PROJECT_SOURCE_DIR}/ext/colmap_extracts/lib
 
         PRIVATE
         ${Boost_INCLUDE_DIRS}

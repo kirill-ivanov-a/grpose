@@ -176,4 +176,15 @@ void SaveArgv(const fs::path &filename, int argc, char *argv[]) {
   stream << std::endl;
 }
 
+bool GetRelativePath(const fs::path &directory, const fs::path &absolute_path,
+                     fs::path &relative_path) {
+  fs::path::iterator itDir = directory.begin(), itFile = absolute_path.begin();
+  for (; itDir != directory.end() && itFile != absolute_path.end();
+         ++itDir, ++itFile)
+    if (*itDir != *itFile) return false;
+  relative_path = "";
+  for (; itFile != absolute_path.end(); ++itFile) relative_path /= *itFile;
+  return true;
+}
+
 }  // namespace grpose

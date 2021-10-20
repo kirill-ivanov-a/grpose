@@ -183,14 +183,14 @@ set(COLMAP_INTERNAL_LIBRARIES
 
 include_directories(
     lib
-    colmap
+    ${PROJECT_SOURCE_DIR}
     ${COLMAP_INCLUDE_DIRS}
 )
 
 link_directories(${COLMAP_LINK_DIRS})
 
 add_subdirectory(lib)
-add_subdirectory(colmap)
+add_subdirectory(colmap_extracts)
 
 
 ################################################################################
@@ -199,9 +199,9 @@ add_subdirectory(colmap)
 
 COLMAP_ADD_SOURCE_DIR(lib/SQLite LIB_SQLITE_SRCS *.h *.c)
 
-COLMAP_ADD_SOURCE_DIR(colmap/base BASE_SRCS *.h *.cc)
-COLMAP_ADD_SOURCE_DIR(colmap/feature FEATURE_SRCS *.h *.cc)
-COLMAP_ADD_SOURCE_DIR(colmap/util UTIL_SRCS *.h *.cc)
+COLMAP_ADD_SOURCE_DIR(colmap_extracts/base BASE_SRCS *.h *.cc)
+COLMAP_ADD_SOURCE_DIR(colmap_extracts/feature FEATURE_SRCS *.h *.cc)
+COLMAP_ADD_SOURCE_DIR(colmap_extracts/util UTIL_SRCS *.h *.cc)
 
 # Add all of the source files to a regular library target, as using a custom
 # target does not allow us to set its C++ include directories (and thus
