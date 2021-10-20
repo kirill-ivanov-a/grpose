@@ -180,7 +180,7 @@ bool GetRelativePath(const fs::path &directory, const fs::path &absolute_path,
                      fs::path &relative_path) {
   fs::path::iterator itDir = directory.begin(), itFile = absolute_path.begin();
   for (; itDir != directory.end() && itFile != absolute_path.end();
-         ++itDir, ++itFile)
+       ++itDir, ++itFile)
     if (*itDir != *itFile) return false;
   relative_path = "";
   for (; itFile != absolute_path.end(); ++itFile) relative_path /= *itFile;

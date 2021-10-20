@@ -42,7 +42,7 @@ colmap::image_t ColmapDatabase::ColmapFromOurIndices(int frame_index,
   fs::path colmap_path;
   CHECK(GetRelativePath(database_image_root_, frame_path, colmap_path))
       << fmt::format("The path {} is not contained in the directory {}!",
-                     frame_path.string(), colmap_path.string());
+                     frame_path.string(), database_image_root_.string());
 
   // TODO: reading all image info to only get the id is inefficient
   colmap::Image colmap_image =

@@ -23,7 +23,7 @@ class ColmapDatabase {
   colmap::image_t ColmapFromOurIndices(int frame_index, int camera_index) const;
 
   colmap::Database database_;
-  const fs::path &database_image_root_;
+  fs::path database_image_root_;
   std::shared_ptr<DatasetReader> dataset_reader_;
 };
 

@@ -7,6 +7,7 @@
 #include "central/central_opengv_solver_bvc.h"
 #include "central/central_solver_using_features.h"
 #include "dataset/autovision_reader.h"
+#include "features/colmap_database.h"
 #include "util/metrics.h"
 #include "util/util.h"
 
@@ -28,16 +29,28 @@ DEFINE_string(feature_types, "sift",
 DEFINE_bool(use_nms, true, "Use non-maximal suppression of keypoints?");
 DEFINE_bool(use_cross_check, true, "Use cross-check of matches?");
 DEFINE_string(
-    frame_steps, "10,30,60",
+    frame_steps, "30,60",
     "Relative pose is run between frames #f and #(f + s) where values for "
     "s "
     "are taken from this flag. Integers are separated by commas.");
+DEFINE_string(
+    cameras, "0,1,2,3",
+    "Indices of cameras tested, separated by comma. Indexing starts from 0.");
 DEFINE_string(autovision_segments, "2",
               "Indices of segments of the AutoVision on which the experiment "
               "will be run, in [1,5]. Integers are separated by commas.");
 DEFINE_int32(next_run_step, 1, "Step of the experiment (see code).");
 DEFINE_int32(num_attempts, 10,
              "Number of experiment runs per a set of parameters.");
+
+DEFINE_string(feature_matches_database, "",
+              "Path to the database with feature matches in COLMAP format. If "
+              "set, the matches from this database will be used instead of "
+              "computing matches on the spot. Makes feature_types unused.");
+DEFINE_string(feature_matches_database_root, "",
+              "If feature_matcher_database is provided, this needs to be "
+              "provided as well. It should hold the path to the directory with "
+              "images, relative to which the colmap database was computed.");
 
 using namespace grpose;
 
@@ -80,20 +93,36 @@ void RunBenchmark(const fs::path &autovision_root,
   std::vector<std::string> feature_types = SplitByComma(FLAGS_feature_types);
   std::vector<int> autovision_segments = GetInts(FLAGS_autovision_segments);
   std::vector<int> frame_steps = GetInts(FLAGS_frame_steps);
+  std::vector<int> camera_indices = GetInts(FLAGS_cameras);
+  bool use_precomputed_features = !FLAGS_feature_matches_database.empty();
+  if (use_precomputed_features) {
+    CHECK(!FLAGS_feature_matches_database_root.empty())
+        << "Expected meaningful --feature_matches_dataset_root !";
+    feature_types = {"precomputed"};
+  }
 
   for (const auto &feature_name : feature_types) {
     for (int segment_index : autovision_segments) {
-      std::unique_ptr<DatasetReader> dataset_reader =
+      std::shared_ptr<DatasetReader> dataset_reader =
           std::make_unique<AutovisionReader>(
               autovision_root / std::to_string(segment_index),
               autovision_root / "calib", autovision_config);
 
-      FeatureDetectorAndMatcherSettings matcher_settings;
-      matcher_settings.feature_type = FeatureTypeFromName(feature_name);
-      matcher_settings.debug_draw_matches = FLAGS_draw_matches;
-      matcher_settings.use_non_maximal_suppression = FLAGS_use_nms;
-      matcher_settings.cross_check_matches = FLAGS_use_cross_check;
-      const FeatureDetectorAndMatcher matcher(matcher_settings);
+      std::optional<FeatureDetectorAndMatcher> matcher;
+      std::optional<ColmapDatabase> matches_database;
+      if (use_precomputed_features) {
+        matches_database.emplace(fs::path(FLAGS_feature_matches_database),
+                                 fs::path(FLAGS_feature_matches_database_root),
+                                 dataset_reader);
+      } else {
+        FeatureDetectorAndMatcherSettings matcher_settings;
+        matcher_settings.feature_type = FeatureTypeFromName(feature_name);
+        matcher_settings.debug_draw_matches = FLAGS_draw_matches;
+        matcher_settings.use_non_maximal_suppression = FLAGS_use_nms;
+        matcher_settings.cross_check_matches = FLAGS_use_cross_check;
+        matcher.emplace(matcher_settings);
+      }
+
       CentralOpengvSolverBvcSettings solver_settings;
       const double kThresInRadians = M_PI / 180.0 * FLAGS_ransac_angle_thres;
       solver_settings.threshold = kThresInRadians * kThresInRadians;
@@ -102,6 +131,7 @@ void RunBenchmark(const fs::path &autovision_root,
           std::make_shared<CentralOpengvSolverBvc>(solver_settings);
 
       const CameraBundle camera_bundle = dataset_reader->GetCameraBundle();
+
       for (int frame_step : frame_steps) {
         for (int frame_index1 = 0;
              frame_index1 + frame_step < dataset_reader->NumberOfFrames();
@@ -110,13 +140,9 @@ void RunBenchmark(const fs::path &autovision_root,
           const std::vector<DatasetReader::FrameEntry> frames[2] = {
               dataset_reader->Frame(frame_index1),
               dataset_reader->Frame(frame_index2)};
-          for (int camera_index = 0;
-               camera_index < camera_bundle.NumberOfCameras(); ++camera_index) {
-            const CentralSolverUsingFeatures solver(
-                camera_bundle.camera(camera_index),
-                camera_bundle.camera(camera_index), matcher,
-                ransac_solver_opengv);
-
+          for (int camera_index : camera_indices) {
+            const Camera &camera = camera_bundle.camera(camera_index);
+            cv::Mat1b camera_mask = camera.mask();
             const SE3 true_frame1_from_frame2 =
                 camera_bundle.camera_from_body(camera_index) *
                 dataset_reader->WorldFromFrame(frame_index1).inverse() *
@@ -126,10 +152,26 @@ void RunBenchmark(const fs::path &autovision_root,
             for (int experiment_num = 0; experiment_num < FLAGS_num_attempts;
                  ++experiment_num) {
               SE3 frame1_from_frame2;
-              CentralSolverUsingFeatures::SolveInfo solve_info;
-              bool is_ok = solver.Solve(frames[0][camera_index].frame,
-                                        frames[1][camera_index].frame,
-                                        frame1_from_frame2, &solve_info);
+
+              CentralPoint2dCorrespondences point_correspondences;
+              if (use_precomputed_features) {
+                point_correspondences =
+                    matches_database->GetCentralCorrespondences(
+                        frame_index1, camera_index, frame_index2, camera_index);
+              } else {
+                cv::Mat3b frame1 =
+                    dataset_reader->Frame(frame_index1)[camera_index].frame;
+                cv::Mat3b frame2 =
+                    dataset_reader->Frame(frame_index2)[camera_index].frame;
+                point_correspondences = matcher->GetCorrespondences(
+                    frame1, frame2, &camera_mask, &camera_mask);
+              }
+              CentralBearingVectorCorrespondences correspondences =
+                  point_correspondences.ToCentralBearingVectorCorrespondences(
+                      camera, camera);
+              CentralSolverBvc::SolveInfo solve_info;
+              bool is_ok = ransac_solver_opengv->Solve(
+                  correspondences, frame1_from_frame2, &solve_info);
               const double rte = AngularTranslationError(
                   true_frame1_from_frame2, frame1_from_frame2);
               const double are = AbsoluteRotationError(true_frame1_from_frame2,
@@ -142,19 +184,18 @@ void RunBenchmark(const fs::path &autovision_root,
                   "{:d},{:d},{:d},{:d},{:s},{:s},{:g},{:g},{:d},{:d},{:d},{:d}",
                   camera_index, frame_index1, frame_step, is_ok,
                   ToCsv(true_frame1_from_frame2), ToCsv(frame1_from_frame2),
-                  are, rte, solve_info.solve_bvc_info.number_of_iterations,
-                  solve_info.solve_bvc_info.number_of_inliers,
-                  solve_info.solve_bvc_info.number_of_correspondences,
-                  experiment_num);
+                  are, rte, solve_info.number_of_iterations,
+                  solve_info.number_of_inliers,
+                  solve_info.number_of_correspondences, experiment_num);
               out_stream << std::endl;
 
               fmt::print(
-                  "Ran frame #{}/{} on camera #{}; |t|={:.2}, rte={:.3} deg, "
+                  "Ran frame #{}/{} on camera #{}; |t|={}, rte={} deg, "
                   "are={:.3} deg niter={}",
                   frame_index1, dataset_reader->NumberOfFrames(), camera_index,
                   true_frame1_from_frame2.translation().norm(),
                   rte * 180.0 / M_PI, are * 180.0 / M_PI,
-                  solve_info.solve_bvc_info.number_of_iterations);
+                  solve_info.number_of_iterations);
               std::cout << std::endl;
             }
           }
