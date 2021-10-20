@@ -212,10 +212,10 @@ Eigen::Vector3d CalculateBaseline(const Eigen::Vector4d& qvec1,
 // @param points1      First set of corresponding points.
 // @param points2      Second set of corresponding points.
 // @param points3D     Points that lie in front of both cameras.
-bool CheckCheirality(const Eigen::Matrix3d& R, const Eigen::Vector3d& t,
-                     const std::vector<Eigen::Vector2d>& points1,
-                     const std::vector<Eigen::Vector2d>& points2,
-                     std::vector<Eigen::Vector3d>* points3D);
+//bool CheckCheirality(const Eigen::Matrix3d& R, const Eigen::Vector3d& t,
+//                     const std::vector<Eigen::Vector2d>& points1,
+//                     const std::vector<Eigen::Vector2d>& points2,
+//                     std::vector<Eigen::Vector3d>* points3D);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation

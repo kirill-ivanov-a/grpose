@@ -13,7 +13,7 @@ void CentralPoint2dCorrespondences::Add(const Vector2& point1,
 const Vector2& CentralPoint2dCorrespondences::point(
     int frame_index, int correspondence_index) const {
   CHECK_GE(frame_index, 0);
-  CHECK_LT(frame_index, 1);
+  CHECK_LT(frame_index, 2);
   CHECK_GE(correspondence_index, 0);
   CHECK_LT(correspondence_index, Size());
 

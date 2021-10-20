@@ -44,9 +44,9 @@ COLMAP_ADD_SOURCES(
     # image_reader.h image_reader.cc
     # line.h line.cc
     point2d.h point2d.cc
-    # point3d.h point3d.cc
+    point3d.h point3d.cc
     # polynomial.h polynomial.cc
-    # pose.h pose.cc
+    pose.h pose.cc
     projection.h projection.cc
     # reconstruction.h reconstruction.cc
     # reconstruction_manager.h reconstruction_manager.cc

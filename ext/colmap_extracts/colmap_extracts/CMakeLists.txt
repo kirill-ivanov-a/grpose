@@ -51,6 +51,7 @@ add_subdirectory(base)
 add_subdirectory(feature)
 add_subdirectory(util)
 
+message("All considered sources: ${COLMAP_SOURCES}")
 COLMAP_ADD_STATIC_LIBRARY(colmap ${COLMAP_SOURCES})
 
 if(CUDA_ENABLED)
