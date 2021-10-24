@@ -15,6 +15,8 @@ class CentralPoint2dCorrespondences {
   const Vector2 &point(int frame_index, int correspondence_index) const;
   inline int Size() const;
 
+  void FilterByMasks(const cv::Mat1b &mask1, const cv::Mat1b &mask2);
+
   CentralBearingVectorCorrespondences ToCentralBearingVectorCorrespondences(
       const Camera &camera1, const Camera &camera2) const;
 

@@ -31,8 +31,7 @@ DEFINE_bool(use_cross_check, true, "Use cross-check of matches?");
 DEFINE_string(
     frame_steps, "30,60",
     "Relative pose is run between frames #f and #(f + s) where values for "
-    "s "
-    "are taken from this flag. Integers are separated by commas.");
+    "s are taken from this flag. Integers are separated by commas.");
 DEFINE_string(
     cameras, "0,1,2,3",
     "Indices of cameras tested, separated by comma. Indexing starts from 0.");
@@ -84,11 +83,11 @@ void RunBenchmark(const fs::path &autovision_root,
                   const fs::path &autovision_config,
                   const fs::path &output_filename) {
   std::ofstream out_stream(output_filename);
-  out_stream
-      << "camera_index,first_frame_index,frame_step,success,gt_qw,gt_qx,gt_qy,"
-         "gt_qz,gt_tx,gt_ty,gt_tz,qw,qx,qy,qz,tx,ty,tz,are,rte,num_"
-         "ransac_iter,num_inliers,num_corresps,experiment_num"
-      << std::endl;
+  out_stream << "segment_index,camera_index,first_frame_index,frame_step,"
+                "success,gt_qw,gt_qx,gt_qy,"
+                "gt_qz,gt_tx,gt_ty,gt_tz,qw,qx,qy,qz,tx,ty,tz,are,rte,num_"
+                "ransac_iter,num_inliers,num_corresps,experiment_num"
+             << std::endl;
 
   std::vector<std::string> feature_types = SplitByComma(FLAGS_feature_types);
   std::vector<int> autovision_segments = GetInts(FLAGS_autovision_segments);
@@ -166,6 +165,7 @@ void RunBenchmark(const fs::path &autovision_root,
                 point_correspondences = matcher->GetCorrespondences(
                     frame1, frame2, &camera_mask, &camera_mask);
               }
+              point_correspondences.FilterByMasks(camera.mask(), camera.mask());
               CentralBearingVectorCorrespondences correspondences =
                   point_correspondences.ToCentralBearingVectorCorrespondences(
                       camera, camera);
@@ -177,12 +177,13 @@ void RunBenchmark(const fs::path &autovision_root,
               const double are = AbsoluteRotationError(true_frame1_from_frame2,
                                                        frame1_from_frame2);
 
-              // camera_index,first_frame_index,frame_step,success,gt_qw,gt_qx,gt_qy,
+              // segment_index,camera_index,first_frame_index,frame_step,success,gt_qw,gt_qx,gt_qy,
               // gt_qz,gt_tx,gt_ty,gt_tz,qw,qx,qy,qz,tx,ty,tz,are,rte,
               // num_ransac_iter,num_inliers,num_corresps,experiment_num
               out_stream << fmt::format(
-                  "{:d},{:d},{:d},{:d},{:s},{:s},{:g},{:g},{:d},{:d},{:d},{:d}",
-                  camera_index, frame_index1, frame_step, is_ok,
+                  "{:d},{:d},{:d},{:d},{:d},{:s},{:s},{:g},{:g},{:d},{:d},{:d},"
+                  "{:d}",
+                  segment_index, camera_index, frame_index1, frame_step, is_ok,
                   ToCsv(true_frame1_from_frame2), ToCsv(frame1_from_frame2),
                   are, rte, solve_info.number_of_iterations,
                   solve_info.number_of_inliers,
@@ -191,11 +192,12 @@ void RunBenchmark(const fs::path &autovision_root,
 
               fmt::print(
                   "Ran frame #{}/{} on camera #{}; |t|={}, rte={} deg, "
-                  "are={:.3} deg niter={}",
+                  "are={:.3} deg niter={} inl: {}/{}",
                   frame_index1, dataset_reader->NumberOfFrames(), camera_index,
                   true_frame1_from_frame2.translation().norm(),
                   rte * 180.0 / M_PI, are * 180.0 / M_PI,
-                  solve_info.number_of_iterations);
+                  solve_info.number_of_iterations, solve_info.number_of_inliers,
+                  correspondences.Size());
               std::cout << std::endl;
             }
           }

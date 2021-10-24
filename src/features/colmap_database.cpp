@@ -39,10 +39,7 @@ colmap::image_t ColmapDatabase::ColmapFromOurIndices(int frame_index,
                                                      int camera_index) const {
   fs::path frame_path = dataset_reader_->FrameFiles(frame_index)[camera_index];
   frame_path = fs::absolute(frame_path);
-  fs::path colmap_path;
-  CHECK(GetRelativePath(database_image_root_, frame_path, colmap_path))
-      << fmt::format("The path {} is not contained in the directory {}!",
-                     frame_path.string(), database_image_root_.string());
+  fs::path colmap_path = fs::relative(frame_path, database_image_root_);
 
   // TODO: reading all image info to only get the id is inefficient
   colmap::Image colmap_image =
