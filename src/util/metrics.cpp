@@ -35,10 +35,11 @@ double AbsoluteTranslationError(const SE3& world_from_true_frame,
 }
 
 double AngularTranslationError(const SE3& world_from_true_frame,
-                               const SE3& world_from_estimate) {
+                               const SE3& world_from_estimate, bool degrees) {
   const double cos_angle = (world_from_estimate.translation().normalized().dot(
       world_from_true_frame.translation().normalized()));
-  return std::acos(std::clamp(cos_angle, 0.0, 1.0));
+  const double angle = std::acos(std::clamp(cos_angle, 0.0, 1.0));
+  return degrees ? 180.0 / M_PI * angle : angle;
 }
 
 std::vector<double> AbsoluteRotationError(const Trajectory& ground_truth,
@@ -60,10 +61,12 @@ std::vector<double> AbsoluteRotationError(const Trajectory& ground_truth,
 }
 
 double AbsoluteRotationError(const SE3& world_from_true_frame,
-                             const SE3& world_from_estimate) {
-  return (world_from_true_frame.so3() * world_from_estimate.so3().inverse())
-      .log()
-      .norm();
+                             const SE3& world_from_estimate, bool degrees) {
+  const double angle =
+      (world_from_true_frame.so3() * world_from_estimate.so3().inverse())
+          .log()
+          .norm();
+  return degrees ? 180.0 / M_PI * angle : angle;
 }
 
 }  // namespace grpose

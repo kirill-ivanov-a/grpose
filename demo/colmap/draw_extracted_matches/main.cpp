@@ -25,7 +25,7 @@ DEFINE_bool(mask_matches, true,
 
 using namespace grpose;
 
-void DrawMatches(const std::shared_ptr<DatasetReader> &dataset_reader,
+void ShowMatches(const std::shared_ptr<DatasetReader> &dataset_reader,
                  const ColmapDatabase &colmap_database) {
   CentralPoint2dCorrespondences correspondences =
       colmap_database.GetCentralCorrespondences(
@@ -43,27 +43,9 @@ void DrawMatches(const std::shared_ptr<DatasetReader> &dataset_reader,
       dataset_reader->Frame(FLAGS_frame1_ind)[FLAGS_camera1_ind].frame,
       dataset_reader->Frame(FLAGS_frame2_ind)[FLAGS_camera2_ind].frame};
 
-  for (int i = 0; i < 2; ++i) frames[i] = ConvertBgrToGray3(frames[i]);
-
-  if (correspondences.Size() == 0) {
-    std::cout << "No matches found!!" << std::endl;
-  } else {
-    std::mt19937 mt;
-    std::uniform_int_distribution<int> hue_distr(0, 179);
-    cv::Mat3b colors_hsv(correspondences.Size(), 1);
-    for (int ci = 0; ci < correspondences.Size(); ++ci)
-      colors_hsv(ci, 0) = cv::Vec3b(hue_distr(mt), 255, 255);
-    cv::Mat3b colors_bgr;
-    cv::cvtColor(colors_hsv, colors_bgr, cv::COLOR_HSV2BGR);
-    for (int ci = 0; ci < correspondences.Size(); ++ci) {
-      for (int fi = 0; fi < 2; ++fi)
-        cv::circle(frames[fi], ToCvPoint(correspondences.point(fi, ci)),
-                   FLAGS_point_radius, colors_bgr(ci, 0), -1);
-    }
-  }
-
-  cv::Mat3b result_big, result;
-  cv::hconcat(frames[0], frames[1], result_big);
+  cv::Mat3b result_big =
+      DrawMatches(correspondences, frames[0], frames[1], FLAGS_point_radius);
+  cv::Mat3b result;
   cv::resize(result_big, result, cv::Size(), 0.5, 0.5);
   cv::imshow("Extracted matches", result);
   cv::waitKey();
@@ -81,8 +63,7 @@ where
       )abacaba";
 
   fs::path output_directory =
-      fs::path("output") /
-      ("central_refinement_benchmark_" + CurrentTimeBrief());
+      fs::path("output") / ("draw_extracted_maches_" + CurrentTimeBrief());
   fs::create_directories(output_directory);
   std::cout << "output dir: " << output_directory.string() << std::endl;
   SaveArgv(output_directory / "argv.txt", argc, argv);
@@ -103,7 +84,7 @@ where
           autovision_segment_dir, autovision_calib_dir, autovision_config);
   ColmapDatabase colmap_database(database_path, database_root, dataset_reader);
 
-  DrawMatches(dataset_reader, colmap_database);
+  ShowMatches(dataset_reader, colmap_database);
 
   return 0;
 }

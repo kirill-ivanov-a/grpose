@@ -33,10 +33,12 @@ double AbsoluteTranslationError(const SE3& world_from_true_frame,
                                 const SE3& world_from_estimate);
 
 double AngularTranslationError(const SE3& world_from_true_frame,
-                               const SE3& world_from_estimate);
+                               const SE3& world_from_estimate,
+                               bool degrees = false);
 
 double AbsoluteRotationError(const SE3& world_from_true_frame,
-                             const SE3& world_from_estimate);
+                             const SE3& world_from_estimate,
+                             bool degrees = false);
 
 }  // namespace grpose
 

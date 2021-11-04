@@ -40,6 +40,11 @@ void PutInMatrixForm(std::ostream &out_stream, const SE3 &motion);
 void DrawSquare(cv::Mat &image, const cv::Point &position, int size2,
                 const cv::Scalar &color, int thickness);
 
+class CentralPoint2dCorrespondences;
+cv::Mat3b DrawMatches(const CentralPoint2dCorrespondences &correspondences,
+                      const cv::Mat3b &frame1, const cv::Mat3b &frame2,
+                      int point_radius = 5);
+
 /**
  * Absolute distance between timestamps in microseconds
  */

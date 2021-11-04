@@ -14,10 +14,13 @@ class ColmapDatabase {
   ColmapDatabase(const fs::path &matches_database_path,
                  const fs::path &matches_database_image_root,
                  const std::shared_ptr<DatasetReader> &dataset_reader);
+  ~ColmapDatabase();
 
   CentralPoint2dCorrespondences GetCentralCorrespondences(
       int frame_index1, int camera_index1, int frame_index2,
       int camera_index2) const;
+
+  void SetDatasetReader(const std::shared_ptr<DatasetReader> &dataset_reader);
 
  private:
   colmap::image_t ColmapFromOurIndices(int frame_index, int camera_index) const;

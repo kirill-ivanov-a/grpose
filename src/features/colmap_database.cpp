@@ -2,13 +2,26 @@
 
 namespace grpose {
 
+namespace {
+fs::path CheckExists(const fs::path &path) {
+  CHECK(fs::exists(path));
+  return path;
+}
+
+}
+
 ColmapDatabase::ColmapDatabase(
     const fs::path &path, const fs::path &matches_database_image_root,
     const std::shared_ptr<DatasetReader> &dataset_reader)
-    : database_(path.string()),
+    : database_(CheckExists(path).string()),
       database_image_root_(matches_database_image_root),
       dataset_reader_(dataset_reader) {
   LOG(INFO) << "Opened a database under " << path.string();
+}
+
+ColmapDatabase::~ColmapDatabase() {
+  LOG(INFO) << "Started closing COLMAP database...";
+  std::cout << "Started closing COLMAP database...";
 }
 
 CentralPoint2dCorrespondences ColmapDatabase::GetCentralCorrespondences(
@@ -45,6 +58,11 @@ colmap::image_t ColmapDatabase::ColmapFromOurIndices(int frame_index,
   colmap::Image colmap_image =
       database_.ReadImageWithName(colmap_path.string());
   return colmap_image.ImageId();
+}
+
+void ColmapDatabase::SetDatasetReader(
+    const std::shared_ptr<DatasetReader> &dataset_reader) {
+  dataset_reader_ = dataset_reader;
 }
 
 }  // namespace grpose

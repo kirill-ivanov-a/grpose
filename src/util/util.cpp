@@ -6,6 +6,7 @@
 #include <glog/logging.h>
 #include <boost/algorithm/string.hpp>
 
+#include "central/central_point2d_correspondences.h"
 #include "util/types.h"
 
 namespace grpose {
@@ -78,6 +79,33 @@ void DrawSquare(cv::Mat &image, const cv::Point &position, int size2,
     cv::rectangle(image, from, to, color, thickness);
   else if (size2 == 0)
     image.at<cv::Vec3b>(from) = ToCvVec3b(color);
+}
+
+cv::Mat3b DrawMatches(const CentralPoint2dCorrespondences &correspondences,
+                      const cv::Mat3b &frame1, const cv::Mat3b &frame2,
+                      int point_radius) {
+  cv::Mat3b frames[2] = {ConvertBgrToGray3(frame1), ConvertBgrToGray3(frame2)};
+
+  if (correspondences.Size() == 0) {
+    std::cout << "No matches found!!" << std::endl;
+  } else {
+    std::mt19937 mt;
+    std::uniform_int_distribution<int> hue_distr(0, 179);
+    cv::Mat3b colors_hsv(correspondences.Size(), 1);
+    for (int ci = 0; ci < correspondences.Size(); ++ci)
+      colors_hsv(ci, 0) = cv::Vec3b(hue_distr(mt), 255, 255);
+    cv::Mat3b colors_bgr;
+    cv::cvtColor(colors_hsv, colors_bgr, cv::COLOR_HSV2BGR);
+    for (int ci = 0; ci < correspondences.Size(); ++ci) {
+      for (int fi = 0; fi < 2; ++fi)
+        cv::circle(frames[fi], ToCvPoint(correspondences.point(fi, ci)),
+                   point_radius, colors_bgr(ci, 0), -1);
+    }
+  }
+
+  cv::Mat3b result;
+  cv::hconcat(frames[0], frames[1], result);
+  return result;
 }
 
 std::vector<cv::Vec3b> GetColors(std::vector<double> values, double min_value,

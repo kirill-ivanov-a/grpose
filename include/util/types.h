@@ -17,6 +17,7 @@ namespace grpose {
 
 using Vector2 = Eigen::Vector2d;
 using Vector3 = Eigen::Vector3d;
+using Vector4 = Eigen::Vector4d;
 using Vector6 = Eigen::Matrix<double, 6, 1>;
 using VectorX = Eigen::VectorXd;
 

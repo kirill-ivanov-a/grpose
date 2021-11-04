@@ -60,6 +60,7 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/util/type_traits.h
         ${PROJECT_SOURCE_DIR}/include/util/sampling.h
         ${PROJECT_SOURCE_DIR}/include/util/geometry.h
+        ${PROJECT_SOURCE_DIR}/include/util/ceres_util.h
 
         ${PROJECT_SOURCE_DIR}/include/camera/camera.h
         ${PROJECT_SOURCE_DIR}/include/camera/camera_bundle.h
@@ -93,10 +94,15 @@ set(grpose_HEADER_FILES
 
         ${PROJECT_SOURCE_DIR}/include/central/central_bearing_vector_correspondences.h
         ${PROJECT_SOURCE_DIR}/include/central/central_point2d_correspondences.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_opengv_adapter.h
         ${PROJECT_SOURCE_DIR}/include/central/central_solver_bvc.h
         ${PROJECT_SOURCE_DIR}/include/central/central_solver_from_points2d.h
         ${PROJECT_SOURCE_DIR}/include/central/central_solver_using_features.h
         ${PROJECT_SOURCE_DIR}/include/central/central_opengv_solver_bvc.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_refiner.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_bundle_adjuster.h
+        ${PROJECT_SOURCE_DIR}/include/central/central_opengv_minimal_solver.h
+        ${PROJECT_SOURCE_DIR}/include/central/approximate_central_solution_sampler.h
 
         ${PROJECT_SOURCE_DIR}/include/synthetic/scene.h
         ${PROJECT_SOURCE_DIR}/include/synthetic/car_like_scene.h
@@ -108,6 +114,7 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/util/metrics.cpp
         ${PROJECT_SOURCE_DIR}/src/util/trajectory.cpp
         ${PROJECT_SOURCE_DIR}/src/util/geometry.cpp
+        ${PROJECT_SOURCE_DIR}/src/util/ceres_util.cpp
 
         ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
         ${PROJECT_SOURCE_DIR}/src/camera/camera_bundle.cpp
@@ -134,13 +141,18 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver_bvc.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/minimal_solver_central_plus_scale.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/poselib_solver_6pt.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_refiner.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_bundle_adjuster.cpp
 
         ${PROJECT_SOURCE_DIR}/src/central/central_bearing_vector_correspondences.cpp
         ${PROJECT_SOURCE_DIR}/src/central/central_point2d_correspondences.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_opengv_adapter.cpp
         ${PROJECT_SOURCE_DIR}/src/central/central_solver_bvc.cpp
         ${PROJECT_SOURCE_DIR}/src/central/central_solver_from_points2d.cpp
         ${PROJECT_SOURCE_DIR}/src/central/central_solver_using_features.cpp
         ${PROJECT_SOURCE_DIR}/src/central/central_opengv_solver_bvc.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/central_opengv_minimal_solver.cpp
+        ${PROJECT_SOURCE_DIR}/src/central/approximate_central_solution_sampler.cpp
 
 
         ${PROJECT_SOURCE_DIR}/src/synthetic/scene.cpp
