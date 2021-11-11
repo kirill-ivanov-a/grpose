@@ -73,7 +73,7 @@ class CentralRefiner {
       const SE3& frame1_from_frame2_estimate, const Camera& camera1,
       const Camera& camera2,
       const CentralPoint2dCorrespondences& correspondences,
-      const CentralRefinerSettings settings,
+      const CentralRefinerSettings &settings,
       ReLinearizationAngleMatrix& re_linearization_angles);
   static ResidualMatrix EvaluateCostFunctions(
       const SE3& frame1_from_frame2,
@@ -192,8 +192,8 @@ bool DotProductResidual::operator()(
       R.inverse() * (direction1_.template cast<T>().cross(t));
   const Vector3t d2_plane = t.cross(R * d2);
 
-  residual_ptr[0] = d1.dot(d1_plane) / d1_plane.norm();
-  residual_ptr[1] = d2.dot(d2_plane) / d2_plane.norm();
+  residual_ptr[0] = d1.dot(d2_plane) / d2_plane.norm();
+  residual_ptr[1] = d2.dot(d1_plane) / d1_plane.norm();
   return true;
 }
 

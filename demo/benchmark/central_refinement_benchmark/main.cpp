@@ -37,7 +37,7 @@ DEFINE_string(feature_matches_database_root, "",
               "provided as well. It should hold the path to the directory with "
               "images, relative to which the colmap database was computed.");
 
-DEFINE_string(optimization_types, "ba,sampson_3d,reproj_2d",
+DEFINE_string(optimization_types, "ba,sampson_3d,reproj_2d,dot_prod",
               "Types of refinement used, separated by commas.");
 DEFINE_int32(max_ba_steps, 500, "Maximal number of bundle adjustment steps");
 DEFINE_double(min_ba_tolerance, 1e-10,
@@ -215,13 +215,12 @@ void RunBenchmark(const fs::path &autovision_root,
               out_stream << std::endl;
 
               fmt::print(
-                  "Ran {} on frames #{}&{}/{} on camera #{}; |t|={:.2} "
-                  "(estimated "
-                  "{:.2}), \n"
+                  "Ran {} on frames #{}&{}/{} on camera #{}, segment #{};\n"
+                  " |t|={:.2} (estimated {:.2}), \n"
                   "rte={:.3} vs {:.3} deg, are={:.3} vs {:.3} deg\n"
                   "niter={} ninl={}/{}\n",
                   optimization_type, frame_index1, frame_index2,
-                  dataset_reader->NumberOfFrames(), camera_index,
+                  dataset_reader->NumberOfFrames(), camera_index, segment_index,
                   true_frame1_from_frame2.translation().norm(),
                   frame1_from_frame2_refined.translation().norm(), rte_refined,
                   rte_approx, are_refined, are_approx, num_iterations,
