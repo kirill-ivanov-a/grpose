@@ -130,9 +130,9 @@ Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Camera::Map(
   } else {
     using Scalar = typename DirectionDerived::Scalar;
     Eigen::Matrix<Scalar, 2, 1> result(0.0, 0.0);
-    colmap::CameraModelWorldToImage(colmap_model_id_, parameters_,
-                                    direction[0], direction[1], direction[2],
-                                    &result[0], &result[1]);
+    colmap::CameraModelWorldToImage(colmap_model_id_, parameters_, direction[0],
+                                    direction[1], direction[2], &result[0],
+                                    &result[1]);
     return result;
   }
 }

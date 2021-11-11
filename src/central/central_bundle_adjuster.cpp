@@ -30,7 +30,8 @@ CentralBundleAdjuster::RefinementResults CentralBundleAdjuster::Refine(
                             new ceres::HomogeneousVectorParameterization(3));
   if (settings_.fix_pose) {
     problem.SetParameterBlockConstant(results.frame1_from_frame2.so3().data());
-    problem.SetParameterBlockConstant(results.frame1_from_frame2.translation().data());
+    problem.SetParameterBlockConstant(
+        results.frame1_from_frame2.translation().data());
   }
 
   std::vector<ceres::SizedCostFunction<4, 4, 3, 3>*> residual_functions;
@@ -45,8 +46,7 @@ CentralBundleAdjuster::RefinementResults CentralBundleAdjuster::Refine(
     results.points.row(i) = point_in_frame1.transpose();
     double* point_ptr = results.points.data() + 3 * i;
     problem.AddParameterBlock(point_ptr, 3);
-      if (settings_.fix_points)
-      problem.SetParameterBlockConstant(point_ptr);
+    if (settings_.fix_points) problem.SetParameterBlockConstant(point_ptr);
 
     ceres::LossFunction* loss_function = nullptr;
     switch (settings_.loss_type) {
@@ -90,11 +90,11 @@ CentralBundleAdjuster::RefinementResults CentralBundleAdjuster::Refine(
         parameter_ptrs, results.residuals.data() + i * kResidualSize, nullptr);
   }
 
-//  std::cout << "relative point dist = "
-//            << (points_before - results.points)
-//                   .rowwise()
-//                   .norm()
-//                   .cwiseQuotient(points_before.rowwise().norm()).transpose();
+  //  std::cout << "relative point dist = "
+  //            << (points_before - results.points)
+  //                   .rowwise()
+  //                   .norm()
+  //                   .cwiseQuotient(points_before.rowwise().norm()).transpose();
 
   return results;
 }

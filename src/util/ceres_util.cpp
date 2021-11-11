@@ -13,11 +13,11 @@ bool SO3LocalParameterization::Plus(const double* x, const double* delta,
   return true;
 }
 
-bool grpose::SO3LocalParameterization::ComputeJacobian(
-    const double* x, double* jacobian) const {
+bool grpose::SO3LocalParameterization::ComputeJacobian(const double* x,
+                                                       double* jacobian) const {
   Eigen::Map<const SO3> x_map(x);
   Eigen::Map<
-  Eigen::Matrix<double, SO3::num_parameters, SO3::DoF, Eigen::RowMajor>>
+      Eigen::Matrix<double, SO3::num_parameters, SO3::DoF, Eigen::RowMajor>>
       jacobian_map(jacobian);
   jacobian_map = x_map.Dx_this_mul_exp_x_at_0();
   return true;

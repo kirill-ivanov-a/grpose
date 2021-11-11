@@ -60,7 +60,7 @@ CentralPoint2dCorrespondences ComputeInlierCorrespondences(
 }  // namespace
 
 ApproximateCentralSolutionSamplerSettings::ErrorType ToErrorType(
-    const std::string &name) {
+    const std::string& name) {
   using ErrorType = ApproximateCentralSolutionSamplerSettings::ErrorType;
   if (name == "reproj_2d")
     return ErrorType::kReprojectionError2D;
@@ -73,7 +73,6 @@ ApproximateCentralSolutionSamplerSettings::ErrorType ToErrorType(
 
   return ErrorType::kReprojectionError2D;
 }
-
 
 ApproximateCentralSolutionSampler::ApproximateCentralSolutionSampler(
     const Camera& camera1, const Camera& camera2,

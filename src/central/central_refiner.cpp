@@ -26,7 +26,7 @@ Matrix32 JLeft(const Camera* camera, const Vector3& direction) {
 std::vector<ceres::CostFunction*> CentralRefiner::GetCostFunctions(
     const SE3& frame1_from_frame2_estimate, const Camera& camera1,
     const Camera& camera2, const CentralPoint2dCorrespondences& correspondences,
-    const CentralRefinerSettings &settings,
+    const CentralRefinerSettings& settings,
     ReLinearizationAngleMatrix& re_linearization_angles) {
   SE3 frame2_from_frame1_estimate = frame1_from_frame2_estimate.inverse();
   re_linearization_angles.resize(correspondences.Size(), 2);

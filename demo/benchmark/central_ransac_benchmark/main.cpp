@@ -217,8 +217,7 @@ where autovision_root is the path to SP20 directory and autovision_config is the
       )abacaba";
 
   fs::path output_directory =
-      fs::path("output") /
-      ("central_ransac_benchmark_" + CurrentTimeBrief());
+      fs::path("output") / ("central_ransac_benchmark_" + CurrentTimeBrief());
   fs::create_directories(output_directory);
   std::cout << "output dir: " << output_directory.string() << std::endl;
   SaveArgv(output_directory / "argv.txt", argc, argv);

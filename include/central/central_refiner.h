@@ -73,7 +73,7 @@ class CentralRefiner {
       const SE3& frame1_from_frame2_estimate, const Camera& camera1,
       const Camera& camera2,
       const CentralPoint2dCorrespondences& correspondences,
-      const CentralRefinerSettings &settings,
+      const CentralRefinerSettings& settings,
       ReLinearizationAngleMatrix& re_linearization_angles);
   static ResidualMatrix EvaluateCostFunctions(
       const SE3& frame1_from_frame2,

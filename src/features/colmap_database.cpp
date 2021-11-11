@@ -8,7 +8,7 @@ fs::path CheckExists(const fs::path &path) {
   return path;
 }
 
-}
+}  // namespace
 
 ColmapDatabase::ColmapDatabase(
     const fs::path &path, const fs::path &matches_database_image_root,
