@@ -1717,6 +1717,39 @@ void UnifiedCameraModel::Distortion(const ParameterT* extra_params, const T& u,
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename ParameterT, typename T>
+void CameraModelPoint3DToImagePlane(const int model_id,
+                                    const std::vector<ParameterT>& params,
+                                    const T& u, const T& v, const T& w, T* uu,
+                                    T* vv) {
+  switch (model_id) {
+#define CAMERA_MODEL_CASE(CameraModel)                                \
+  case CameraModel::kModelId:                                         \
+    CameraModel::Point3DToImagePlane(params.data(), u, v, w, uu, vv); \
+    break;
+
+    CAMERA_MODEL_SWITCH_CASES
+
+#undef CAMERA_MODEL_CASE
+  }
+}
+
+template <typename ParameterT, typename T>
+void CameraModelNormalizedToImage(const int model_id,
+                                  const std::vector<ParameterT>& params,
+                                  const T& uu, const T& vv, T* x, T* y) {
+  switch (model_id) {
+#define CAMERA_MODEL_CASE(CameraModel)                      \
+  case CameraModel::kModelId:                               \
+    CameraModel::WorldToImage(params.data(), uu, vv, x, y); \
+    break;
+
+    CAMERA_MODEL_SWITCH_CASES
+
+#undef CAMERA_MODEL_CASE
+  }
+}
+
+template <typename ParameterT, typename T>
 void CameraModelWorldToImage(const int model_id,
                              const std::vector<ParameterT>& params, const T& u,
                              const T& v, const T& w, T* x, T* y) {

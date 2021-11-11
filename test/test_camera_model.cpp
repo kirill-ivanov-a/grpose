@@ -155,7 +155,7 @@ Camera GetUnifiedCameraNarrow() {
                 {330.0, 250.0, 320.0, 240.0, -0.1, 0.01, 0.001, 0.0015, 0.4});
 }
 
-// COLMAP only supports FoV < 180 degrees
+// COLMAP only supports FoV < 180 degrees => use the narrow model
 Camera GetColmapUnifiedCamera() {
   return Camera::ColmapCamera(
       640, 480, colmap::UnifiedCameraModel::kModelId,

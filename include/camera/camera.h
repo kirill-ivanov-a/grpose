@@ -28,7 +28,7 @@ class Camera {
    * @return Normalized direction in the camera frame.
    */
   template <typename PointDerived>
-  inline Vector3 Unmap(const Eigen::MatrixBase<PointDerived> &point) const;
+  Vector3 Unmap(const Eigen::MatrixBase<PointDerived> &point) const;
 
   /**
    * Mapping (bearing vectors -> image plane). The result is normalized.
@@ -38,8 +38,34 @@ class Camera {
    * @return 2D-point on the image.
    */
   template <typename DirectionDerived>
-  inline Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Map(
+  Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Map(
       const Eigen::MatrixBase<DirectionDerived> &direction) const;
+
+  /**
+   * Map a point in space onto the normalized plane. Only supported for COLMAP
+   * models, since they have the normalized plane as an intermediate step for
+   * Map.
+   *
+   * @param direction direction in the camera frame (norm not
+   * important), DirectionDerived::Scalar should be either double or ceres::Jet
+   * @return point on the normalized image plane.
+   */
+  template <typename DirectionDerived>
+  Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> MapToNormalizedPlane(
+      const Eigen::MatrixBase<DirectionDerived> &direction) const;
+
+  /**
+   * Map a point on the normalized plane onto the image. Only supported for
+   * COLMAP models, since they have the normalized plane as an intermediate step
+   * for Map.
+   *
+   * @param point point on the normalized image plane.
+   * important), DirectionDerived::Scalar should be either double or ceres::Jet
+   * @return point on the image
+   */
+  template <typename DirectionDerived>
+  Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> NormalizedPlaneToImage(
+      const Eigen::MatrixBase<DirectionDerived> &point) const;
 
   /**
    * Mapping (image plane -> bearing vectors). The result is NOT guaranteed to
@@ -49,14 +75,13 @@ class Camera {
    * @return 2D-point on the image.
    */
   template <typename PointDerived>
-  inline Vector3 UnmapUnnormalized(
-      const Eigen::MatrixBase<PointDerived> &point) const;
+  Vector3 UnmapUnnormalized(const Eigen::MatrixBase<PointDerived> &point) const;
 
   /**
    * Differentiate the mapping (bearing vectors -> image plane).
    */
   template <typename DirectionDerived>
-  inline DifferentiatedMapResult DifferentiateMap(
+  DifferentiatedMapResult DifferentiateMap(
       const Eigen::MatrixBase<DirectionDerived> &direction) const;
 
   inline int width() const { return width_; }
@@ -70,6 +95,10 @@ class Camera {
   inline const cv::Mat1b &mask() const { return mask_; };
 
   inline const std::vector<double> &parameters() const { return parameters_; }
+
+  inline bool IsColmapModel() const {
+    return colmap_model_id_ != kNotColmapCameraId;
+  }
 
   /**
    * Checks if a point is on image, takes the mask into account if it was
@@ -168,6 +197,42 @@ DifferentiatedMapResult Camera::DifferentiateMap(
     DifferentiatedMapResult result;
     result.point = Vector2(point_jet[0].a, point_jet[1].a);
     result.jacobian << point_jet[0].v.transpose(), point_jet[1].v.transpose();
+    return result;
+  }
+}
+
+template <typename DirectionDerived>
+Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1>
+Camera::MapToNormalizedPlane(
+    const Eigen::MatrixBase<DirectionDerived> &direction) const {
+  if (colmap_model_id_ == kNotColmapCameraId) {
+    throw std::runtime_error(
+        "Trying to use MapToNormalizedPlane for a camera model not from "
+        "COLMAP!");
+  } else {
+    using Scalar = typename DirectionDerived::Scalar;
+    Eigen::Matrix<Scalar, 2, 1> result(0, 0);
+    colmap::CameraModelPoint3DToImagePlane<double, Scalar>(
+        colmap_model_id_, parameters_, direction[0], direction[1], direction[2],
+        &result[0], &result[1]);
+    return result;
+  }
+}
+
+template <typename DirectionDerived>
+Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1>
+Camera::NormalizedPlaneToImage(
+    const Eigen::MatrixBase<DirectionDerived> &point) const {
+  if (colmap_model_id_ == kNotColmapCameraId) {
+    throw std::runtime_error(
+        "Trying to use NormalizedPlaneToImage for a camera model not from "
+        "COLMAP!");
+  } else {
+    using Scalar = typename DirectionDerived::Scalar;
+    Eigen::Matrix<Scalar, 2, 1> result(0, 0);
+    colmap::CameraModelNormalizedToImage<double, Scalar>(
+        colmap_model_id_, parameters_, point[0], point[1], &result[0],
+        &result[1]);
     return result;
   }
 }
