@@ -4,6 +4,7 @@
 #include <variant>
 
 #include "camera/camera_model_generic.h"
+#include "colmap_camera_models.h"
 
 namespace grpose {
 
@@ -13,6 +14,9 @@ namespace grpose {
  */
 class Camera {
  public:
+  static Camera ColmapCamera(int width, int height, int colmap_model_id,
+                             const std::vector<double> &parameters);
+
   Camera(int width, int height, CameraModelId model_id,
          const std::vector<double> &parameters);
 
@@ -88,7 +92,15 @@ class Camera {
                         const Matrix33 &camera_matrix) const;
 
  private:
-  CameraModelId model_id_;
+  static constexpr int kNotColmapCameraId = -2;
+
+  struct ColmapConstructor {};
+
+  Camera(ColmapConstructor, int width, int height, int colmap_model_id,
+         const std::vector<double> &parameters);
+
+  int colmap_model_id_ = kNotColmapCameraId;
+  CameraModelId model_id_ = CameraModelId::kInvalid;
   std::vector<double> parameters_;
   cv::Mat1b mask_;
   int width_, height_;
@@ -98,25 +110,66 @@ class Camera {
 
 template <typename PointDerived>
 Vector3 Camera::Unmap(const Eigen::MatrixBase<PointDerived> &point) const {
-  return CameraModelUnmap(model_id_, parameters_, point);
+  if (colmap_model_id_ == kNotColmapCameraId) {
+    return CameraModelUnmap(model_id_, parameters_, point);
+  } else {
+    using Scalar = typename PointDerived::Scalar;
+    Eigen::Matrix<Scalar, 3, 1> result(0, 0, 1);
+    colmap::CameraModelImageToWorld<double, Scalar>(
+        colmap_model_id_, parameters_, point[0], point[1], &result[0],
+        &result[1]);
+    return result.normalized();
+  }
 }
 
 template <typename DirectionDerived>
 Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> Camera::Map(
     const Eigen::MatrixBase<DirectionDerived> &direction) const {
-  return CameraModelMap(model_id_, parameters_, direction);
+  if (colmap_model_id_ == kNotColmapCameraId) {
+    return CameraModelMap(model_id_, parameters_, direction);
+  } else {
+    using Scalar = typename DirectionDerived::Scalar;
+    Eigen::Matrix<Scalar, 2, 1> result(0.0, 0.0);
+    colmap::CameraModelWorldToImage(colmap_model_id_, parameters_,
+                                    direction[0], direction[1], direction[2],
+                                    &result[0], &result[1]);
+    return result;
+  }
 }
 
 template <typename PointDerived>
 Vector3 Camera::UnmapUnnormalized(
     const Eigen::MatrixBase<PointDerived> &point) const {
-  return CameraModelUnmapUnnormalized(model_id_, parameters_, point);
+  if (colmap_model_id_ == kNotColmapCameraId) {
+    return CameraModelUnmapUnnormalized(model_id_, parameters_, point);
+  } else {
+    using Scalar = typename PointDerived::Scalar;
+    Eigen::Matrix<Scalar, 3, 1> result(0, 0, 1);
+    colmap::CameraModelImageToWorld<double, Scalar>(
+        colmap_model_id_, parameters_, point[0], point[1], &result[0],
+        &result[1]);
+    return result;
+  }
 }
 
 template <typename DirectionDerived>
 DifferentiatedMapResult Camera::DifferentiateMap(
     const Eigen::MatrixBase<DirectionDerived> &direction) const {
-  return CameraModelDifferentiateMap(model_id_, parameters_, direction);
+  if (colmap_model_id_ == kNotColmapCameraId) {
+    return CameraModelDifferentiateMap(model_id_, parameters_, direction);
+  } else {
+    using Jet3 = ceres::Jet<double, 3>;
+
+    Eigen::Matrix<Jet3, 3, 1> direction_jets = direction.template cast<Jet3>();
+    for (int i = 0; i < 3; ++i) direction_jets[i].v[i] = 1.0;
+
+    const Eigen::Matrix<Jet3, 2, 1> point_jet = Map(direction_jets);
+
+    DifferentiatedMapResult result;
+    result.point = Vector2(point_jet[0].a, point_jet[1].a);
+    result.jacobian << point_jet[0].v.transpose(), point_jet[1].v.transpose();
+    return result;
+  }
 }
 
 template <typename T>

@@ -83,7 +83,7 @@ Vector3 CameraModelUnified::UnmapApproximate(
   const double uv_norm2 = uv.squaredNorm();
   double discriminant_4 = 1.0 + (1.0 - xi * xi) * uv_norm2;
 
-  // Some points can't be unmapped. The best we can do for them is provide the
+  // Some points can't be unmapped. The best we can do for them is providing the
   // closest mappable point's direction.
   if (discriminant_4 < 0.0) discriminant_4 = 0.0;
 
