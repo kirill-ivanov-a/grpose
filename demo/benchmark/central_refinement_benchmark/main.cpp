@@ -37,8 +37,11 @@ DEFINE_string(feature_matches_database_root, "",
               "provided as well. It should hold the path to the directory with "
               "images, relative to which the colmap database was computed.");
 
-DEFINE_string(optimization_types, "ba,sampson_3d,reproj_2d,dot_prod",
-              "Types of refinement used, separated by commas.");
+DEFINE_string(
+    optimization_types,
+    "sampson_3d,sampson_2d,reproj_2d,dot_prod,algebraic,sampson_pinhole,"
+    "symmetric_epipolar_pinhole,symmetric_epipolar_cosine",
+    "Types of refinement used, separated by commas (also possible to add ba.");
 DEFINE_int32(max_ba_steps, 500, "Maximal number of bundle adjustment steps");
 DEFINE_double(min_ba_tolerance, 1e-10,
               "Bundle adjustment terminates if relative decrease in cost is "

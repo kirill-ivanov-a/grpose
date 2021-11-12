@@ -42,30 +42,17 @@ class Camera {
       const Eigen::MatrixBase<DirectionDerived> &direction) const;
 
   /**
-   * Map a point in space onto the normalized plane. Only supported for COLMAP
-   * models, since they have the normalized plane as an intermediate step for
-   * Map.
-   *
-   * @param direction direction in the camera frame (norm not
-   * important), DirectionDerived::Scalar should be either double or ceres::Jet
-   * @return point on the normalized image plane.
-   */
-  template <typename DirectionDerived>
-  Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> MapToNormalizedPlane(
-      const Eigen::MatrixBase<DirectionDerived> &direction) const;
-
-  /**
-   * Map a point on the normalized plane onto the image. Only supported for
-   * COLMAP models, since they have the normalized plane as an intermediate step
-   * for Map.
+   * Map a point on the normalized plane onto the image. Note that points on the
+   * normalized image plane can only correspond to the directions within FoV <
+   * 180 degrees.
    *
    * @param point point on the normalized image plane.
    * important), DirectionDerived::Scalar should be either double or ceres::Jet
    * @return point on the image
    */
-  template <typename DirectionDerived>
-  Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1> NormalizedPlaneToImage(
-      const Eigen::MatrixBase<DirectionDerived> &point) const;
+  template <typename PointDerived>
+  Eigen::Matrix<typename PointDerived::Scalar, 2, 1> NormalizedPlaneToImage(
+      const Eigen::MatrixBase<PointDerived> &point) const;
 
   /**
    * Mapping (image plane -> bearing vectors). The result is NOT guaranteed to
@@ -83,6 +70,10 @@ class Camera {
   template <typename DirectionDerived>
   DifferentiatedMapResult DifferentiateMap(
       const Eigen::MatrixBase<DirectionDerived> &direction) const;
+
+  template <typename PointDerived>
+  Matrix22 DifferentiateNormalizedMap(
+      const Eigen::MatrixBase<PointDerived> &normalized_point) const;
 
   inline int width() const { return width_; }
   inline int height() const { return height_; }
@@ -201,40 +192,28 @@ DifferentiatedMapResult Camera::DifferentiateMap(
   }
 }
 
-template <typename DirectionDerived>
-Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1>
-Camera::MapToNormalizedPlane(
-    const Eigen::MatrixBase<DirectionDerived> &direction) const {
-  if (colmap_model_id_ == kNotColmapCameraId) {
-    throw std::runtime_error(
-        "Trying to use MapToNormalizedPlane for a camera model not from "
-        "COLMAP!");
-  } else {
-    using Scalar = typename DirectionDerived::Scalar;
-    Eigen::Matrix<Scalar, 2, 1> result(0, 0);
-    colmap::CameraModelPoint3DToImagePlane<double, Scalar>(
-        colmap_model_id_, parameters_, direction[0], direction[1], direction[2],
-        &result[0], &result[1]);
-    return result;
-  }
+template <typename PointDerived>
+Matrix22 Camera::DifferentiateNormalizedMap(
+    const Eigen::MatrixBase<PointDerived> &normalized_point) const {
+  using Jet2 = ceres::Jet<double, 2>;
+
+  Eigen::Matrix<Jet2, 2, 1> normalized_point_jet =
+      normalized_point.template cast<Jet2>();
+  for (int i = 0; i < 2; ++i) normalized_point_jet[i].v[i] = 1.0;
+
+  const Eigen::Matrix<Jet2, 2, 1> point_jet =
+      NormalizedPlaneToImage(normalized_point_jet);
+
+  Matrix22 jacobian;
+  jacobian << point_jet[0].v.transpose(), point_jet[1].v.transpose();
+  return jacobian;
 }
 
-template <typename DirectionDerived>
-Eigen::Matrix<typename DirectionDerived::Scalar, 2, 1>
+template <typename PointDerived>
+Eigen::Matrix<typename PointDerived::Scalar, 2, 1>
 Camera::NormalizedPlaneToImage(
-    const Eigen::MatrixBase<DirectionDerived> &point) const {
-  if (colmap_model_id_ == kNotColmapCameraId) {
-    throw std::runtime_error(
-        "Trying to use NormalizedPlaneToImage for a camera model not from "
-        "COLMAP!");
-  } else {
-    using Scalar = typename DirectionDerived::Scalar;
-    Eigen::Matrix<Scalar, 2, 1> result(0, 0);
-    colmap::CameraModelNormalizedToImage<double, Scalar>(
-        colmap_model_id_, parameters_, point[0], point[1], &result[0],
-        &result[1]);
-    return result;
-  }
+    const Eigen::MatrixBase<PointDerived> &point) const {
+  return Map(point.homogeneous());
 }
 
 template <typename T>

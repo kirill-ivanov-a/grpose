@@ -14,6 +14,10 @@ struct CentralRefinerSettings {
     kDotProduct,
     kSampsonOnPlane,
     kSampson3d,
+    kAlgebraic,
+    kSampsonPinhole,
+    kSymmetricEpipolarPinhole,
+    kSymmetricEpipolarCosine,
   } refinement_type = kSampson3d;
 
   enum LossType {
@@ -77,7 +81,7 @@ class CentralRefiner {
       ReLinearizationAngleMatrix& re_linearization_angles);
   static ResidualMatrix EvaluateCostFunctions(
       const SE3& frame1_from_frame2,
-      const std::vector<ceres::CostFunction*> residual_functions);
+      const std::vector<ceres::CostFunction*>& residual_functions);
 
   CentralRefinerSettings settings_;
 };
@@ -145,6 +149,99 @@ class Sampson3dResidual {
   const Vector3 direction1_, direction2_;
   const Vector3 linearization_direction1_, linearization_direction2_;
   const Matrix32 J_left1, J_left2;
+};
+
+class SampsonOnPlaneResidual {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  static constexpr int kResidualSize = 4;
+
+  SampsonOnPlaneResidual(const Camera* camera1, const Camera* camera2,
+                         const Vector2& point1, const Vector2& point2);
+
+  template <typename T>
+  bool operator()(const T* const frame1_from_frame2_rotation_ptr,
+                  const T* const frame1_from_frame2_translation_ptr,
+                  T* residual_ptr) const;
+
+ private:
+  const Camera* camera1_;
+  const Camera* camera2_;
+
+  const Vector2 normalized_point1_, normalized_point2_;
+  const Matrix22 Jphi1_, Jphi2_;
+  const Matrix22 Jinv1_, Jinv2_;
+  const Matrix22 Jinv1_Jinv1T_, Jinv2_Jinv2T_;
+};
+
+class AlgebraicResidual {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  static constexpr int kResidualSize = 1;
+
+  AlgebraicResidual(const Vector3& direction1, const Vector3& direction2);
+
+  template <typename T>
+  bool operator()(const T* const frame1_from_frame2_rotation_ptr,
+                  const T* const frame1_from_frame2_translation_ptr,
+                  T* residual_ptr) const;
+
+ private:
+  const Vector3 direction1_, direction2_;
+};
+
+class SampsonPinholeResidual {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  static constexpr int kResidualSize = 1;
+
+  SampsonPinholeResidual(const Vector3& direction_1,
+                         const Vector3& direction_2);
+  template <typename T>
+  bool operator()(const T* const frame1_from_frame2_rotation_ptr,
+                  const T* const frame1_from_frame2_translation_ptr,
+                  T* residual_ptr) const;
+
+ private:
+  const Vector3 direction1_, direction2_;
+};
+
+class SymmetricEpipolarPinholeResidual {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  static constexpr int kResidualSize = 1;
+  SymmetricEpipolarPinholeResidual(const Vector3& direction_1,
+                                   const Vector3& direction_2);
+
+  template <typename T>
+  bool operator()(const T* const frame1_from_frame2_rotation_ptr,
+                  const T* const frame1_from_frame2_translation_ptr,
+                  T* residual_ptr) const;
+
+ private:
+  const Vector3 direction1_, direction2_;
+};
+
+class SymmetricEpipolarCosineResidual {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  static constexpr int kResidualSize = 1;
+
+  SymmetricEpipolarCosineResidual(const Vector3& direction_1,
+                                  const Vector3& direction_2);
+
+  template <typename T>
+  bool operator()(const T* const frame1_from_frame2_rotation_ptr,
+                  const T* const frame1_from_frame2_translation_ptr,
+                  T* residual_ptr) const;
+
+ private:
+  const Vector3 direction1_, direction2_;
 };
 
 // Implementation
@@ -222,6 +319,132 @@ bool Sampson3dResidual::operator()(
       (linearization_direction2_.transpose() * E * linearization_direction1_ +
        J * delta_point_) /
       J.squaredNorm() * J;
+
+  return true;
+}
+
+template <typename T>
+bool SampsonOnPlaneResidual::operator()(
+    const T* const frame1_from_frame2_rotation_ptr,
+    const T* const frame1_from_frame2_translation_ptr, T* residual_ptr) const {
+  using SO3t = Sophus::SO3<T>;
+  using Vector2t = Eigen::Matrix<T, 2, 1>;
+  using Vector3t = Eigen::Matrix<T, 3, 1>;
+  using Vector4t = Eigen::Matrix<T, 4, 1>;
+  using RowVector2t = Eigen::Matrix<T, 1, 2>;
+  using Matrix33t = Eigen::Matrix<T, 3, 3>;
+
+  const Eigen::Map<const SO3t> R(frame1_from_frame2_rotation_ptr);
+  const Eigen::Map<const Vector3t> t(frame1_from_frame2_translation_ptr);
+  const Matrix33t E = (SO3t::hat(t) * R.matrix()).transpose();
+  const Vector2t d1 = normalized_point1_.template cast<T>();
+  const Vector2t d2 = normalized_point2_.template cast<T>();
+  const RowVector2t Jc1 =
+      d2.homogeneous().transpose() * E.template leftCols<2>();
+  const RowVector2t Jc2 =
+      d1.homogeneous().transpose() * E.transpose().template leftCols<2>();
+
+  const T algebraic = d2.homogeneous().transpose() * E * d1.homogeneous();
+  const T denominator = (Jc1 * Jinv1_Jinv1T_ * Jc1.transpose()).value() +
+                        (Jc2 * Jinv2_Jinv2T_ * Jc2.transpose()).value();
+  const T multiplier = algebraic / denominator;
+
+  Eigen::Map<Vector4t> residual(residual_ptr);
+  residual.template head<2>() =
+      multiplier * (Jinv1_.transpose() * Jc1.transpose());
+  residual.template tail<2>() =
+      multiplier * (Jinv2_.transpose() * Jc2.transpose());
+
+  return true;
+}
+
+template <typename T>
+bool AlgebraicResidual::operator()(
+    const T* const frame1_from_frame2_rotation_ptr,
+    const T* const frame1_from_frame2_translation_ptr, T* residual_ptr) const {
+  using SO3t = Sophus::SO3<T>;
+  using Vector3t = Eigen::Matrix<T, 3, 1>;
+  using Matrix33t = Eigen::Matrix<T, 3, 3>;
+
+  const Eigen::Map<const SO3t> R(frame1_from_frame2_rotation_ptr);
+  const Eigen::Map<const Vector3t> t(frame1_from_frame2_translation_ptr);
+  const Matrix33t E = (SO3t::hat(t) * R.matrix()).transpose();
+
+  *residual_ptr = (direction2_.transpose().template cast<T>() * E *
+                   direction1_.template cast<T>())
+                      .value();
+
+  return true;
+}
+
+template <typename T>
+bool SampsonPinholeResidual::operator()(
+    const T* const frame1_from_frame2_rotation_ptr,
+    const T* const frame1_from_frame2_translation_ptr, T* residual_ptr) const {
+  using SO3t = Sophus::SO3<T>;
+  using Vector2t = Eigen::Matrix<T, 2, 1>;
+  using Vector3t = Eigen::Matrix<T, 3, 1>;
+  using Matrix33t = Eigen::Matrix<T, 3, 3>;
+
+  const Eigen::Map<const SO3t> R(frame1_from_frame2_rotation_ptr);
+  const Eigen::Map<const Vector3t> t(frame1_from_frame2_translation_ptr);
+  const Matrix33t E = (SO3t::hat(t) * R.matrix()).transpose();
+
+  Vector3t d1 = direction1_.template cast<T>();
+  Vector3t d2 = direction2_.template cast<T>();
+  Vector3t Ed1 = E * d1;
+  Vector3t ETd2 = E.transpose() * d2;
+
+  *residual_ptr =
+      d2.dot(Ed1) / ceres::sqrt(Ed1.template head<2>().squaredNorm() +
+                                ETd2.template head<2>().squaredNorm());
+
+  return true;
+}
+
+template <typename T>
+bool SymmetricEpipolarPinholeResidual::operator()(
+    const T* const frame1_from_frame2_rotation_ptr,
+    const T* const frame1_from_frame2_translation_ptr, T* residual_ptr) const {
+  using SO3t = Sophus::SO3<T>;
+  using Vector2t = Eigen::Matrix<T, 2, 1>;
+  using Vector3t = Eigen::Matrix<T, 3, 1>;
+  using Matrix33t = Eigen::Matrix<T, 3, 3>;
+
+  const Eigen::Map<const SO3t> R(frame1_from_frame2_rotation_ptr);
+  const Eigen::Map<const Vector3t> t(frame1_from_frame2_translation_ptr);
+  const Matrix33t E = (SO3t::hat(t) * R.matrix()).transpose();
+
+  Vector3t d1 = direction1_.template cast<T>();
+  Vector3t d2 = direction2_.template cast<T>();
+  Vector3t Ed1 = E * d1;
+  Vector3t ETd2 = E.transpose() * d2;
+
+  *residual_ptr = d2.dot(Ed1) * (T(1.0) / Ed1.template head<2>().norm() +
+                                 T(1.0) / ETd2.template head<2>().norm());
+
+  return true;
+}
+
+template <typename T>
+bool SymmetricEpipolarCosineResidual::operator()(
+    const T* const frame1_from_frame2_rotation_ptr,
+    const T* const frame1_from_frame2_translation_ptr, T* residual_ptr) const {
+  using SO3t = Sophus::SO3<T>;
+  using Vector2t = Eigen::Matrix<T, 2, 1>;
+  using Vector3t = Eigen::Matrix<T, 3, 1>;
+  using Matrix33t = Eigen::Matrix<T, 3, 3>;
+
+  const Eigen::Map<const SO3t> R(frame1_from_frame2_rotation_ptr);
+  const Eigen::Map<const Vector3t> t(frame1_from_frame2_translation_ptr);
+  const Matrix33t E = (SO3t::hat(t) * R.matrix()).transpose();
+
+  Vector3t d1 = direction1_.template cast<T>();
+  Vector3t d2 = direction2_.template cast<T>();
+  Vector3t Ed1 = E * d1;
+  Vector3t ETd2 = E.transpose() * d2;
+
+  *residual_ptr = d2.dot(Ed1) * (T(1.0) / Ed1.norm() + T(1.0) / ETd2.norm());
 
   return true;
 }

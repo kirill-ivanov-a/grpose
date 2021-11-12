@@ -5,6 +5,31 @@
 
 namespace grpose {
 
+CentralRefinerSettings::RefinementType ToRefinementType(
+    const std::string& name) {
+  using RefinementType = CentralRefinerSettings::RefinementType;
+  if (name == "reproj_2d")
+    return RefinementType::kSymmetricReprojection;
+  else if (name == "dot_prod")
+    return RefinementType::kDotProduct;
+  else if (name == "sampson_3d")
+    return RefinementType::kSampson3d;
+  else if (name == "sampson_2d")
+    return RefinementType::kSampsonOnPlane;
+  else if (name == "algebraic")
+    return RefinementType::kAlgebraic;
+  else if (name == "sampson_pinhole")
+    return RefinementType::kSampsonPinhole;
+  else if (name == "symmetric_epipolar_pinhole")
+    return RefinementType::kSymmetricEpipolarPinhole;
+  else if (name == "symmetric_epipolar_cosine")
+    return RefinementType::kSymmetricEpipolarCosine;
+  else
+    LOG(ERROR) << "Unknown error type " << name << std::endl;
+
+  return RefinementType::kSampson3d;
+}
+
 namespace {
 
 Matrix32 LocalSphereBasis(const Vector3& direction) {
@@ -45,6 +70,11 @@ std::vector<ceres::CostFunction*> CentralRefiner::GetCostFunctions(
         break;
       case CentralRefinerSettings::kTriangulation3d:
         Vector3 point_in_frame1;
+        if (settings.refinement_type != CentralRefinerSettings::kSampson3d)
+          LOG(WARNING) << "Pre-triangulation method is set, but it won't be "
+                          "used (refinement_type="
+                       << settings.refinement_type << ")";
+
         Triangulate(frame2_from_frame1_estimate, linearization_direction1,
                     linearization_direction2, point_in_frame1);
         linearization_direction1 = point_in_frame1.normalized();
@@ -56,6 +86,9 @@ std::vector<ceres::CostFunction*> CentralRefiner::GetCostFunctions(
             Angle(camera2.Unmap(point2), linearization_direction2);
     }
 
+    const Vector3 direction1 = camera1.Unmap(point1);
+    const Vector3 direction2 = camera2.Unmap(point2);
+
     switch (settings.refinement_type) {
       case CentralRefinerSettings::kSymmetricReprojection:
         residual_functions.push_back(
@@ -66,8 +99,6 @@ std::vector<ceres::CostFunction*> CentralRefiner::GetCostFunctions(
                                                   point2)));
         break;
       case CentralRefinerSettings::kDotProduct: {
-        const Vector3 direction1 = camera1.Unmap(point1);
-        const Vector3 direction2 = camera2.Unmap(point2);
         residual_functions.push_back(
             new ceres::AutoDiffCostFunction<
                 DotProductResidual, DotProductResidual::kResidualSize, 4, 3>(
@@ -82,6 +113,39 @@ std::vector<ceres::CostFunction*> CentralRefiner::GetCostFunctions(
                                       &linearization_direction1,
                                       &linearization_direction2)));
         break;
+      case CentralRefinerSettings::kSampsonOnPlane:
+        residual_functions.push_back(
+            new ceres::AutoDiffCostFunction<
+                SampsonOnPlaneResidual, SampsonOnPlaneResidual::kResidualSize,
+                4, 3>(new SampsonOnPlaneResidual(&camera1, &camera2, point1,
+                                                 point2)));
+        break;
+      case CentralRefinerSettings::kAlgebraic:
+        residual_functions.push_back(
+            new ceres::AutoDiffCostFunction<
+                AlgebraicResidual, AlgebraicResidual::kResidualSize, 4, 3>(
+                new AlgebraicResidual(direction1, direction2)));
+        break;
+      case CentralRefinerSettings::kSampsonPinhole:
+        residual_functions.push_back(
+            new ceres::AutoDiffCostFunction<
+                SampsonPinholeResidual, SampsonPinholeResidual::kResidualSize,
+                4, 3>(new SampsonPinholeResidual(direction1, direction2)));
+        break;
+      case CentralRefinerSettings::kSymmetricEpipolarPinhole:
+        residual_functions.push_back(
+            new ceres::AutoDiffCostFunction<
+                SymmetricEpipolarPinholeResidual,
+                SymmetricEpipolarPinholeResidual::kResidualSize, 4, 3>(
+                new SymmetricEpipolarPinholeResidual(direction1, direction2)));
+        break;
+      case CentralRefinerSettings::kSymmetricEpipolarCosine:
+        residual_functions.push_back(
+            new ceres::AutoDiffCostFunction<
+                SymmetricEpipolarCosineResidual,
+                SymmetricEpipolarCosineResidual::kResidualSize, 4, 3>(
+                new SymmetricEpipolarCosineResidual(direction1, direction2)));
+        break;
       default:
         LOG(ERROR) << "Refinement type " << settings.refinement_type
                    << " not implemented!";
@@ -91,24 +155,9 @@ std::vector<ceres::CostFunction*> CentralRefiner::GetCostFunctions(
   return residual_functions;
 }
 
-CentralRefinerSettings::RefinementType ToRefinementType(
-    const std::string& name) {
-  using RefinementType = CentralRefinerSettings::RefinementType;
-  if (name == "reproj_2d")
-    return RefinementType::kSymmetricReprojection;
-  else if (name == "dot_prod")
-    return RefinementType::kDotProduct;
-  else if (name == "sampson_3d")
-    return RefinementType::kSampson3d;
-  else
-    LOG(ERROR) << "Unknown error type " << name << std::endl;
-
-  return RefinementType::kSampson3d;
-}
-
 CentralRefiner::ResidualMatrix CentralRefiner::EvaluateCostFunctions(
     const SE3& frame1_from_frame2,
-    const std::vector<ceres::CostFunction*> residual_functions) {
+    const std::vector<ceres::CostFunction*>& residual_functions) {
   ResidualMatrix residuals;
   if (!residual_functions.empty()) {
     int residual_size = residual_functions[0]->num_residuals();
@@ -234,5 +283,36 @@ Sampson3dResidual::Sampson3dResidual(const Camera* camera1,
   delta_point_ << point1_ - linearization_point1_,
       point2_ - linearization_point2_;
 }
+
+SampsonOnPlaneResidual::SampsonOnPlaneResidual(const Camera* camera1,
+                                               const Camera* camera2,
+                                               const Vector2& point1,
+                                               const Vector2& point2)
+    : camera1_(camera1),
+      camera2_(camera2),
+      normalized_point1_(camera1_->Unmap(point1).hnormalized()),
+      normalized_point2_(camera2_->Unmap(point2).hnormalized()),
+      Jphi1_(camera1_->DifferentiateNormalizedMap(normalized_point1_)),
+      Jphi2_(camera2_->DifferentiateNormalizedMap(normalized_point2_)),
+      Jinv1_(Jphi1_.inverse()),
+      Jinv2_(Jphi2_.inverse()),
+      Jinv1_Jinv1T_(Jinv1_ * Jinv1_.transpose()),
+      Jinv2_Jinv2T_(Jinv2_ * Jinv2_.transpose()) {}
+
+AlgebraicResidual::AlgebraicResidual(const Vector3& direction1,
+                                     const Vector3& direction2)
+    : direction1_(direction1), direction2_(direction2) {}
+
+SampsonPinholeResidual::SampsonPinholeResidual(const Vector3& direction_1,
+                                               const Vector3& direction_2)
+    : direction1_(direction_1), direction2_(direction_2) {}
+
+SymmetricEpipolarPinholeResidual::SymmetricEpipolarPinholeResidual(
+    const Vector3& direction_1, const Vector3& direction_2)
+    : direction1_(direction_1), direction2_(direction_2) {}
+
+SymmetricEpipolarCosineResidual::SymmetricEpipolarCosineResidual(
+    const Vector3& direction_1, const Vector3& direction_2)
+    : direction1_(direction_1), direction2_(direction_2) {}
 
 }  // namespace grpose

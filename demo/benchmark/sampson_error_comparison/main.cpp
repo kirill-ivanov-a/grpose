@@ -41,9 +41,10 @@ DEFINE_string(
     error_type, "reproj_2d",
     "Type of the error used to filter the input matches given the ground truth "
     "pose. Avaliable values: reproj_2d,angular,sampson_3d");
-DEFINE_string(refinement_type, "sampson_3d",
-              "Type of the refinement error. Avaliable values: "
-              "reproj_2d,cosine,sampson_3d");
+DEFINE_string(
+    refinement_types, "sampson_3d",
+    "Types of the refinement error, separated by comma. Avaliable values: "
+    "reproj_2d,cosine,sampson_3d,sampson_2d");
 DEFINE_double(
     inlier_threshold, 4.0,
     "A threshold for a correspondence to be considered an inlier. Reasonable "
@@ -80,8 +81,12 @@ void SampleErrors(const std::shared_ptr<DatasetReader> &dataset_reader,
     frame_pairs.emplace_back(FLAGS_frame1_ind, FLAGS_frame2_ind);
   }
 
+  std::vector<std::string> refinement_types =
+      SplitByComma(FLAGS_refinement_types);
+
   std::ofstream residual_ofs(output_directory / "residuals.csv");
   residual_ofs << "type,v1,v2,v3,v4" << std::endl;
+
   for (auto [frame1_ind, frame2_ind] : frame_pairs) {
     fmt::print("\n\nRUNNING ({}, {})\n", frame1_ind, frame2_ind);
     std::cout << std::endl;
@@ -151,7 +156,7 @@ void SampleErrors(const std::shared_ptr<DatasetReader> &dataset_reader,
     LOG(INFO) << bundle_adjuster_results.solver_summary.FullReport()
               << std::endl;
 
-    LOG(INFO) << fmt::format(
+    std::string log_ba = fmt::format(
         "Errors of the bundle adjustment: rte={} are={}",
         180.0 / M_PI *
             AngularTranslationError(frame1_from_frame2_true,
@@ -159,16 +164,8 @@ void SampleErrors(const std::shared_ptr<DatasetReader> &dataset_reader,
         180.0 / M_PI *
             AbsoluteRotationError(frame1_from_frame2_true,
                                   bundle_adjuster_results.frame1_from_frame2));
-
-    CentralRefinerSettings refiner_settings;
-    refiner_settings.refinement_type = ToRefinementType(FLAGS_refinement_type);
-    CentralRefiner refiner(refiner_settings);
-    auto refiner_residuals =
-        refiner.CalculateResiduals(bundle_adjuster_results.frame1_from_frame2,
-                                   camera1, camera2, inlier_correspondences);
-
-    CHECK_EQ(refiner_residuals.rows(),
-             bundle_adjuster_results.residuals.rows());
+    LOG(INFO) << log_ba;
+    std::cout << log_ba << std::endl;
 
     for (int i = 0; i < bundle_adjuster_results.residuals.rows(); ++i) {
       residual_ofs << "BA";
@@ -176,28 +173,43 @@ void SampleErrors(const std::shared_ptr<DatasetReader> &dataset_reader,
         residual_ofs << "," << bundle_adjuster_results.residuals(i, j);
       residual_ofs << std::endl;
     }
-    for (int i = 0; i < bundle_adjuster_results.residuals.rows(); ++i) {
-      residual_ofs << "Sampson";
-      for (int j = 0; j < refiner_residuals.cols(); ++j)
-        residual_ofs << "," << refiner_residuals(i, j);
-      residual_ofs << std::endl;
+
+    for (const std::string &refinement_type : refinement_types) {
+      CentralRefinerSettings refiner_settings;
+      refiner_settings.refinement_type = ToRefinementType(refinement_type);
+      CentralRefiner refiner(refiner_settings);
+      auto refiner_residuals =
+          refiner.CalculateResiduals(bundle_adjuster_results.frame1_from_frame2,
+                                     camera1, camera2, inlier_correspondences);
+
+      CHECK_EQ(refiner_residuals.rows(),
+               bundle_adjuster_results.residuals.rows());
+
+      for (int i = 0; i < bundle_adjuster_results.residuals.rows(); ++i) {
+        residual_ofs << refinement_type;
+        for (int j = 0; j < refiner_residuals.cols(); ++j)
+          residual_ofs << "," << refiner_residuals(i, j);
+        residual_ofs << std::endl;
+      }
+
+      CentralRefiner::RefinementSummary refinement_summary;
+      SE3 frame1_from_frame2_refined =
+          refiner.Refine(frame1_from_frame2_approx, camera1, camera2,
+                         inlier_correspondences, refinement_summary);
+
+      std::string log_refinement = fmt::format(
+          "Errors of the {} refinement: rte={} are={}", refinement_type,
+          180.0 / M_PI *
+              AngularTranslationError(frame1_from_frame2_true,
+                                      frame1_from_frame2_refined),
+          180.0 / M_PI *
+              AbsoluteRotationError(frame1_from_frame2_true,
+                                    frame1_from_frame2_refined));
+      LOG(INFO) << log_refinement;
+      std::cout << log_refinement << std::endl;
+
+      LOG(INFO) << refinement_summary.solver_summary.FullReport() << std::endl;
     }
-
-    CentralRefiner::RefinementSummary refinement_summary;
-    SE3 frame1_from_frame2_refined =
-        refiner.Refine(frame1_from_frame2_approx, camera1, camera2,
-                       inlier_correspondences, refinement_summary);
-
-    LOG(INFO) << fmt::format(
-        "Errors of the Sampson refinement: rte={} are={}",
-        180.0 / M_PI *
-            AngularTranslationError(frame1_from_frame2_true,
-                                    frame1_from_frame2_refined),
-        180.0 / M_PI *
-            AbsoluteRotationError(frame1_from_frame2_true,
-                                  frame1_from_frame2_refined));
-
-    LOG(INFO) << refinement_summary.solver_summary.FullReport() << std::endl;
   }
 }
 
@@ -223,7 +235,7 @@ where
   gflags::SetUsageMessage(usage);
   google::InitGoogleLogging(argv[0]);
 
-  FLAGS_alsologtostderr = true;
+  //  FLAGS_alsologtostderr = true;
 
   CHECK_EQ(argc, 5) << usage;
   fs::path autovision_segment_dir = argv[1];
