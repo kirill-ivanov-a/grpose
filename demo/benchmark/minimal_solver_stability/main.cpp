@@ -6,6 +6,7 @@
 #include <glog/logging.h>
 
 #include "grpose/bearing_vector_correspondences.h"
+#include "grpose/colmap_solver_8pt.h"
 #include "grpose/minimal_solver_central_plus_scale.h"
 #include "grpose/opengv_adapter.h"
 #include "grpose/opengv_minimal_solver.h"
@@ -52,7 +53,7 @@ DEFINE_double(fix_angle, 20, "Fixed turning angle for stability experiments");
 
 DEFINE_int32(num_attempts, 10, "Number of solver runs per a set of parameters");
 
-DEFINE_string(method_names, "6pt,8pt,17pt,c+s,6pt_poselib,6pt_opengv_raw",
+DEFINE_string(method_names, "6pt,8pt,17pt,c+s,6pt_poselib,6pt_opengv_raw,8pt_colmap",
               "Names of the methods to be tested, separated by a comma. By "
               "default, all available methods are tested");
 
@@ -213,6 +214,11 @@ bool EstimateFrame1FromFrame2(std::mt19937 &mt,
   } else if (method_name == "6pt_poselib") {
     solver.reset(
         new PoselibSolver6pt(correspondences, scene.GetBodyFromCameras()));
+    indices = SampleCorrespondences(*correspondences, solver->MinSampleSize(),
+                                    FLAGS_num_cross, FLAGS_frac_first, mt);
+  } else if (method_name == "8pt_colmap") {
+    solver.reset(
+        new ColmapSolver8pt(correspondences, scene.GetBodyFromCameras()));
     indices = SampleCorrespondences(*correspondences, solver->MinSampleSize(),
                                     FLAGS_num_cross, FLAGS_frac_first, mt);
   } else {

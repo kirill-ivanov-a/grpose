@@ -92,6 +92,7 @@ set(grpose_HEADER_FILES
         ${PROJECT_SOURCE_DIR}/include/grpose/opengv_solver_bvc.h
         ${PROJECT_SOURCE_DIR}/include/grpose/minimal_solver_central_plus_scale.h
         ${PROJECT_SOURCE_DIR}/include/grpose/poselib_solver_6pt.h
+        ${PROJECT_SOURCE_DIR}/include/grpose/colmap_solver_8pt.h
 
         ${PROJECT_SOURCE_DIR}/include/central/central_bearing_vector_correspondences.h
         ${PROJECT_SOURCE_DIR}/include/central/central_point2d_correspondences.h
@@ -143,9 +144,10 @@ set(grpose_SOURCE_FILES
         ${PROJECT_SOURCE_DIR}/src/grpose/opengv_solver_bvc.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/minimal_solver_central_plus_scale.cpp
         ${PROJECT_SOURCE_DIR}/src/grpose/poselib_solver_6pt.cpp
+        ${PROJECT_SOURCE_DIR}/src/grpose/colmap_solver_8pt.cpp
+
         ${PROJECT_SOURCE_DIR}/src/central/central_refiner.cpp
         ${PROJECT_SOURCE_DIR}/src/central/central_bundle_adjuster.cpp
-
         ${PROJECT_SOURCE_DIR}/src/central/central_bearing_vector_correspondences.cpp
         ${PROJECT_SOURCE_DIR}/src/central/central_point2d_correspondences.cpp
         ${PROJECT_SOURCE_DIR}/src/central/central_opengv_adapter.cpp

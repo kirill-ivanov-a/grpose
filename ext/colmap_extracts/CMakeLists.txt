@@ -202,6 +202,8 @@ COLMAP_ADD_SOURCE_DIR(lib/SQLite LIB_SQLITE_SRCS *.h *.c)
 COLMAP_ADD_SOURCE_DIR(colmap_extracts/base BASE_SRCS *.h *.cc)
 COLMAP_ADD_SOURCE_DIR(colmap_extracts/feature FEATURE_SRCS *.h *.cc)
 COLMAP_ADD_SOURCE_DIR(colmap_extracts/util UTIL_SRCS *.h *.cc)
+COLMAP_ADD_SOURCE_DIR(colmap_extracts/estimators ESTIMATORS_SRCS *.h *.cc)
+COLMAP_ADD_SOURCE_DIR(colmap_extracts/optim OPTIM_SRCS *.h *.cc)
 
 # Add all of the source files to a regular library target, as using a custom
 # target does not allow us to set its C++ include directories (and thus
@@ -212,6 +214,8 @@ add_library(
     ${BASE_SRCS}
     ${FEATURE_SRCS}
     ${UTIL_SRCS}
+    ${ESTIMATORS_SRCS}
+    ${OPTIM_SRCS}
 )
 
 # Prevent the library from being compiled automatically.

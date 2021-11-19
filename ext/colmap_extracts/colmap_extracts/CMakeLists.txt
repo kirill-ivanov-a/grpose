@@ -50,6 +50,8 @@ endif()
 add_subdirectory(base)
 add_subdirectory(feature)
 add_subdirectory(util)
+add_subdirectory(estimators)
+add_subdirectory(optim)
 
 message("All considered sources: ${COLMAP_SOURCES}")
 COLMAP_ADD_STATIC_LIBRARY(colmap ${COLMAP_SOURCES})
