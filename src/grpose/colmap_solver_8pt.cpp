@@ -1,6 +1,4 @@
 #include "grpose/colmap_solver_8pt.h"
-#include "util/util.h"
-
 #include <chrono>
 
 #include <colmap_extracts/base/projection.h>
@@ -23,6 +21,7 @@ bool ColmapSolver8pt::SolveTimed(const std::vector<int> &correspondence_indices,
   CHECK_EQ(correspondence_indices.size(), kSampleSize);
 
   std::vector<colmap::GR6PEstimator::M_t> frame1_from_frame2_matrices;
+
   std::vector<colmap::GR6PEstimator::X_t> points[2];
 
   for (int fi : {0, 1}) points[fi].reserve(kSampleSize);
@@ -32,6 +31,8 @@ bool ColmapSolver8pt::SolveTimed(const std::vector<int> &correspondence_indices,
       const SE3 &body_from_current_camera =
           body_from_camera_[correspondences_->camera_index(fi, i)];
       auto observation = correspondences_->bearing_vector(fi, i);
+
+      if (observation.z() < 0) break;
 
       points[fi].emplace_back();
       points[fi].back().rel_tform =
@@ -53,7 +54,7 @@ bool ColmapSolver8pt::SolveTimed(const std::vector<int> &correspondence_indices,
 
   for (const colmap::GR6PEstimator::M_t &solution :
        frame1_from_frame2_matrices) {
-    if (!is_nan(solution))
+    if (!solution.hasNaN())
       frame1_from_frame2.push_back(
           SE3(solution.leftCols<3>(), solution.rightCols<1>()).inverse());
   }

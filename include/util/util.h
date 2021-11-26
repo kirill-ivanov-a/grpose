@@ -125,12 +125,6 @@ void SaveArgv(const fs::path &filename, int argc, char *argv[]);
 bool GetRelativePath(const fs::path &directory, const fs::path &absolute_path,
                      fs::path &relative_path);
 
-template<typename Derived>
-inline bool is_nan(const Eigen::MatrixBase<Derived>& x)
-{
-  return !((x.array() == x.array())).all();
-}
-
 }  // namespace grpose
 
 #endif
